@@ -1,17 +1,5 @@
-FROM ghcr.io/instantdb/dashboard:latest AS base
+FROM ghcr.io/instantdb/dashboard:latest
 
-# Copy modified source files
-COPY www/pages/dash/cli-setup/ /app/www/pages/dash/cli-setup/
-COPY www/components/dash/CLISetup.tsx /app/www/components/dash/CLISetup.tsx
-COPY www/components/dash/ProfilePanel.tsx /app/www/components/dash/ProfilePanel.tsx
-COPY www/components/dash/Auth.tsx /app/www/components/dash/Auth.tsx
-COPY www/components/dash/MainDashLayout.tsx /app/www/components/dash/MainDashLayout.tsx
-COPY www/pages/dash/index.tsx /app/www/pages/dash/index.tsx
-COPY www/pages/_app.tsx /app/www/pages/_app.tsx
-COPY www/lib/config.ts /app/www/lib/config.ts
-COPY www/public/img/icon/logo-512.png /app/www/public/img/icon/logo-512.png
-
-# Set environment
 ENV NEXT_PUBLIC_SELF_HOSTED=true
 ENV NODE_ENV=production
 
