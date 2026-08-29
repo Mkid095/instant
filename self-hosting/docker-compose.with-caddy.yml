@@ -135,6 +135,23 @@ services:
       retries: 5
       start_period: 30s
 
+  cli-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.cli-setup
+    environment:
+      - INSTANT_API_URI=${INSTANT_BACKEND_URL}
+      - INSTANT_DASHBOARD_URI=${INSTANT_DASHBOARD_URL}
+      - PORT=3100
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/3100 || exit 1'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
