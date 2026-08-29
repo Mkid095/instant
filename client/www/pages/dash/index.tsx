@@ -1,5 +1,4 @@
 import {
-  TerminalIcon,
   Combobox,
   ComboboxButton,
   ComboboxInput,
@@ -7,7 +6,6 @@ import {
   ComboboxOptions,
 } from '@headlessui/react';
 import {
-  TerminalIcon,
   ArchiveBoxIcon,
   ArrowTopRightOnSquareIcon,
   BeakerIcon,
@@ -21,80 +19,58 @@ import {
   MagnifyingGlassIcon,
   ShieldCheckIcon,
   StarIcon as StarOutlineIcon,
+  TerminalIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
+import { Explorer as NewExplorer } from '@instantdb/components';
 import {
-  TerminalIcon, Explorer as NewExplorer } from '@instantdb/components';
-import {
-  TerminalIcon,
   ChevronDownIcon,
   StarIcon as StarSolidIcon,
 } from '@heroicons/react/24/solid';
-import {
-  TerminalIcon, init } from '@instantdb/react';
+import { init } from '@instantdb/react';
 import produce from 'immer';
 import Head from 'next/head';
 import NextLink from 'next/link';
-import {
-  TerminalIcon, ReactElement, useContext, useEffect, useRef, useState } from 'react';
-import {
-  TerminalIcon, usePostHog } from 'posthog-js/react';
+import { ReactElement, useContext, useEffect, useRef, useState } from 'react';
+import { usePostHog } from 'posthog-js/react';
 
 import config, { cliOauthParamName, isSelfHosted } from '@/lib/config';
+import { TokenContext } from '@/lib/contexts';
+import { jsonFetch, jsonMutate } from '@/lib/fetch';
+import { successToast } from '@/lib/toast';
 import {
-  TerminalIcon, TokenContext } from '@/lib/contexts';
-import {
-  TerminalIcon, jsonFetch, jsonMutate } from '@/lib/fetch';
-import {
-  TerminalIcon, successToast } from '@/lib/toast';
-import {
-  TerminalIcon,
   AppsSubscriptionResponse,
   InstantApp,
   SchemaNamespace,
 } from '@/lib/types';
-import {
-  TerminalIcon, titleComparator } from '@/lib/app';
-import {
-  TerminalIcon, getPinnedAppIds, togglePinnedApp } from '@/lib/pinnedApps';
+import { titleComparator } from '@/lib/app';
+import { getPinnedAppIds, togglePinnedApp } from '@/lib/pinnedApps';
 
-import {
-  TerminalIcon, AppStart } from '@/components/dash/HomeStartGuide';
-import {
-  TerminalIcon, Perms } from '@/components/dash/Perms';
-import {
-  TerminalIcon, Schema } from '@/components/dash/Schema';
-import {
-  TerminalIcon, Members as TeamMembers } from '@/components/dash/org-management/Members';
+import { AppStart } from '@/components/dash/HomeStartGuide';
+import { Perms } from '@/components/dash/Perms';
+import { Schema } from '@/components/dash/Schema';
 
+import { Admin } from '@/components/admin/AdminPage';
 import {
-  TerminalIcon, Admin } from '@/components/admin/AdminPage';
-import {
-  TerminalIcon,
   asClientOnlyPage,
   ClientOnly,
   useReadyRouter,
 } from '@/components/clientOnlyPage';
-import {
-  TerminalIcon, AppAuth } from '@/components/dash/AppAuth';
+import { AppAuth } from '@/components/dash/AppAuth';
 import Billing from '@/components/dash/Billing';
+import { QueryInspector } from '@/components/dash/explorer/QueryInspector';
 import {
-  TerminalIcon, QueryInspector } from '@/components/dash/explorer/QueryInspector';
-import {
-  TerminalIcon,
   MainDashLayout,
   useFetchedDash,
 } from '@/components/dash/MainDashLayout';
 import OAuthApps from '@/components/dash/OAuthApps';
-import {
-  TerminalIcon, Backups } from '@/components/dash/Backups';
-import {
-  TerminalIcon, Sandbox } from '@/components/dash/Sandbox';
-import {
-  TerminalIcon, Webhooks } from '@/components/dash/Webhooks';
+import { Backups } from '@/components/dash/Backups';
+import { Sandbox } from '@/components/dash/Sandbox';
+import { Webhooks } from '@/components/dash/Webhooks';
+import TeamMembers from '@/components/dash/TeamMembers';
+import { CLISetup } from '@/components/dash/CLISetup';
 import WebhookIcon from '@/components/icons/WebhookIcon';
 import {
-  TerminalIcon,
   Badge,
   Copyable,
   SectionHeading,
@@ -104,35 +80,25 @@ import {
   ToggleCollection,
   twel,
 } from '@/components/ui';
-import {
-  TerminalIcon, SearchFilter, useSchemaQuery } from '@/lib/hooks/explorer';
+import { SearchFilter, useSchemaQuery } from '@/lib/hooks/explorer';
 import useLocalStorage from '@/lib/hooks/useLocalStorage';
-import {
-  TerminalIcon, getLocallySavedApp, setLocallySavedApp } from '@/lib/locallySavedApp';
+import { getLocallySavedApp, setLocallySavedApp } from '@/lib/locallySavedApp';
 import clsx from 'clsx';
-import {
-  TerminalIcon, createPortal } from 'react-dom';
-import {
-  TerminalIcon, NextPageWithLayout } from '../_app';
-import {
-  TerminalIcon, capitalize } from 'lodash';
-import {
-  TerminalIcon, Workspace } from '@/lib/hooks/useWorkspace';
+import { createPortal } from 'react-dom';
+import { NextPageWithLayout } from '../_app';
+import { capitalize } from 'lodash';
+import { Workspace } from '@/lib/hooks/useWorkspace';
 import AnimatedCounter from '@/components/AnimatedCounter';
+import { useDarkMode } from '@/components/dash/DarkModeToggle';
 import {
-  TerminalIcon, useDarkMode } from '@/components/dash/DarkModeToggle';
-import {
-  TerminalIcon,
   parseAsBoolean,
   parseAsInteger,
   parseAsJson,
   parseAsString,
   useQueryStates,
 } from 'nuqs';
-import {
-  TerminalIcon, useExplorerState } from '@/lib/hooks/useExplorerState';
-import {
-  TerminalIcon, isFullSunsetStage } from '@/lib/sunset';
+import { useExplorerState } from '@/lib/hooks/useExplorerState';
+import { isFullSunsetStage } from '@/lib/sunset';
 
 // (XXX): we may want to expose this underlying type
 type InstantReactClient = ReturnType<typeof init>;
@@ -180,7 +146,8 @@ type MainTabId =
   | 'team'
   | 'admin'
   | 'billing'
-  | 'oauth-apps';
+  | 'oauth-apps'
+  | 'cli-setup';
 
 type UserSettingsTabId = 'pat' | 'oauth-apps';
 
@@ -654,7 +621,7 @@ function Dashboard() {
       </div>
       <div className="flex w-full grow flex-col overflow-hidden md:flex-row">
         <Head>
-          <title>Next Mavens BaaS - {mainTabIndex.get(tab as MainTabId)?.title}</title>
+          <title>Instant - {mainTabIndex.get(tab as MainTabId)?.title}</title>
         </Head>
         <Nav
           apps={apps}
@@ -689,14 +656,14 @@ function Dashboard() {
                   <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-100">
                     <p className="font-semibold">
                       {fetchedDash.data.sunset?.stage === 'disabled'
-                        ? 'Next Mavens BaaS Cloud is now offline.'
-                        : 'Next Mavens BaaS Cloud is now read-only.'}{' '}
+                        ? 'Instant Cloud is now offline.'
+                        : 'Instant Cloud is now read-only.'}{' '}
                       Backups will be available to download until August 31st,
                       2028.
                     </p>
                     <p>
                       Download a backup of this app to restore it to your
-                      self-hosted Next Mavens BaaS deployment.{' '}
+                      self-hosted Instant deployment.{' '}
                       <a
                         href="https://www.instantdb.com/docs/self-hosting/migrate"
                         target="_blank"
@@ -1086,10 +1053,10 @@ function DashboardContent({
         <Billing appId={appId} />
       ) : tab === 'oauth-apps' ? (
         <OAuthApps appId={appId} />
-      ) : tab === 'cli-setup' ? (
-        <CLISetup />
       ) : tab === 'team' ? (
-        <TeamMembers />
+        <TeamMembers appId={appId} />
+      ) : tab === 'cli-setup' ? (
+        <CLISetup appId={appId} />
       ) : null}
     </>
   );
