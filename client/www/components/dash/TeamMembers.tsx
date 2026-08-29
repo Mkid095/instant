@@ -23,7 +23,7 @@ export default function TeamMembers({ appId }: { appId: string }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ 'invitee-email': email, role: 'collaborator' }),
       });
       if (response.ok) {
         successToast(`Invitation sent to ${email}`);
