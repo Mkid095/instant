@@ -17,7 +17,7 @@ export default function TeamMembers({ appId }: { appId: string }) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${config.apiURI}/dash/apps/${appId}/invite`, {
+      const response = await fetch(`${config.apiURI}/dash/apps/${appId}/invite/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
