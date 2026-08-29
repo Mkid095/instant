@@ -1,6 +1,8 @@
 (ns instant.storage.coordinator
   (:require [instant.flags :as flags]
             [instant.storage.s3 :as instant-s3]
+            [instant.storage.cloudinary :as instant-cloudinary]
+            [instant.storage.provider :as storage-provider]
             [instant.model.app-file :as app-file-model]
             [instant.model.rule :as rule-model]
             [instant.storage.beta :as storage-beta]
@@ -13,8 +15,8 @@
             [instant.config :as config]
             [instant.util.string :as string-util])
   (:import
-   (java.time Instant)
-   (java.util Date)))
+    (java.time Instant)
+    (java.util Date)))
 
 (defn assert-storage-permission! [action {:keys [app-id
                                                  path
@@ -40,16 +42,16 @@
 ;; TODO(dww): open up create/update capability for the client sdks,
 ;;            but need to clean up if the create fails
 (defn upload-file!
-  "Uploads a file to S3 and tracks it in Instant. Returns a file id"
+  "Uploads a file to the configured storage provider and tracks it in Instant. Returns a file id"
   [{:keys [app-id path current-user mode skip-perms-check?] :as ctx}
    file]
   (storage-beta/assert-storage-enabled! app-id)
   (when (not skip-perms-check?)
     (assert-storage-permission! "create" {:app-id app-id
-                                          :path path
-                                          :current-user current-user}))
+                                           :path path
+                                           :current-user current-user}))
   (let [location-id (str (random-uuid))
-        _ (instant-s3/upload-file-to-s3 (assoc ctx :location-id location-id) file)
+        _ (storage-provider/upload-file! (assoc ctx :location-id location-id) file)
         _ (when-let [copy-bucket (flags/copy-file-bucket app-id)]
             (try
               (instant-s3/copy-file {:destination-bucket copy-bucket
@@ -62,10 +64,10 @@
                 ;; file record, so delete it (best-effort) to avoid orphaning
                 ;; it in S3, then surface the original copy error.
                 (try
-                  (instant-s3/delete-file! app-id location-id)
+                  (storage-provider/delete-file! app-id location-id)
                   (catch Throwable _ nil))
                 (throw e))))
-        metadata (instant-s3/get-object-metadata app-id location-id)]
+        metadata (storage-provider/get-object-metadata app-id location-id)]
     (try
       (app-file-model/create!
        {:app-id app-id
@@ -78,7 +80,7 @@
                         (assoc (ex-data e)
                                ::upload-meta {:location-id location-id
                                               :metadata metadata})
-                        (ex-cause e)))))))
+                               (ex-cause e)))))))
 
 (defn delete-files!
   "Deletes multiple files from Instant. S3 cleanup is handled by the storage sweeper."
@@ -143,7 +145,7 @@
                                         :path path
                                         :current-user current-user}))
   (let [{:keys [location-id]} (app-file-model/get-by-path {:app-id app-id :path path})]
-    (instant-s3/create-signed-download-url! app-id location-id)))
+    (storage-provider/location-id-url app-id location-id)))
 
 (defn coerce-content-type [s]
   (let [coerced (string-util/coerce-non-blank-str s)]

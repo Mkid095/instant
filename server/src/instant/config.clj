@@ -9,10 +9,10 @@
             [lambdaisland.uri :as uri]
             [lambdaisland.uri.normalize :as normalize])
   (:import
-   (com.google.crypto.tink KeysetHandle)
-   (java.net InetAddress)
-   (java.time ZoneId ZonedDateTime)
-   (javax.crypto.spec SecretKeySpec)))
+    (com.google.crypto.tink KeysetHandle)
+    (java.net InetAddress)
+    (java.time ZoneId ZonedDateTime)
+    (javax.crypto.spec SecretKeySpec)))
 
 (defonce hostname
   (delay
@@ -66,8 +66,8 @@
                            not-empty)]
     (or (email/coerce value)
         (throw (ex-info
-                "INSTANT_SUPERUSER_EMAIL must be a valid email address."
-                {:value value})))))
+                 "INSTANT_SUPERUSER_EMAIL must be a valid email address."
+                 {:value value})))))
 
 (defonce instance-id
   (delay
@@ -101,10 +101,9 @@
 (def rate-limit-hmac-secret
   (delay (SecretKeySpec. (or (some-> @config-map
                                      :rate-limit-hmac-key
-                                     crypt-util/secret-value
-                                     crypt-util/hex-string->bytes)
+                                     crypt-util/secret-value)
                              (crypt-util/random-bytes 32))
-                         "HmacSHA256")))
+                          "HmacSHA256")))
 
 (defn s3-storage-access-key []
   (some-> @config-map :s3-storage-access-key crypt-util/secret-value))
@@ -142,33 +141,49 @@
   (or (System/getenv "INSTANT_EMAIL_REPLY_TO")
       "hello@instantdb.com"))
 
-(defn dashboard-email-sender []
-  {:name (or (System/getenv "INSTANT_DASHBOARD_EMAIL_SENDER_NAME")
-             "Instant")
-   :email (or (System/getenv "INSTANT_DASHBOARD_EMAIL_SENDER_EMAIL")
-              "verify@dash-pm.instantdb.com")})
+;; SMTP config - must be defined before email sender functions that use it
+(defn smtp-host []
+  (or (System/getenv "SMTP_HOST")
+      ""))
 
-(defn app-email-sender []
-  {:name (System/getenv "INSTANT_APP_EMAIL_SENDER_NAME")
-   :email (or (System/getenv "INSTANT_APP_EMAIL_SENDER_EMAIL")
-              "verify@auth-pm.instantdb.com")})
+(defn smtp-port []
+  (or (some-> (System/getenv "SMTP_PORT") parse-long)
+      587))
 
-(defn team-email-sender []
-  {:name (or (System/getenv "INSTANT_TEAM_EMAIL_SENDER_NAME")
-             "Instant")
-   :email (or (System/getenv "INSTANT_TEAM_EMAIL_SENDER_EMAIL")
-              "teams@pm.instantdb.com")})
+(defn smtp-user []
+  (or (System/getenv "SMTP_USER")
+      ""))
 
-(defn email-provider
-  "Explicit email-provider override for self-hosted deployments
-   (INSTANT_EMAIL_PROVIDER = \"postmark\" | \"sendgrid\"). Wins over token
-   auto-detection when set. nil when unset."
-  []
-  (some-> (System/getenv "INSTANT_EMAIL_PROVIDER")
-          string/trim
-          string/lower-case
-          not-empty
-          keyword))
+(defn smtp-password []
+  (or (System/getenv "SMTP_PASSWORD")
+      ""))
+
+(defn smtp-from []
+  (or (System/getenv "SMTP_FROM")
+      ""))
+
+(defn smtp-reply-to []
+  (or (System/getenv "SMTP_REPLY_TO")
+      ""))
+
+(defn smtp-use-tls? []
+  (let [val (System/getenv "SMTP_USE_TLS")]
+    (if (nil? val)
+      true
+      (not= "false" (string/lower-case val)))))
+
+(defn smtp-send-enabled? []
+  (and (not (string/blank? (smtp-host)))
+       (not (string/blank? (smtp-user)))
+       (not (string/blank? (smtp-password)))))
+
+;; Resend config
+(defn resend-api-key []
+  (or (System/getenv "RESEND_API_KEY")
+      ""))
+
+(defn resend-send-enabled? []
+  (not (string/blank? (resend-api-key))))
 
 (defn sendgrid-send-enabled? []
   (not (string/blank? (sendgrid-token))))
@@ -176,8 +191,36 @@
 (defn postmark-send-enabled? []
   (not (string/blank? (postmark-token))))
 
-(defn postmark-admin-enabled? []
-  (not (string/blank? (postmark-account-token))))
+(defn dashboard-email-sender []
+  {:name (or (System/getenv "INSTANT_DASHBOARD_EMAIL_SENDER_NAME")
+             "Instant")
+   :email (or (System/getenv "INSTANT_DASHBOARD_EMAIL_SENDER_EMAIL")
+              (smtp-from)
+              "verify@dash-pm.instantdb.com")})
+
+(defn app-email-sender []
+  {:name (System/getenv "INSTANT_APP_EMAIL_SENDER_NAME")
+   :email (or (System/getenv "INSTANT_APP_EMAIL_SENDER_EMAIL")
+              (smtp-from)
+              "verify@auth-pm.instantdb.com")})
+
+(defn team-email-sender []
+  {:name (or (System/getenv "INSTANT_TEAM_EMAIL_SENDER_NAME")
+             "Instant")
+   :email (or (System/getenv "INSTANT_TEAM_EMAIL_SENDER_EMAIL")
+              (smtp-from)
+              "teams@pm.instantdb.com")})
+
+(defn email-provider
+  "Explicit email-provider override for self-hosted deployments
+   (INSTANT_EMAIL_PROVIDER = \"postmark\" | \"sendgrid\" | \"resend\" | \"smtp\").
+   Wins over token auto-detection when set. nil when unset."
+  []
+  (some-> (System/getenv "INSTANT_EMAIL_PROVIDER")
+          string/trim
+          string/lower-case
+          not-empty
+          keyword))
 
 (defn secret-discord-token []
   (some-> @config-map :secret-discord-token crypt-util/secret-value))
@@ -209,7 +252,7 @@
   @webhook-signing-key*)
 
 (def webhook-public-key* (delay (-> (webhook-signing-key)
-                                    (.getPublicKeysetHandle))))
+                                     (.getPublicKeysetHandle))))
 
 (defn webhook-public-key ^KeysetHandle []
   @webhook-public-key*)
@@ -402,7 +445,7 @@
     :prod {"instant-storage" "https://files.instantdb.com"
            "app-backups-prod-597134865416-us-east-1-an" "https://backups.instantdb.com"}
     :dev {"instantdb-test-bucket" "https://files-dev.instantdb.com"
-          "app-backups-dev-597134865416-us-east-1-an" "https://app-backups-dev.instantdb.com"}
+           "app-backups-dev-597134865416-us-east-1-an" "https://app-backups-dev.instantdb.com"}
     :staging {"instant-storage-staging" "https://files-staging.instantdb.com"
               "app-backups-staging-597134865416-us-east-1-an" "https://app-backups-staging.instantdb.com"}
     {}))
@@ -478,7 +521,7 @@
 
 ;; Cuts off when the calendar turns to March in every time zone on Earth
 (def free-teams-cutoff (-> (ZonedDateTime/of 2026 3 1 0 0 0 0 (ZoneId/of "Etc/GMT+12"))
-                           (.toInstant)))
+                            (.toInstant)))
 
 (defn pg-lock-ns
   "Creates a unique namespace for a pg advisory lock."
@@ -495,3 +538,33 @@
     config))
 
 (defonce fewer-vfutures? true)
+
+;; ---
+;; Storage Provider
+;; ---
+
+(defn storage-provider []
+  "Returns the configured storage provider keyword: :s3 (default) or :cloudinary."
+  (some-> (System/getenv "STORAGE_PROVIDER")
+          string/trim
+          string/lower-case
+          not-empty
+          keyword))
+
+(defn cloudinary-cloud-name []
+  (or (System/getenv "CLOUDINARY_CLOUD_NAME")
+      ""))
+
+(defn cloudinary-api-key []
+  (or (System/getenv "CLOUDINARY_API_KEY")
+      ""))
+
+(defn cloudinary-api-secret []
+  (or (System/getenv "CLOUDINARY_API_SECRET")
+      ""))
+
+(defn cloudinary-send-enabled? []
+  (and (= :cloudinary (storage-provider))
+       (not (string/blank? (cloudinary-cloud-name)))
+       (not (string/blank? (cloudinary-api-key)))
+       (not (string/blank? (cloudinary-api-secret)))))

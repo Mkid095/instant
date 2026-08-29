@@ -1,11 +1,52 @@
 {$DASHBOARD_DOMAIN:localhost} {
-  reverse_proxy www:3000
+	gzip
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	reverse_proxy www:3000
 }
 
 {$BACKEND_DOMAIN:api.localhost} {
-  reverse_proxy server:8888
+	gzip
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Handle CORS preflight for all API routes
+	@corsHeaders method OPTIONS
+	handle @corsHeaders {
+		http.response.headers.Access-Control-Allow-Origin "*"
+		http.response.headers.Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+		http.response.headers.Access-Control-Allow-Headers "Authorization, Content-Type, X-Requested-With"
+		http.response.headers.Access-Control-Max-Age "3600"
+		respond "" 204
+	}
+
+	# Proxy all other requests to the backend
+	reverse_proxy server:8888
 }
 
 {$STORAGE_DOMAIN:files.localhost} {
-  reverse_proxy minio:9000
+	gzip
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+	}
+
+	reverse_proxy minio:9000
 }

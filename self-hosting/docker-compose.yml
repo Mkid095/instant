@@ -1,8 +1,6 @@
 services:
   postgres:
     image: ghcr.io/instantdb/postgresql:postgresql-17-pg-hint-plan
-    ports:
-      - "8890:5432"
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pass}
       POSTGRES_USER: ${POSTGRES_USER:-instant}
@@ -29,15 +27,27 @@ services:
 
   www:
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     image: "ghcr.io/instantdb/dashboard:latest"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
     environment:
       # Where the backend url will be available externally
       - INSTANT_BACKEND_URL=${INSTANT_BACKEND_URL:-http://localhost:8888}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   minio:
     image: minio/minio:latest
-    restart: always
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -73,7 +83,10 @@ services:
         condition: service_healthy
       createbuckets:
         condition: service_completed_successfully
-    image: "ghcr.io/instantdb/server:latest"
+    image: ${INSTANT_SERVER_IMAGE:-ghcr.io/instantdb/server:latest}
+    ports:
+      - "8888:8888"
+    restart: unless-stopped
     environment:
       WAL_HISTORY_STORAGE: pg
       DATABASE_URL: "postgresql://${POSTGRES_USER:-instant}:${POSTGRES_PASSWORD:-pass}@postgres:5432/${POSTGRES_DB:-instant}?sslmode=disable"
@@ -94,6 +107,20 @@ services:
       INSTANT_APP_EMAIL_SENDER_EMAIL: ${INSTANT_APP_EMAIL_SENDER_EMAIL:-}
       INSTANT_TEAM_EMAIL_SENDER_NAME: ${INSTANT_TEAM_EMAIL_SENDER_NAME:-}
       INSTANT_TEAM_EMAIL_SENDER_EMAIL: ${INSTANT_TEAM_EMAIL_SENDER_EMAIL:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_REPLY_TO: ${SMTP_REPLY_TO:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-minio}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       AWS_REGION: ${AWS_REGION:-us-east-1}
@@ -102,6 +129,12 @@ services:
       S3_BUCKET: ${S3_BUCKET:-instant-bucket}
     volumes:
       - server_config:/app/resources/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health/system"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   backend-db:

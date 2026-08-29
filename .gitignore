@@ -248,3 +248,4 @@ examples/*/pnpm-lock.yaml
 
 # packaged examples
 client/packages/create-instant-app/template/base
+.env

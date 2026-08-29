@@ -1,9 +1,11 @@
 (ns instant.email-router
   (:require
-   [instant.config :as config]
-   [instant.flags :as flags]
-   [instant.postmark :as postmark]
-   [instant.sendgrid :as sendgrid]))
+    [instant.config :as config]
+    [instant.flags :as flags]
+    [instant.postmark :as postmark]
+    [instant.sendgrid :as sendgrid]
+    [instant.resend :as resend]
+    [instant.smtp :as smtp]))
 
 (def sendgrid-froms
   {"verify@auth-pm.instantdb.com" "verify@auth-sg.instantdb.com"
@@ -13,11 +15,25 @@
   (cond
     ;; Explicit provider override (self-hosted), wins even if both tokens
     ;; are configured.
+    (= :resend (config/email-provider))
+    (resend/send! req)
+
+    (= :smtp (config/email-provider))
+    (smtp/send! req)
+
     (= :sendgrid (config/email-provider))
     (sendgrid/send! req)
 
     (= :postmark (config/email-provider))
     (postmark/send-structured! req)
+
+    ;; Resend configured — use it
+    (config/resend-send-enabled?)
+    (resend/send! req)
+
+    ;; SMTP configured — use it
+    (config/smtp-send-enabled?)
+    (smtp/send! req)
 
     ;; Auto-detect: SendGrid configured and Postmark not — route through
     ;; SendGrid using the operator's own from-address.

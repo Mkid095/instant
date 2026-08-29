@@ -28,13 +28,23 @@ services:
   www:
     image: "ghcr.io/instantdb/dashboard:latest"
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     environment:
       - INSTANT_BACKEND_URL=${INSTANT_BACKEND_URL:-http://localhost:8888}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/3000 || exit 1'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   minio:
     image: minio/minio:latest
-    restart: always
+    restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -70,7 +80,9 @@ services:
         condition: service_healthy
       createbuckets:
         condition: service_completed_successfully
-    image: "ghcr.io/instantdb/server:latest"
+    image: ${INSTANT_SERVER_IMAGE:-ghcr.io/instantdb/server:latest}
+    ports:
+      - "8888:8888"
     environment:
       WAL_HISTORY_STORAGE: pg
       DATABASE_URL: "postgresql://${POSTGRES_USER:-instant}:${POSTGRES_PASSWORD:-pass}@postgres:5432/${POSTGRES_DB:-instant}?sslmode=disable"
@@ -91,6 +103,20 @@ services:
       INSTANT_APP_EMAIL_SENDER_EMAIL: ${INSTANT_APP_EMAIL_SENDER_EMAIL:-}
       INSTANT_TEAM_EMAIL_SENDER_NAME: ${INSTANT_TEAM_EMAIL_SENDER_NAME:-}
       INSTANT_TEAM_EMAIL_SENDER_EMAIL: ${INSTANT_TEAM_EMAIL_SENDER_EMAIL:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_REPLY_TO: ${SMTP_REPLY_TO:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-minio}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       AWS_REGION: ${AWS_REGION:-}
@@ -99,14 +125,24 @@ services:
       S3_BUCKET: ${S3_BUCKET:-instant-bucket}
     volumes:
       - server_config:/app/resources/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "echo > /dev/tcp/localhost/8888 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
-      - www
-      - server
-      - minio
+      www:
+        condition: service_healthy
+      server:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:-localhost}
       BACKEND_DOMAIN: ${BACKEND_DOMAIN:-api.localhost}
