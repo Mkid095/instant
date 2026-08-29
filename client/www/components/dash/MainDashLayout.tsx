@@ -129,7 +129,7 @@ export const { use: useFetchedDash, provider: DashFetchProvider } =
 
 const announcementNotice = {
   key: 'announced',
-  title: 'Instant is sunsetting.',
+  title: 'Next Mavens BaaS is sunsetting.',
   body: 'Services will continue until August 31st, 2027.',
   dismissible: true,
 };
@@ -144,13 +144,13 @@ const sunsetNotices: Record<
   'signups-closed': announcementNotice,
   'read-only': {
     key: 'read-only',
-    title: 'Instant Cloud is now read-only.',
+    title: 'Next Mavens BaaS Cloud is now read-only.',
     body: 'You can still download backups of your apps.',
     dismissible: false,
   },
   disabled: {
     key: 'disabled',
-    title: 'Instant Cloud is now offline.',
+    title: 'Next Mavens BaaS Cloud is now offline.',
     body: 'You can still download backups of your apps.',
     dismissible: false,
   },

@@ -9,7 +9,6 @@ import {
   TextInput,
 } from '../ui';
 import config, { isDev, isSelfHosted } from '@/lib/config';
-import googleIconSvg from '../../public/img/google_g.svg';
 import Image from 'next/image';
 import { InstantIssue } from '@/lib/types';
 import { url } from '@/lib/url';
@@ -81,8 +80,6 @@ function EmailStep(props: {
   error?: string;
   ticket?: string;
 }) {
-  const router = useRouter();
-
   return (
     <div className="flex flex-col gap-4">
       <form
@@ -112,29 +109,6 @@ function EmailStep(props: {
           Send Code
         </Button>
       </form>
-      {props.emailOnly ? null : (
-        <>
-          <Divider>
-            <span className="mx-4 text-xs text-gray-900 dark:text-neutral-400">
-              OR
-            </span>
-          </Divider>
-          <Button
-            variant="secondary"
-            type="link"
-            href={url(config.apiURI, `/dash/oauth/start`, {
-              ticket: props.ticket,
-              redirect_to_dev: isDev ? 'true' : undefined,
-              redirect_path: router.asPath,
-            })}
-          >
-            <span className="flex items-center space-x-2">
-              <Image alt="google icon" src={googleIconSvg} width={16} />
-              <span>Continue with Google</span>
-            </span>
-          </Button>
-        </>
-      )}
     </div>
   );
 }
@@ -228,7 +202,7 @@ export default function Auth(props: {
       <div className="max-w-sm">
         <span className="inline-flex items-center space-x-2">
           <LogoIcon />
-          <span className="font-mono text-sm lowercase">Instant</span>
+          <span className="font-mono text-sm lowercase">Next Mavens BaaS</span>
         </span>
         <div className="flex flex-col gap-4">
           {sentEmail ? (
@@ -296,7 +270,7 @@ function errorFromSendMagicCode(res: InstantIssue): string {
     case 'signups-closed':
       return (
         res.body?.message ??
-        "Instant is winding down and isn't accepting new sign-ups. If you have any urgent issues and would like to talk to us, you can email us at founders@instantdb.com."
+        "Next Mavens BaaS is winding down and isn't accepting new sign-ups. If you have any urgent issues and would like to talk to us, you can email us at support@nextmavens.com."
       );
     case 'validation-failed':
       const hintMsg = res.body?.hint?.errors?.[0]?.message;

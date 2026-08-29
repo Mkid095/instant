@@ -81,7 +81,9 @@ if (devBackend && isBrowser) {
 
 const defaultApiURI = devBackend
   ? `http://localhost:${localPort}`
-  : `https://${isStaging ? 'api-staging' : 'api'}.instantdb.com`;
+  : isSelfHosted
+    ? `https://${isStaging ? 'api-staging' : 'api'}.instant.fidscript.com`
+    : `https://${isStaging ? 'api-staging' : 'api'}.instantdb.com`;
 
 function getSelfHostedConfig() {
   const apiURI = getRuntimeApiURI();

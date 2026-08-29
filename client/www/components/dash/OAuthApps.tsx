@@ -1019,7 +1019,7 @@ function App({ app }: { app: OAuthApp }) {
           <Content className="prose-a:text-sky-900 prose-code:text-sky-900 dark:prose-code:text-slate-300 m-4 text-sm text-sky-800 [--tw-prose-background:var(--color-sky-50)] dark:text-slate-300">
             {isSelfHosted ? (
               <>
-                This app is in test mode. Only members of this Instant app will
+                This app is in test mode. Only members of this Next Mavens BaaS app will
                 be allowed to auth with it. Once you've built your integration,
                 contact your deployment administrator to release your app to the
                 public.

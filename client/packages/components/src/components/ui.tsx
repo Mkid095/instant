@@ -83,7 +83,7 @@ export const LogoIcon = ({
   };
   return (
     <img
-      src="/img/icon/logo-512.svg"
+      src="/img/icon/logo-512.png"
       className={cn(sizeToClass[size], className)}
     />
   );

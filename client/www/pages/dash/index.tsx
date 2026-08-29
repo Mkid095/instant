@@ -19,6 +19,7 @@ import {
   MagnifyingGlassIcon,
   ShieldCheckIcon,
   StarIcon as StarOutlineIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 import { Explorer as NewExplorer } from '@instantdb/components';
 import {
@@ -47,6 +48,7 @@ import { getPinnedAppIds, togglePinnedApp } from '@/lib/pinnedApps';
 import { AppStart } from '@/components/dash/HomeStartGuide';
 import { Perms } from '@/components/dash/Perms';
 import { Schema } from '@/components/dash/Schema';
+import { Members as TeamMembers } from '@/components/dash/org-management/Members';
 
 import { Admin } from '@/components/admin/AdminPage';
 import {
@@ -184,6 +186,7 @@ const mainTabs: Tab<MainTabId>[] = [
   },
   { id: 'billing', title: 'Billing', icon: makeIcon(CreditCardIcon) },
   { id: 'oauth-apps', title: 'OAuth Apps', icon: makeIcon(CubeIcon) },
+  { id: 'team', title: 'Team Members', icon: makeIcon(UsersIcon) },
 ];
 
 const userTabs: Tab<UserSettingsTabId>[] = [
@@ -614,7 +617,7 @@ function Dashboard() {
       </div>
       <div className="flex w-full grow flex-col overflow-hidden md:flex-row">
         <Head>
-          <title>Instant - {mainTabIndex.get(tab as MainTabId)?.title}</title>
+          <title>Next Mavens BaaS - {mainTabIndex.get(tab as MainTabId)?.title}</title>
         </Head>
         <Nav
           apps={apps}
@@ -649,14 +652,14 @@ function Dashboard() {
                   <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-100">
                     <p className="font-semibold">
                       {fetchedDash.data.sunset?.stage === 'disabled'
-                        ? 'Instant Cloud is now offline.'
-                        : 'Instant Cloud is now read-only.'}{' '}
+                        ? 'Next Mavens BaaS Cloud is now offline.'
+                        : 'Next Mavens BaaS Cloud is now read-only.'}{' '}
                       Backups will be available to download until August 31st,
                       2028.
                     </p>
                     <p>
                       Download a backup of this app to restore it to your
-                      self-hosted Instant deployment.{' '}
+                      self-hosted Next Mavens BaaS deployment.{' '}
                       <a
                         href="https://www.instantdb.com/docs/self-hosting/migrate"
                         target="_blank"
@@ -1046,6 +1049,8 @@ function DashboardContent({
         <Billing appId={appId} />
       ) : tab === 'oauth-apps' ? (
         <OAuthApps appId={appId} />
+      ) : tab === 'team' ? (
+        <TeamMembers />
       ) : null}
     </>
   );

@@ -147,7 +147,7 @@ function FavIconMeta() {
         href="/img/icon/favicon-128.png"
         sizes="128x128"
       />
-      <meta name="application-name" content="Instant" />
+      <meta name="application-name" content="Next Mavens BaaS" />
       <meta name="msapplication-TileColor" content="#FFFFFF" />
       <meta name="msapplication-TileImage" content="mstile-144x144.png" />
       <meta name="msapplication-square70x70logo" content="mstile-70x70.png" />

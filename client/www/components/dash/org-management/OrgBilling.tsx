@@ -212,7 +212,7 @@ export const OrgBilling = () => {
       ) : billingClosed ? (
         <div className="flex flex-col gap-2">
           <div className="w-full rounded-sm border border-purple-400 bg-purple-100 px-2 py-1 text-sm text-purple-800 italic">
-            Instant is winding down. Paid features like teams are now included
+            Next Mavens BaaS is winding down. Paid features like teams are now included
             on every plan for free, plan limits are removed, and we no longer
             sell subscriptions. Existing subscriptions end at the close of their
             billing period.
