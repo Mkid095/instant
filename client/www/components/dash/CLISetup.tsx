@@ -27,7 +27,7 @@ const CodeBlock = ({ code, label }: { code: string; label: string }) => {
   );
 };
 
-export const CLISetup = () => {
+export const CLISetup = ({ appId }: { appId: string }) => {
   const token = useAuthToken();
   const apiURI = config.apiURI;
   const dashURI = 'https://instant.fidscript.com';
