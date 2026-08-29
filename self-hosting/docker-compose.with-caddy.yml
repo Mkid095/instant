@@ -80,7 +80,7 @@ services:
         condition: service_healthy
       createbuckets:
         condition: service_completed_successfully
-    image: ${INSTANT_SERVER_IMAGE:-ghcr.io/instantdb/server:latest}
+    image: ${INSTANT_SERVER_IMAGE:-ghcr.io/instantdb/server:custom}
     ports:
       - "8888:8888"
     environment:
