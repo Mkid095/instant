@@ -195,7 +195,7 @@
           (discord/send!
            config/discord-signups-channel-id
            (str "🎉 A new user signed up! Say hi to " "`" email "`"))
-          (postmark/send!
+          (email-router/send-structured!
            {:from "Instant Assistant <hello@pm.instantdb.com>"
             :to "founders@instantdb.com"
             :reply-to email
@@ -1335,7 +1335,7 @@
                                    :inviter-id inviter-id
                                    :email invitee-email
                                    :role role})
-    (postmark/send!
+    (email-router/send-structured!
      (team-member-invite-email {:inviter-id inviter-id
                                 :invitee-email invitee-email
                                 :foreign-key foreign-key
