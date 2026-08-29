@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useAuthToken } from '@/lib/auth';
 import config from '@/lib/config';
 import { successToast, errorToast } from '@/lib/toast';
-import { SectionHeading, Button, Input } from '@/components/ui';
-import { UsersIcon } from '@heroicons/react/24/outline';
+import { SectionHeading, Button } from '@/components/ui';
+import { CommandLineIcon } from '@heroicons/react/24/solid';
 
 export default function TeamMembers({ appId }: { appId: string }) {
   const token = useAuthToken();
@@ -43,7 +43,7 @@ export default function TeamMembers({ appId }: { appId: string }) {
     <div className="flex flex-col gap-6 p-6">
       <div>
         <div className="flex items-center gap-3">
-          <UsersIcon className="h-8 w-8 text-gray-500" />
+          <CommandLineIcon className="h-8 w-8 text-gray-500" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Team Members</h1>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -56,12 +56,12 @@ export default function TeamMembers({ appId }: { appId: string }) {
       <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-800">
         <SectionHeading>Invite Member</SectionHeading>
         <div className="mt-4 flex flex-col gap-4 sm:flex-row">
-          <Input
+          <input
             type="email"
             placeholder="Enter email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="flex-1"
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-white"
           />
           <Button
             onClick={inviteMember}

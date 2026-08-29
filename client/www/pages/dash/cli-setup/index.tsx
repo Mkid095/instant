@@ -4,7 +4,7 @@ import { MainDashLayout, useFetchedDash } from '@/components/dash/MainDashLayout
 import { useAuthToken } from '@/lib/auth';
 import config from '@/lib/config';
 import { Button, Content, SectionHeading } from '@/components/ui';
-import { ClipboardIcon, CheckIcon, CopyIcon } from '@heroicons/react/24/outline';
+import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { isSelfHosted } from '@/lib/config';
 
 const copyToClipboard = (text: string) => {
@@ -35,7 +35,7 @@ const CodeBlock = ({ code, label }: { code: string; label: string }) => {
             </>
           ) : (
             <>
-              <CopyIcon className="h-3 w-3" />
+              <ClipboardIcon className="h-3 w-3" />
               <span>Copy</span>
             </>
           )}

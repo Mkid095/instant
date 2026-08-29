@@ -4,9 +4,9 @@ import {
   BuildingOfficeIcon,
   ChevronDownIcon,
   Cog6ToothIcon,
-  TerminalIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
+import { CommandLineIcon } from '@heroicons/react/24/solid';
 import clsx from 'clsx';
 import Link from 'next/link';
 import { useReadyRouter } from '../clientOnlyPage';
@@ -101,7 +101,7 @@ export const ProfilePanel = () => {
                   <TooltipTrigger onClick={() => {}}>
                     <Link href="/dash/cli-setup" onClick={() => close()}>
                       <div className="p-3 transition-colors hover:bg-gray-200 dark:invert dark:hover:bg-neutral-500">
-                        <TerminalIcon className="h-4 w-4" />
+                        <CommandLineIcon className="h-4 w-4" />
                       </div>
                     </Link>
                   </TooltipTrigger>

@@ -19,13 +19,13 @@ import {
   MagnifyingGlassIcon,
   ShieldCheckIcon,
   StarIcon as StarOutlineIcon,
-  TerminalIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
 import { Explorer as NewExplorer } from '@instantdb/components';
 import {
   ChevronDownIcon,
   StarIcon as StarSolidIcon,
+  CommandLineIcon,
 } from '@heroicons/react/24/solid';
 import { init } from '@instantdb/react';
 import produce from 'immer';
@@ -190,7 +190,7 @@ const mainTabs: Tab<MainTabId>[] = [
   { id: 'billing', title: 'Billing', icon: makeIcon(CreditCardIcon) },
   { id: 'oauth-apps', title: 'OAuth Apps', icon: makeIcon(CubeIcon) },
   { id: 'team', title: 'Team Members', icon: makeIcon(UsersIcon) },
-  { id: 'cli-setup', title: 'CLI & MCP', icon: makeIcon(TerminalIcon) },
+  { id: 'cli-setup', title: 'CLI & MCP', icon: makeIcon(CommandLineIcon) },
 ];
 
 const userTabs: Tab<UserSettingsTabId>[] = [
