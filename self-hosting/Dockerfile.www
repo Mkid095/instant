@@ -1,59 +1,7 @@
-# Build stage
-FROM ghcr.io/instantdb/dashboard:latest AS builder
-
-# Install pnpm via npm
-RUN npm install -g pnpm
-
-# Copy package files
-COPY client/package.json client/pnpm-workspace.yaml client/pnpm-lock.yaml /monorepo/
-COPY client/www/package.json /monorepo/client/www/
-COPY client/packages/cli/package.json /monorepo/client/packages/cli/
-
-# Install dependencies
-WORKDIR /monorepo
-RUN pnpm install --frozen-lockfile
-
-# Copy source files
-COPY . /monorepo/
-
-# Build www package
-WORKDIR /monorepo/client/www
-RUN pnpm build
-
-# Runtime stage
-FROM ghcr.io/instantdb/dashboard:latest AS runner
-
-# Copy built output from builder
-COPY --from=builder /monorepo/client/www/.next/standalone /app
-COPY --from=builder /monorepo/client/www/.next/static /app/www/.next/static
-COPY --from=builder /monorepo/client/www/public /app/www/public
-
-# Create startup script
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'set -eu' >> /app/start.sh && \
-    echo 'node <<'"'"'NODE'"'"'' >> /app/start.sh && \
-    echo 'const fs = require('"'"'fs'"'"');' >> /app/start.sh && \
-    echo 'const apiURI = (process.env.INSTANT_API_URI || process.env.INSTANT_BACKEND_URL || '"'"''"'"').trim();' >> /app/start.sh && \
-    echo 'try {' >> /app/start.sh && \
-    echo '  const url = new URL(apiURI);' >> /app/start.sh && \
-    echo '  if (url.protocol !== '"'"'http:'"'"' && url.protocol !== '"'"'https:'"'"') {' >> /app/start.sh && \
-    echo '    throw new Error('"'"'Unsupported protocol'"'"');' >> /app/start.sh && \
-    echo '  }' >> /app/start.sh && \
-    echo '} catch (_e) {' >> /app/start.sh && \
-    echo '  console.error('"'"'INSTANT_API_URI or INSTANT_BACKEND_URL must be a valid HTTP(S) URL.'"'"');' >> /app/start.sh && \
-    echo '  process.exit(1);' >> /app/start.sh && \
-    echo '}' >> /app/start.sh && \
-    echo 'fs.writeFileSync(' >> /app/start.sh && \
-    echo '  '"'"'/app/www/public/publicSelfHostedVariables.js'"'"',' >> /app/start.sh && \
-    echo '  `window.__instantConfig = ${JSON.stringify({ apiURI })};\n`,' >> /app/start.sh && \
-    echo ');' >> /app/start.sh && \
-    echo 'NODE' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'exec node www/server.js' >> /app/start.sh
-RUN chmod +x /app/start.sh
+FROM ghcr.io/instantdb/dashboard:latest
 
 ENV NEXT_PUBLIC_SELF_HOSTED=true
 ENV NODE_ENV=production
 
 EXPOSE 3000
-CMD ["/app/start.sh"]
+CMD ["node", "www/server.js"]
