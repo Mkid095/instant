@@ -90,7 +90,7 @@ export default function CliSetupPage() {
   const [tokenError, setTokenError] = useState<string>('');
 
   const apiURI = config.apiURI;
-  const dashURI = config.dashURI || 'https://instant.fidscript.com';
+  const dashURI = 'https://instant.fidscript.com';
 
   useEffect(() => {
     if (token) {
@@ -398,7 +398,7 @@ curl -H "Authorization: Bearer $INSTANT_ACCESS_TOKEN" \\
   );
 }
 
-CliSetupPage.getLayout = function getLayout(page) {
+CliSetupPage.getLayout = function getLayout(page: React.ReactElement) {
   return (
     <MainDashLayout className="bg-gray-100 dark:bg-neutral-800 dark:text-white">
       {page}
