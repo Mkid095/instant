@@ -26,6 +26,7 @@ services:
       - "random_page_cost=1.1"
 
   www:
+    env_file: .env
     build:
       context: ..
       dockerfile: self-hosting/Dockerfile.www
@@ -38,7 +39,7 @@ services:
     ports:
       - "3000:3000"
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/3000 || exit 1'"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/dash || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -83,6 +84,7 @@ services:
       createbuckets:
         condition: service_completed_successfully
     image: ${INSTANT_SERVER_IMAGE:-ghcr.io/instantdb/server:custom}
+    env_file: .env
     ports:
       - "8888:8888"
     environment:
