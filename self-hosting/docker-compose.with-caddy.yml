@@ -26,7 +26,9 @@ services:
       - "random_page_cost=1.1"
 
   www:
-    image: "ghcr.io/instantdb/dashboard:latest"
+    build:
+      context: ..
+      dockerfile: self-hosting/Dockerfile.www
     depends_on:
       server:
         condition: service_healthy

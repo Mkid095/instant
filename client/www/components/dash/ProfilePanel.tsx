@@ -4,6 +4,7 @@ import {
   BuildingOfficeIcon,
   ChevronDownIcon,
   Cog6ToothIcon,
+  TerminalIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
@@ -95,6 +96,16 @@ export const ProfilePanel = () => {
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent side="right">User Settings</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger onClick={() => {}}>
+                    <Link href="/dash/cli-setup" onClick={() => close()}>
+                      <div className="p-3 transition-colors hover:bg-gray-200 dark:invert dark:hover:bg-neutral-500">
+                        <TerminalIcon className="h-4 w-4" />
+                      </div>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">CLI & MCP Setup</TooltipContent>
                 </Tooltip>
               </div>
               {dashResponse.data.superuser && (

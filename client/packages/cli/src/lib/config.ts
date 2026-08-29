@@ -12,6 +12,10 @@ const HttpUrl = Schema.URL.pipe(
   ),
 );
 
+// Self-hosted defaults
+const SELF_HOSTED_API_URI = process.env.INSTANT_CLI_API_URI || 'https://api.instant.fidscript.com';
+const SELF_HOSTED_DASH_URI = process.env.INSTANT_CLI_DASH_URI || 'https://instant.fidscript.com';
+
 export const getBaseUrl = Effect.gen(function* () {
   const setEnv = yield* Config.string('INSTANT_CLI_API_URI').pipe(
     Config.option,
@@ -35,6 +39,12 @@ export const getBaseUrl = Effect.gen(function* () {
       ),
     );
     return instantConfig.apiURI;
+  }
+
+  // Check for self-hosted environment
+  const isSelfHosted = process.env.INSTANT_SELF_HOSTED === 'true';
+  if (isSelfHosted) {
+    return SELF_HOSTED_API_URI;
   }
 
   return dev ? 'http://localhost:8888' : 'https://api.instantdb.com';
@@ -67,6 +77,12 @@ export const getDashUrl = Effect.gen(function* () {
       ),
     );
     return instantConfig.dashURI;
+  }
+
+  // Check for self-hosted environment
+  const isSelfHosted = process.env.INSTANT_SELF_HOSTED === 'true';
+  if (isSelfHosted) {
+    return SELF_HOSTED_DASH_URI;
   }
 
   return dev ? 'http://localhost:3000' : 'https://instantdb.com';

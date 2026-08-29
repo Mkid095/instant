@@ -1,4 +1,5 @@
 import {
+  TerminalIcon,
   Combobox,
   ComboboxButton,
   ComboboxInput,
@@ -6,6 +7,7 @@ import {
   ComboboxOptions,
 } from '@headlessui/react';
 import {
+  TerminalIcon,
   ArchiveBoxIcon,
   ArrowTopRightOnSquareIcon,
   BeakerIcon,
@@ -21,54 +23,78 @@ import {
   StarIcon as StarOutlineIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
-import { Explorer as NewExplorer } from '@instantdb/components';
 import {
+  TerminalIcon, Explorer as NewExplorer } from '@instantdb/components';
+import {
+  TerminalIcon,
   ChevronDownIcon,
   StarIcon as StarSolidIcon,
 } from '@heroicons/react/24/solid';
-import { init } from '@instantdb/react';
+import {
+  TerminalIcon, init } from '@instantdb/react';
 import produce from 'immer';
 import Head from 'next/head';
 import NextLink from 'next/link';
-import { ReactElement, useContext, useEffect, useRef, useState } from 'react';
-import { usePostHog } from 'posthog-js/react';
+import {
+  TerminalIcon, ReactElement, useContext, useEffect, useRef, useState } from 'react';
+import {
+  TerminalIcon, usePostHog } from 'posthog-js/react';
 
 import config, { cliOauthParamName, isSelfHosted } from '@/lib/config';
-import { TokenContext } from '@/lib/contexts';
-import { jsonFetch, jsonMutate } from '@/lib/fetch';
-import { successToast } from '@/lib/toast';
 import {
+  TerminalIcon, TokenContext } from '@/lib/contexts';
+import {
+  TerminalIcon, jsonFetch, jsonMutate } from '@/lib/fetch';
+import {
+  TerminalIcon, successToast } from '@/lib/toast';
+import {
+  TerminalIcon,
   AppsSubscriptionResponse,
   InstantApp,
   SchemaNamespace,
 } from '@/lib/types';
-import { titleComparator } from '@/lib/app';
-import { getPinnedAppIds, togglePinnedApp } from '@/lib/pinnedApps';
-
-import { AppStart } from '@/components/dash/HomeStartGuide';
-import { Perms } from '@/components/dash/Perms';
-import { Schema } from '@/components/dash/Schema';
-import { Members as TeamMembers } from '@/components/dash/org-management/Members';
-
-import { Admin } from '@/components/admin/AdminPage';
 import {
+  TerminalIcon, titleComparator } from '@/lib/app';
+import {
+  TerminalIcon, getPinnedAppIds, togglePinnedApp } from '@/lib/pinnedApps';
+
+import {
+  TerminalIcon, AppStart } from '@/components/dash/HomeStartGuide';
+import {
+  TerminalIcon, Perms } from '@/components/dash/Perms';
+import {
+  TerminalIcon, Schema } from '@/components/dash/Schema';
+import {
+  TerminalIcon, Members as TeamMembers } from '@/components/dash/org-management/Members';
+
+import {
+  TerminalIcon, Admin } from '@/components/admin/AdminPage';
+import {
+  TerminalIcon,
   asClientOnlyPage,
   ClientOnly,
   useReadyRouter,
 } from '@/components/clientOnlyPage';
-import { AppAuth } from '@/components/dash/AppAuth';
-import Billing from '@/components/dash/Billing';
-import { QueryInspector } from '@/components/dash/explorer/QueryInspector';
 import {
+  TerminalIcon, AppAuth } from '@/components/dash/AppAuth';
+import Billing from '@/components/dash/Billing';
+import {
+  TerminalIcon, QueryInspector } from '@/components/dash/explorer/QueryInspector';
+import {
+  TerminalIcon,
   MainDashLayout,
   useFetchedDash,
 } from '@/components/dash/MainDashLayout';
 import OAuthApps from '@/components/dash/OAuthApps';
-import { Backups } from '@/components/dash/Backups';
-import { Sandbox } from '@/components/dash/Sandbox';
-import { Webhooks } from '@/components/dash/Webhooks';
+import {
+  TerminalIcon, Backups } from '@/components/dash/Backups';
+import {
+  TerminalIcon, Sandbox } from '@/components/dash/Sandbox';
+import {
+  TerminalIcon, Webhooks } from '@/components/dash/Webhooks';
 import WebhookIcon from '@/components/icons/WebhookIcon';
 import {
+  TerminalIcon,
   Badge,
   Copyable,
   SectionHeading,
@@ -78,25 +104,35 @@ import {
   ToggleCollection,
   twel,
 } from '@/components/ui';
-import { SearchFilter, useSchemaQuery } from '@/lib/hooks/explorer';
-import useLocalStorage from '@/lib/hooks/useLocalStorage';
-import { getLocallySavedApp, setLocallySavedApp } from '@/lib/locallySavedApp';
-import clsx from 'clsx';
-import { createPortal } from 'react-dom';
-import { NextPageWithLayout } from '../_app';
-import { capitalize } from 'lodash';
-import { Workspace } from '@/lib/hooks/useWorkspace';
-import AnimatedCounter from '@/components/AnimatedCounter';
-import { useDarkMode } from '@/components/dash/DarkModeToggle';
 import {
+  TerminalIcon, SearchFilter, useSchemaQuery } from '@/lib/hooks/explorer';
+import useLocalStorage from '@/lib/hooks/useLocalStorage';
+import {
+  TerminalIcon, getLocallySavedApp, setLocallySavedApp } from '@/lib/locallySavedApp';
+import clsx from 'clsx';
+import {
+  TerminalIcon, createPortal } from 'react-dom';
+import {
+  TerminalIcon, NextPageWithLayout } from '../_app';
+import {
+  TerminalIcon, capitalize } from 'lodash';
+import {
+  TerminalIcon, Workspace } from '@/lib/hooks/useWorkspace';
+import AnimatedCounter from '@/components/AnimatedCounter';
+import {
+  TerminalIcon, useDarkMode } from '@/components/dash/DarkModeToggle';
+import {
+  TerminalIcon,
   parseAsBoolean,
   parseAsInteger,
   parseAsJson,
   parseAsString,
   useQueryStates,
 } from 'nuqs';
-import { useExplorerState } from '@/lib/hooks/useExplorerState';
-import { isFullSunsetStage } from '@/lib/sunset';
+import {
+  TerminalIcon, useExplorerState } from '@/lib/hooks/useExplorerState';
+import {
+  TerminalIcon, isFullSunsetStage } from '@/lib/sunset';
 
 // (XXX): we may want to expose this underlying type
 type InstantReactClient = ReturnType<typeof init>;
@@ -187,6 +223,7 @@ const mainTabs: Tab<MainTabId>[] = [
   { id: 'billing', title: 'Billing', icon: makeIcon(CreditCardIcon) },
   { id: 'oauth-apps', title: 'OAuth Apps', icon: makeIcon(CubeIcon) },
   { id: 'team', title: 'Team Members', icon: makeIcon(UsersIcon) },
+  { id: 'cli-setup', title: 'CLI & MCP', icon: makeIcon(TerminalIcon) },
 ];
 
 const userTabs: Tab<UserSettingsTabId>[] = [
@@ -1049,6 +1086,8 @@ function DashboardContent({
         <Billing appId={appId} />
       ) : tab === 'oauth-apps' ? (
         <OAuthApps appId={appId} />
+      ) : tab === 'cli-setup' ? (
+        <CLISetup />
       ) : tab === 'team' ? (
         <TeamMembers />
       ) : null}
