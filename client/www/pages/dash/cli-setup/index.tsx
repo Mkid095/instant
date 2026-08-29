@@ -398,7 +398,7 @@ curl -H "Authorization: Bearer $INSTANT_ACCESS_TOKEN" \\
   );
 }
 
-CliSetupPage.getLayout = function getLayout(page: React.ReactElement) {
+CliSetupPage.getLayout = function getLayout(page: JSX.Element) {
   return (
     <MainDashLayout className="bg-gray-100 dark:bg-neutral-800 dark:text-white">
       {page}
