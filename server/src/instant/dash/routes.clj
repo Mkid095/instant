@@ -1283,7 +1283,7 @@
      :subject (str "[Instant] You've been invited to collaborate on " title)
      :reply-to sender-email
      :html
-     (postmark/standard-body
+     (email/standard-body
       (h/html
        [:p [:strong "Hey there!"]]
        [:p
