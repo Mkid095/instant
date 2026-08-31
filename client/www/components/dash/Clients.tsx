@@ -192,7 +192,7 @@ export default function Clients() {
                 <div className="flex gap-2">
                   <Button
                     onClick={() => resendInvite(invite.id)}
-                    variant="outline"
+                    variant="subtle"
                   >
                     Resend
                   </Button>

@@ -1,55 +1,101 @@
-# Stage 1: Build the Next.js application
-FROM node:22-alpine AS builder
+# Multi-stage build for self-hosted InstantDB dashboard
+ARG NODE_VERSION=22.22.2-slim
 
+FROM node:${NODE_VERSION} AS dependencies
+
+WORKDIR /monorepo
+
+COPY client/package.json client/pnpm-workspace.yaml client/pnpm-lock.yaml ./
+
+# Install project dependencies with frozen lockfile for reproducible builds
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/usr/local/share/.cache/yarn \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    corepack enable pnpm && pnpm install;
+
+FROM node:${NODE_VERSION} AS pruner
+
+WORKDIR /monorepo
+
+COPY --from=dependencies /monorepo/node_modules ./node_modules
+
+COPY client ./
+RUN corepack enable pnpm;
+RUN pnpm turbo prune instant-www --docker
+
+FROM node:${NODE_VERSION} AS builder
+WORKDIR /monorepo
+ARG NEXT_PUBLIC_SELF_HOSTED=true
+ENV NEXT_PUBLIC_SELF_HOSTED=${NEXT_PUBLIC_SELF_HOSTED}
+COPY --from=pruner /monorepo/out/json/ .
+RUN corepack enable pnpm
+RUN pnpm install
+
+COPY --from=pruner /monorepo/out/full/ .
+COPY client/tsconfig.base.json ./
+
+RUN pnpm install
+
+RUN pnpm turbo build
+
+# Production runner
+FROM node:${NODE_VERSION} AS runner
 WORKDIR /app
-
-# Copy start script for later use
-COPY self-hosting/start-www.sh /start-www.sh
-
-# Copy workspace package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages ./packages
-COPY client/www/package.json client/www/pnpm-lock.yaml ./client/www/
-
-# Install dependencies using pnpm
-RUN corepack enable pnpm && pnpm install --frozen-lockfile
-
-# Copy source code
-COPY client/www ./client/www
-
-# Set build-time environment variables for self-hosted deployment
-ENV NEXT_PUBLIC_SELF_HOSTED=true
-
-# Build the Next.js application
-RUN cd client/www && pnpm build
-
-# Stage 2: Create the production image
-FROM node:22-alpine
-
-RUN apk add --no-cache curl
-
-WORKDIR /app
-
-# Copy the standalone build output from builder
-COPY --from=builder /app/client/www/.next/standalone ./
-COPY --from=builder /app/client/www/.next/static ./www/.next/static
-COPY --from=builder /app/client/www/public ./www/public
-
-# Copy the start script from builder stage
-COPY --from=builder /start-www.sh /start-www.sh
 
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_SELF_HOSTED=true
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_SELF_HOSTED=true
+ENV NEXT_PUBLIC_SELF_HOSTED=${NEXT_PUBLIC_SELF_HOSTED}
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-RUN chown -R nextjs:nodejs /app
+# Copy the standalone output
+COPY --from=builder /monorepo/www/.next/standalone ./
+# Copy static assets and public files
+COPY --from=builder /monorepo/www/.next/static ./www/.next/static
+COPY --from=builder /monorepo/www/public ./www/public
+
+COPY <<'EOF' /app/start.sh
+#!/bin/sh
+set -eu
+
+node <<'NODE'
+const fs = require('fs');
+
+const apiURI = (
+  process.env.INSTANT_API_URI ||
+  process.env.INSTANT_BACKEND_URL ||
+  ''
+).trim();
+
+try {
+  const url = new URL(apiURI);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('Unsupported protocol');
+  }
+} catch (_e) {
+  console.error(
+    'INSTANT_API_URI or INSTANT_BACKEND_URL must be a valid HTTP(S) URL.',
+  );
+  process.exit(1);
+}
+
+fs.writeFileSync(
+  '/app/www/public/publicSelfHostedVariables.js',
+  `window.__instantConfig = ${JSON.stringify({ apiURI })};\n`,
+);
+NODE
+
+exec node www/server.js
+EOF
+
+RUN chmod +x /app/start.sh && chown -R nextjs:nodejs /app/www/public /app/start.sh
 
 USER nextjs
 
 EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-CMD ["/start-www.sh"]
+CMD ["/app/start.sh"]
