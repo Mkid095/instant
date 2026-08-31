@@ -200,17 +200,25 @@ const tags = {
   'api-url': {
     selfClosing: true,
     render: function ApiUrl() {
-      // At build time, this will be replaced with NEXT_PUBLIC_DOCS_API_URL
+      // Build-time env var - baked into static HTML at build time
+      // For self-hosted deployments, this will be the configured API URL
+      // For cloud deployments, this defaults to api.instantdb.com
       const apiUrl = process.env.NEXT_PUBLIC_DOCS_API_URL || 'https://api.instantdb.com';
-      return <code>{apiUrl}</code>;
+      return <code className="text-sm bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">{apiUrl}</code>;
     },
   },
   'websocket-url': {
     selfClosing: true,
     render: function WebsocketUrl() {
-      // At build time, this will be replaced with NEXT_PUBLIC_DOCS_WS_URL
       const wsUrl = process.env.NEXT_PUBLIC_DOCS_WS_URL || 'wss://api.instantdb.com/runtime/session';
-      return <code>{wsUrl}</code>;
+      return <code className="text-sm bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">{wsUrl}</code>;
+    },
+  },
+  'dashboard-url': {
+    selfClosing: true,
+    render: function DashboardUrl() {
+      const dashUrl = process.env.NEXT_PUBLIC_DOCS_DASHBOARD_URL || 'https://instantdb.com';
+      return <code className="text-sm bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">{dashUrl}</code>;
     },
   },
 };

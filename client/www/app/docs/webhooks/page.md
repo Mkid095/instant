@@ -306,8 +306,12 @@ Every webhook arrives as a `POST` with two things you care about:
 The signed message is `t` + `.` + the raw request body, as UTF-8 bytes. Verify the `v1` signature against the Ed25519 public key whose `kid` matches the header. The public keys are published as a JWK Set at:
 
 ```text
-https://api.instantdb.com/.well-known/webhooks/jwks.json
+$API_URL/.well-known/webhooks/jwks.json
 ```
+
+Where `$API_URL` is your Instant deployment's API URL:
+- **Instant Cloud**: `https://api.instantdb.com`
+- **Self-hosted**: your configured API URL (e.g., `https://api.instant.fidscript.com`)
 
 Reject requests where `t` is older than a few minutes (the SDK defaults to 300 seconds) to prevent replays.
 
@@ -318,7 +322,8 @@ Reject requests where `t` is older than a few minutes (the SDK defaults to 300 s
 import base64, json, time, requests
 from nacl.signing import VerifyKey
 
-JWKS_URL = "https://api.instantdb.com/.well-known/webhooks/jwks.json"
+# Replace $API_URL with your Instant deployment's API URL
+JWKS_URL = "$API_URL/.well-known/webhooks/jwks.json"
 TOLERANCE_SECONDS = 300
 
 def _b64url_decode(s: str) -> bytes:
@@ -358,7 +363,7 @@ import (
 )
 
 const (
-	jwksURL          = "https://api.instantdb.com/.well-known/webhooks/jwks.json"
+	jwksURL          = "$API_URL/.well-known/webhooks/jwks.json"
 	toleranceSeconds = 300
 )
 
@@ -425,7 +430,8 @@ require "base64"
 require "json"
 require "net/http"
 
-JWKS_URL = "https://api.instantdb.com/.well-known/webhooks/jwks.json"
+# Replace $API_URL with your Instant deployment's API URL
+JWKS_URL = "$API_URL/.well-known/webhooks/jwks.json"
 TOLERANCE_SECONDS = 300
 
 def verify_key_for(kid)
@@ -464,7 +470,8 @@ import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
 
 public class WebhookVerifier {
-  static final String JWKS_URL = "https://api.instantdb.com/.well-known/webhooks/jwks.json";
+  // Replace $API_URL with your Instant deployment's API URL
+  static final String JWKS_URL = "$API_URL/.well-known/webhooks/jwks.json";
   static final long TOLERANCE_SECONDS = 300;
   static final ObjectMapper JSON = new ObjectMapper();
 
