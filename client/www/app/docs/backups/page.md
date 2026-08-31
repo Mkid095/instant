@@ -94,7 +94,7 @@ Read the [Self hosting](/docs/self-hosting) guide for more information on how to
 
 Ensure that you've set the [deployment superuser](/docs/self-hosting#configure-the-deployment-superuser) via the `INSTANT_SUPERUSER_EMAIL` environment variable.
 
-Sign in to the dashboard with your superuser email, then visit `${your-selfhosted-dashboard-url}/intern/restore` to restore the app into your new self-hosted instance.
+Sign in to the dashboard with your superuser email, then visit `$DASHBOARD_URL/intern/restore` to restore the app into your new self-hosted instance.
 
 If you have any OAuth clients set up with client secrets, go to the Auth dashboard for the restored app and update the secrets. The secrets will not carry over to the restored app.
 

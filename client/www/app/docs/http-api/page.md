@@ -13,10 +13,7 @@ You can use the HTTP API in your favorite backend language to run scripts, creat
 
 {% callout type="note" %}
 
-**Self-hosted configuration**: In the examples below, replace `$API_URL` with your deployment's API URL.
-
-- For **Instant Cloud**: use `https://api.instantdb.com`
-- For **self-hosted deployments**: use your configured API URL (e.g., `https://api.instant.fidscript.com`)
+**API URL**: The examples below use `$API_URL` which is automatically resolved to your deployment's API URL. For Instant Cloud, this resolves to `https://api.instantdb.com`. For self-hosted deployments, this resolves to your configured API URL.
 
 {% /callout %}
 

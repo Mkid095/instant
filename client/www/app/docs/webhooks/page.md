@@ -309,9 +309,7 @@ The signed message is `t` + `.` + the raw request body, as UTF-8 bytes. Verify t
 $API_URL/.well-known/webhooks/jwks.json
 ```
 
-Where `$API_URL` is your Instant deployment's API URL:
-- **Instant Cloud**: `https://api.instantdb.com`
-- **Self-hosted**: your configured API URL (e.g., `https://api.instant.fidscript.com`)
+The `$API_URL` is automatically resolved to your deployment's API URL.
 
 Reject requests where `t` is older than a few minutes (the SDK defaults to 300 seconds) to prevent replays.
 
@@ -322,7 +320,7 @@ Reject requests where `t` is older than a few minutes (the SDK defaults to 300 s
 import base64, json, time, requests
 from nacl.signing import VerifyKey
 
-# Replace $API_URL with your Instant deployment's API URL
+# $API_URL is automatically resolved to your deployment's API URL
 JWKS_URL = "$API_URL/.well-known/webhooks/jwks.json"
 TOLERANCE_SECONDS = 300
 
@@ -430,7 +428,7 @@ require "base64"
 require "json"
 require "net/http"
 
-# Replace $API_URL with your Instant deployment's API URL
+# $API_URL is automatically resolved to your deployment's API URL
 JWKS_URL = "$API_URL/.well-known/webhooks/jwks.json"
 TOLERANCE_SECONDS = 300
 
