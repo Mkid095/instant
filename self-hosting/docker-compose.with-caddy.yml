@@ -28,6 +28,8 @@ services:
       args:
         INSTANT_API_URI: ${INSTANT_API_URI:-${INSTANT_BACKEND_URL:-https://api.instant.fidscript.com}}
         NEXT_PUBLIC_SELF_HOSTED: "true"
+        NEXT_PUBLIC_DOCS_API_URL: ${INSTANT_API_URI:-${INSTANT_BACKEND_URL:-https://api.instant.fidscript.com}}
+        NEXT_PUBLIC_DOCS_WS_URL: ${INSTANT_WS_URI:-wss://api.instant.fidscript.com/runtime/session}
     depends_on:
       server:
         condition: service_started

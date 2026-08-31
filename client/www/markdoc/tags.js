@@ -197,6 +197,22 @@ const tags = {
   'terminal-path': {
     render: TerminalPath,
   },
+  'api-url': {
+    selfClosing: true,
+    render: function ApiUrl() {
+      // At build time, this will be replaced with NEXT_PUBLIC_DOCS_API_URL
+      const apiUrl = process.env.NEXT_PUBLIC_DOCS_API_URL || 'https://api.instantdb.com';
+      return <code>{apiUrl}</code>;
+    },
+  },
+  'websocket-url': {
+    selfClosing: true,
+    render: function WebsocketUrl() {
+      // At build time, this will be replaced with NEXT_PUBLIC_DOCS_WS_URL
+      const wsUrl = process.env.NEXT_PUBLIC_DOCS_WS_URL || 'wss://api.instantdb.com/runtime/session';
+      return <code>{wsUrl}</code>;
+    },
+  },
 };
 
 export default tags;

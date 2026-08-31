@@ -26,7 +26,11 @@ RUN pnpm turbo prune instant-www --docker
 FROM node:${NODE_VERSION} AS builder
 WORKDIR /monorepo
 ARG NEXT_PUBLIC_SELF_HOSTED=true
+ARG NEXT_PUBLIC_DOCS_API_URL=https://api.instant.fidscript.com
+ARG NEXT_PUBLIC_DOCS_WS_URL=wss://api.instant.fidscript.com/runtime/session
 ENV NEXT_PUBLIC_SELF_HOSTED=${NEXT_PUBLIC_SELF_HOSTED}
+ENV NEXT_PUBLIC_DOCS_API_URL=${NEXT_PUBLIC_DOCS_API_URL}
+ENV NEXT_PUBLIC_DOCS_WS_URL=${NEXT_PUBLIC_DOCS_WS_URL}
 COPY --from=pruner /monorepo/out/json/ .
 RUN corepack enable pnpm
 RUN pnpm install
