@@ -1,7 +1,10 @@
 FROM ghcr.io/instantdb/dashboard:latest
 
+ARG INSTANT_API_URI
+ENV INSTANT_API_URI=$INSTANT_API_URI
 ENV NEXT_PUBLIC_SELF_HOSTED=true
 ENV NODE_ENV=production
 
 EXPOSE 3000
-CMD ["node", "www/server.js"]
+COPY self-hosting/start-www.sh /start-www.sh
+CMD ["/start-www.sh"]

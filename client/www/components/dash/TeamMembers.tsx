@@ -180,7 +180,6 @@ export default function TeamMembers({ appId }: { appId: string }) {
                 <Button
                   onClick={() => revokeInvite(invite.id)}
                   variant="destructive"
-                  size="sm"
                 >
                   Revoke
                 </Button>

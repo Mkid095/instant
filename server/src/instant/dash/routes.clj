@@ -50,6 +50,7 @@
             [instant.model.instant-user :as instant-user-model]
             [instant.model.instant-user-magic-code :as instant-user-magic-code-model]
             [instant.model.instant-user-refresh-token :as instant-user-refresh-token-model]
+            [instant.model.account-invites :as account-invites-model]
             [instant.model.member-invites :as member-invites-model]
             [instant.model.oauth-app :as oauth-app-model]
             [instant.model.org :as org-model]
@@ -264,7 +265,16 @@
         _ (when-not existing-user
             (when (flags/signups-closed?)
               (ex/throw-signups-closed!))
-            (assert-dashboard-signup-allowed! email))
+            (when (= (flags/dashboard-signup-mode) :closed)
+              ;; Check if there's a valid account invite for this email
+              (let [pending-invites (account-invites-model/pending-for-email {:email email})]
+                (when (empty? pending-invites)
+                  (ex/throw-validation-err!
+                   :email email
+                   [{:message "This service is invite-only. Please contact your administrator for an invitation."}]))))
+            ;; Only check email allowlist if NOT in closed mode (closed mode uses invites)
+            (when (not= (flags/dashboard-signup-mode) :closed)
+              (assert-dashboard-signup-allowed! email)))
         {user-id :id :as u} (or existing-user
                                 (instant-user-model/create!
                                  {:id (UUID/randomUUID) :email email}))
@@ -302,6 +312,12 @@
         code (ex/get-param! req [:body :code] string-util/safe-trim)
         {user-id :user_id} (instant-user-magic-code-model/consume!
                             {:code code :email email})
+        ;; Mark account invites as accepted only after successful verification
+        _ (when (= (flags/dashboard-signup-mode) :closed)
+            (when-let [pending-invites (not-empty (account-invites-model/pending-for-email {:email email}))]
+              (doseq [invite pending-invites]
+                (account-invites-model/mark-accepted! {:id (:id invite)
+                                                     :accepted-by user-id}))))
         {refresh-token-id :id} (instant-user-refresh-token-model/create!
                                 {:id (UUID/randomUUID)
                                  :user-id user-id})
@@ -1421,6 +1437,66 @@
     (fn [{:keys [owner-req invite]}]
       (team-member-invite-revoke-delete
        (assoc owner-req :body {:invite-id (:id invite)})))))
+
+;; -------
+;; Account Invites (Platform-level invitations for client onboarding)
+
+(defn account-invite-email [{:keys [invitee-email token]}]
+  (let [{sender-name :name sender-email :email} (config/team-email-sender)
+        invite-url (str (config/dashboard-origin) "/accept-invite?token=" token)]
+    {:from (str sender-name " <" sender-email ">")
+     :to invitee-email
+     :subject "You're invited to join Instant"
+     :reply-to sender-email
+     :html
+     (email/standard-body
+      (h/html
+       [:p [:strong "You've been invited to create an account"]]
+       [:p "You have been granted access to Instant."]
+       [:p "Click below to create your account and start creating your own projects."]
+       [:p [:a {:href invite-url} "Create Account"]]
+       [:p "This invitation expires in 3 days."]))}))
+
+(defn account-invite-send-post [req]
+  (let [{user-id :id} (req->auth-user! req)
+        invitee-email (ex/get-param! req [:body :email] email/coerce)
+        existing-user (instant-user-model/get-by-email {:email invitee-email})
+        _ (when existing-user
+            (ex/throw-validation-err!
+             :email invitee-email
+             [{:message "A user with this email already exists."}]))
+        pending-invites (account-invites-model/pending-for-email {:email invitee-email})
+        _ (when (not-empty pending-invites)
+            (ex/throw-validation-err!
+             :email invitee-email
+             [{:message "An invitation has already been sent to this email."}]))
+        token (random-uuid)
+        _ (account-invites-model/create! {:email invitee-email
+                                          :token (str token)
+                                          :invited-by user-id})]
+    (email-router/send-structured!
+     (account-invite-email {:invitee-email invitee-email
+                            :token (str token)}))
+    (response/ok {:sent true :token (str token)})))
+
+(defn account-invite-validate-get [req]
+  (let [token (ex/get-param! req [:params :token] string-util/safe-trim)
+        invite (account-invites-model/validate-token! {:token token})]
+    (response/ok {:valid true
+                  :email (:email invite)})))
+
+(defn account-invite-list-get [req]
+  (let [{user-id :id} (req->auth-user! req)
+        invites (account-invites-model/list-by-inviter {:invited-by user-id})]
+    (response/ok {:invites
+                  (mapv (fn [i]
+                          {:id (str (:id i))
+                           :email (:email i)
+                           :status (:status i)
+                           :expires_at (:expires_at i)
+                           :created_at (:created_at i)
+                           :accepted_at (:accepted_at i)})
+                        invites)})))
 
 (defn team-member-remove-delete [req]
   (let [member-id-param (ex/get-param! req [:body :id] uuid-util/coerce)
@@ -2817,6 +2893,11 @@
 
   (POST "/dash/invites/accept" [] team-member-invite-accept-post)
   (POST "/dash/invites/decline" [] team-member-invite-decline-post)
+
+  ;; Account invites (platform-level client onboarding)
+  (POST "/dash/account-invites/send" [] account-invite-send-post)
+  (GET "/dash/account-invites/validate/:token" [] account-invite-validate-get)
+  (GET "/dash/account-invites" [] account-invite-list-get)
 
   (GET "/dash/personal_access_tokens" [] personal-access-tokens-get)
   (POST "/dash/personal_access_tokens" [] personal-access-tokens-post)
