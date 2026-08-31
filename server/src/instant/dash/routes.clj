@@ -1498,6 +1498,14 @@
                            :accepted_at (:accepted_at i)})
                         invites)})))
 
+(defn account-invite-revoke-delete [req]
+  (let [{user-id :id} (req->auth-user! req)
+        invite-id (ex/get-param! req [:params :id] uuid-util/coerce)
+        invite (account-invites-model/get-by-id! {:id invite-id})]
+    (ex/assert-permitted! :invite-owner? (= (:invited_by invite) user-id))
+    (account-invites-model/revoke! {:id invite-id})
+    (response/ok {})))
+
 (defn team-member-remove-delete [req]
   (let [member-id-param (ex/get-param! req [:body :id] uuid-util/coerce)
         {:keys [type member-id member-role user-role foreign-key]}
@@ -2898,6 +2906,7 @@
   (POST "/dash/account-invites/send" [] account-invite-send-post)
   (GET "/dash/account-invites/validate/:token" [] account-invite-validate-get)
   (GET "/dash/account-invites" [] account-invite-list-get)
+  (DELETE "/dash/account-invites/:id" [] account-invite-revoke-delete)
 
   (GET "/dash/personal_access_tokens" [] personal-access-tokens-get)
   (POST "/dash/personal_access_tokens" [] personal-access-tokens-post)

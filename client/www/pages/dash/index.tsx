@@ -67,7 +67,7 @@ import OAuthApps from '@/components/dash/OAuthApps';
 import { Backups } from '@/components/dash/Backups';
 import { Sandbox } from '@/components/dash/Sandbox';
 import { Webhooks } from '@/components/dash/Webhooks';
-import TeamMembers from '@/components/dash/TeamMembers';
+import Clients from '@/components/dash/Clients';
 import { CLISetup } from '@/components/dash/CLISetup';
 import WebhookIcon from '@/components/icons/WebhookIcon';
 import {
@@ -189,7 +189,7 @@ const mainTabs: Tab<MainTabId>[] = [
   },
   { id: 'billing', title: 'Billing', icon: makeIcon(CreditCardIcon) },
   { id: 'oauth-apps', title: 'OAuth Apps', icon: makeIcon(CubeIcon) },
-  { id: 'team', title: 'Team Members', icon: makeIcon(UsersIcon) },
+  { id: 'team', title: 'Clients', icon: makeIcon(UsersIcon) },
   { id: 'cli-setup', title: 'CLI & MCP', icon: makeIcon(CommandLineIcon) },
 ];
 
@@ -1054,7 +1054,7 @@ function DashboardContent({
       ) : tab === 'oauth-apps' ? (
         <OAuthApps appId={appId} />
       ) : tab === 'team' ? (
-        <TeamMembers appId={appId} />
+        <Clients />
       ) : tab === 'cli-setup' ? (
         <CLISetup appId={appId} />
       ) : null}

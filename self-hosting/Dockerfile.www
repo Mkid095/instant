@@ -1,10 +1,55 @@
-FROM ghcr.io/instantdb/dashboard:latest
+# Stage 1: Build the Next.js application
+FROM node:22-alpine AS builder
 
-ARG INSTANT_API_URI
-ENV INSTANT_API_URI=$INSTANT_API_URI
+WORKDIR /app
+
+# Copy start script for later use
+COPY self-hosting/start-www.sh /start-www.sh
+
+# Copy workspace package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages ./packages
+COPY client/www/package.json client/www/pnpm-lock.yaml ./client/www/
+
+# Install dependencies using pnpm
+RUN corepack enable pnpm && pnpm install --frozen-lockfile
+
+# Copy source code
+COPY client/www ./client/www
+
+# Set build-time environment variables for self-hosted deployment
 ENV NEXT_PUBLIC_SELF_HOSTED=true
+
+# Build the Next.js application
+RUN cd client/www && pnpm build
+
+# Stage 2: Create the production image
+FROM node:22-alpine
+
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy the standalone build output from builder
+COPY --from=builder /app/client/www/.next/standalone ./
+COPY --from=builder /app/client/www/.next/static ./www/.next/static
+COPY --from=builder /app/client/www/public ./www/public
+
+# Copy the start script from builder stage
+COPY --from=builder /start-www.sh /start-www.sh
+
 ENV NODE_ENV=production
+ENV NEXT_PUBLIC_SELF_HOSTED=true
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+RUN chown -R nextjs:nodejs /app
+
+USER nextjs
 
 EXPOSE 3000
-COPY self-hosting/start-www.sh /start-www.sh
+
 CMD ["/start-www.sh"]

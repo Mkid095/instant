@@ -98,9 +98,9 @@ and `schema`. Here are all the options you can provide:
 
 - **schema?**: Instant schema export from your `instant.schema.ts` file. Provide this for typesafety and auto-completion in queries, transactions, and ephemeral features.
 
-- **websocketURI?**: Custom WebSocket endpoint for real-time connections. Defaults to `'wss://api.instantdb.com/runtime/session'`. Change this for connecting to development or self-hosted instances.
+- **websocketURI?**: Custom WebSocket endpoint for real-time connections. Defaults to `'wss://api.instantdb.com/runtime/session'`. For self-hosted deployments, set this to your API WebSocket endpoint (e.g., `'wss://api.instant.fidscript.com/runtime/session'`).
 
-- **apiURI?**: Custom HTTP API endpoint for auth and storage operations. Defaults to `'https://api.instantdb.com'`. Change this for connecting to development or self-hosted instances.
+- **apiURI?**: Custom HTTP API endpoint for auth and storage operations. Defaults to `'https://api.instantdb.com'`. For self-hosted deployments, set this to your API URL (e.g., `'https://api.instant.fidscript.com'`).
 
 - **devtool?**: Controls the Instant dev tool. Defaults to `true` on localhost. Set to `false` to disable, or configure with `{ position: 'bottom-right', allowedHosts: ['localhost'] }`.
 
