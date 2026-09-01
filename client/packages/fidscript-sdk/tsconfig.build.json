@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "src/__types__"],
+  "compilerOptions": {
+    "outDir": "dist/esm",
+    "rewriteRelativeImportExtensions": true,
+    "rootDir": "src",
+    "checkJs": false,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "declaration": true,
+    "declarationMap": true
+  }
+}

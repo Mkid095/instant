@@ -1,0 +1,41 @@
+{
+  "name": "@fidscript/instant-admin",
+  "version": "0.1.1",
+  "description": "FIDScript self-hosted InstantDB Admin SDK",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/commonjs/index.js",
+  "types": "./dist/commonjs/index.d.ts",
+  "module": "./dist/esm/index.js",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/commonjs/index.d.ts",
+        "default": "./dist/commonjs/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist; tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fidscript/instant-sdk": "^0.1.0",
+    "@instantdb/eventsource": "4.1.0-2",
+    "cookie": "^1.0.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.74",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.9.3"
+  }
+}

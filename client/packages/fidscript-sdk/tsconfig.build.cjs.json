@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "src/__types__"],
+  "compilerOptions": {
+    "outDir": "dist/commonjs",
+    "rewriteRelativeImportExtensions": true,
+    "rootDir": "src",
+    "checkJs": false,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "module": "CommonJS",
+    "moduleResolution": "Node10",
+    "declaration": true
+  }
+}

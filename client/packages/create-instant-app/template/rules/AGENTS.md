@@ -6,9 +6,29 @@ with excellent visual aesthetics using InstantDB as the backend.
 
 Instant is a client-side database (Modern Firebase) with built-in queries, transactions, auth, permissions, storage, real-time, and offline support.
 
-# Instant SDKs
+# FIDScript Self-Hosted InstantDB (Recommended)
 
-Instant provides client-side SDKs and server-side SDKs:
+For **FIDScript self-hosted deployments**, use these packages instead:
+
+- `@fidscript/instant-sdk` --- vanilla JS (core SDK, defaults to FIDScript infrastructure)
+- `@fidscript/instant-admin` --- JS/TS backend SDK
+- `@fidscript/instant-cli` --- CLI tools
+
+When using FIDScript packages, initialization uses FIDScript defaults automatically:
+
+```typescript
+import { init } from '@fidscript/instant-sdk';
+const db = init({ appId: 'your-app-id' }); // Uses https://apiinstant.fidscript.com by default
+```
+
+CLI for FIDScript:
+```bash
+npx @fidscript/instant-cli init-without-files --title <APP_NAME>
+```
+
+# Upstream InstantDB SDKs
+
+For **Instant Cloud** deployments, use these packages:
 
 - `@instantdb/core` --- vanilla JS
 - `@instantdb/react` --- React
@@ -20,9 +40,26 @@ Instant provides client-side SDKs and server-side SDKs:
 - `instantdb` --- Python backend SDK
 
 When installing, always check what package manager the project uses (npm, pnpm,
-bun) first and then install the latest version of the Instant SDK. If working in
+bun) first and then install the latest version of the SDK. If working in
 React use Next and Tailwind unless specified otherwise. If working in python be
 sure to fetch the python documentation listed below.
+
+# FIDScript MCP Server
+
+For **FIDScript self-hosted deployments**, you can use the MCP server to manage InstantDB directly from Claude Code, Cursor, Windsurf, and other MCP-compatible editors:
+
+```bash
+npx @fidscript/instant-mcp --token <YOUR_PAT> --app-id <YOUR_APP_ID>
+```
+
+Or set environment variables:
+```bash
+export INSTANT_ACCESS_TOKEN=<YOUR_PAT>
+export INSTANT_APP_ID=<YOUR_APP_ID>
+npx @fidscript/instant-mcp
+```
+
+The MCP server provides 47 tools for managing apps, schema, permissions, storage, webhooks, backups, test users, email templates, organizations, and more. It defaults to FIDScript infrastructure automatically.
 
 # Managing Instant Apps
 
@@ -36,21 +73,21 @@ If schema/perm files exist but the app id/admin token are missing, ask the user 
 To create a new app:
 
 ```bash
-npx instant-cli init-without-files --title <APP_NAME>
+npx @fidscript/instant-cli init-without-files --title <APP_NAME>
 ```
 
 This outputs an app id and admin token. Store them in an env file.
 
 If you get an error related to not being logged in tell the user to:
 
-- Sign up for free or log in at https://instantdb.com
-- Then run `npx instant-cli login` to authenticate the CLI
+- Sign up for free or log in at https://instant.fidscript.com
+- Then run `npx @fidscript/instant-cli login` to authenticate the CLI
 - Then re-run the init command
 
 If you have an app id/admin token but no schema/perm files, pull them:
 
 ```bash
-npx instant-cli pull --yes
+npx @fidscript/instant-cli pull --yes
 ```
 
 ## Schema changes
@@ -58,7 +95,7 @@ npx instant-cli pull --yes
 Edit `instant.schema.ts`, then push:
 
 ```bash
-npx instant-cli push schema --yes
+npx @fidscript/instant-cli push schema --yes
 ```
 
 New fields = additions; missing fields = deletions.
@@ -66,7 +103,7 @@ New fields = additions; missing fields = deletions.
 To rename fields:
 
 ```bash
-npx instant-cli push schema --rename 'posts.author:posts.creator stores.owner:stores.manager' --yes
+npx @fidscript/instant-cli push schema --rename 'posts.author:posts.creator stores.owner:stores.manager' --yes
 ```
 
 ## Permission changes
@@ -74,7 +111,7 @@ npx instant-cli push schema --rename 'posts.author:posts.creator stores.owner:st
 Edit `instant.perms.ts`, then push:
 
 ```bash
-npx instant-cli push perms --yes
+npx @fidscript/instant-cli push perms --yes
 ```
 
 # CRITICAL Query Guidelines
@@ -399,7 +436,7 @@ if (created) {
 
 # Ad-hoc queries from the CLI
 
-Run `npx instant-cli query '{ posts: {} }' --admin` to query your app. A context flag is required: `--admin`, `--as-email <email>`, or `--as-guest`. Also supports `--app <id>`.
+Run `npx @fidscript/instant-cli query '{ posts: {} }' --admin` to query your app. A context flag is required: `--admin`, `--as-email <email>`, or `--as-guest`. Also supports `--app <id>`.
 
 # Instant Documentation
 
