@@ -1,1 +1,1 @@
-window.__instantConfig = {apiURI: "https://api.instant.fidscript.com"};
+window.__instantConfig = {apiURI: "https://apiinstant.fidscript.com"};

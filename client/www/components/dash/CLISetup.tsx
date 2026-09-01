@@ -1,16 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useAuthToken } from '@/lib/auth';
+import { useState } from 'react';
 import config from '@/lib/config';
 import { SectionHeading } from '@/components/ui';
-
-const copyToClipboard = (text: string) => {
-  navigator.clipboard.writeText(text);
-};
 
 const CodeBlock = ({ code, label }: { code: string; label: string }) => {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
-    copyToClipboard(code);
+    navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -28,7 +23,6 @@ const CodeBlock = ({ code, label }: { code: string; label: string }) => {
 };
 
 export const CLISetup = ({ appId }: { appId: string }) => {
-  const token = useAuthToken();
   const apiURI = config.apiURI;
   const dashURI = 'https://instant.fidscript.com';
 
@@ -37,7 +31,7 @@ export const CLISetup = ({ appId }: { appId: string }) => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">CLI & MCP Setup</h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Configure command-line tools and AI assistants for your Next Mavens BaaS instance.
+          Configure command-line tools and AI assistants for your self-hosted InstantDB instance.
         </p>
       </div>
 
@@ -70,18 +64,18 @@ export const CLISetup = ({ appId }: { appId: string }) => {
 
       <div>
         <SectionHeading>MCP Server Setup</SectionHeading>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          The MCP server uses a Personal Access Token (PAT) from your dashboard.
+          Generate one at <strong>Dashboard → User Settings → Personal Access Tokens</strong>.
+        </p>
         <div className="mt-4 flex flex-col gap-4">
           <div className="rounded-lg border border-gray-200 p-4 dark:border-neutral-700">
-            <h4 className="font-semibold">1. Install MCP Server</h4>
-            <CodeBlock code="npm install -g @instantdb/mcp" label="Command" />
+            <h4 className="font-semibold">1. Run MCP Server</h4>
+            <CodeBlock code={`export INSTANT_ACCESS_TOKEN=<YOUR_PAT>\nexport INSTANT_API_URI=${apiURI}\nexport INSTANT_APP_ID=<YOUR_APP_ID>\nnpx -y @fidscript/instant-mcp@0.4.0`} label="Command" />
           </div>
           <div className="rounded-lg border border-gray-200 p-4 dark:border-neutral-700">
-            <h4 className="font-semibold">2. Run MCP Server</h4>
-            <CodeBlock code={`INSTANT_ACCESS_TOKEN=${token ? token.slice(0, 20) + '...' : '<your-token>'}\nINSTANT_API_URL=${apiURI}\ninstant-mcp`} label="Command" />
-          </div>
-          <div className="rounded-lg border border-gray-200 p-4 dark:border-neutral-700">
-            <h4 className="font-semibold">3. Configure Claude Desktop</h4>
-            <CodeBlock code={`{\n  "mcpServers": {\n    "instantdb": {\n      "command": "npx",\n      "args": ["-y", "@instantdb/mcp"],\n      "env": {\n        "INSTANT_ACCESS_TOKEN": "${token ? token.slice(0, 20) + '...' : '<your-token>'}",\n        "INSTANT_API_URL": "${apiURI}"\n      }\n    }\n  }\n}`} label="settings.json" />
+            <h4 className="font-semibold">2. Configure Claude Desktop</h4>
+            <CodeBlock code={`{\n  "mcpServers": {\n    "instant-self": {\n      "command": "npx",\n      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],\n      "env": {\n        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",\n        "INSTANT_API_URI": "${apiURI}",\n        "INSTANT_APP_ID": "<YOUR_APP_ID>"\n      }\n    }\n  }\n}`} label="settings.json" />
           </div>
         </div>
       </div>

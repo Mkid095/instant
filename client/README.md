@@ -17,7 +17,8 @@ This houses Instant's javascript monorepo! Here's the lay of the land:
       4. [`@instantdb/admin`](./packages/admin)
       5. [`instant-cli`.](./packages/cli/)
       6. [`@instantdb/platform`](./packages/platform)
-      7. [`@instantdb/mcp`](./packages/mcp)
+      7. [`@instantdb/mcp`](./packages/mcp) — Cloud MCP (HTTP/SSE, OAuth)
+      8. [`@fidscript/instant-mcp`](../packages/fidscript-mcp) — Self-hosted MCP (stdio, PAT)
 3. [`sandbox/`](./sandbox/)
    1. We built a few example apps, to make it easy to develop against the local version of `packages`.
 

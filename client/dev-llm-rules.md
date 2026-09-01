@@ -46,7 +46,8 @@ The client directory is a pnpm monorepo managed with Turbo. It contains the Inst
 - **`cli/`** (`instant-cli`) - Command-line tool for project init, schema management, and config.
 - **`create-instant-app/`** (`create-instant-app`) - Scaffolding tool for new Instant projects.
 - **`components/`** (`@instantdb/components`) - Reusable UI components including the database Explorer (Monaco Editor, dnd-kit, Radix UI).
-- **`mcp/`** (`@instantdb/mcp`) - MCP server enabling AI assistants to manage Instant apps.
+- **`mcp/`** (`@instantdb/mcp`) - MCP server for Instant Cloud deployments (HTTP/SSE-based, OAuth auth). Cloud-only.
+- **`fidscript-mcp/`** (`@fidscript/instant-mcp`) - MCP server for self-hosted InstantDB deployments (stdio-based, PAT auth).
 - **`resumable-stream/`** (`@instantdb/resumable-stream`) - Drop-in replacement for Vercel's resumable-stream for Next.js streaming.
 
 ## Web Application (`/www/`)

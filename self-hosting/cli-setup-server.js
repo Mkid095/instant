@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const apiURI = process.env.INSTANT_API_URI || 'https://api.instant.fidscript.com';
+const apiURI = process.env.INSTANT_API_URI || 'https://apiinstant.fidscript.com';
 const dashURI = process.env.INSTANT_DASHBOARD_URI || 'https://instant.fidscript.com';
 
 const server = http.createServer((req, res) => {
@@ -14,7 +14,7 @@ const server = http.createServer((req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CLI & MCP Setup - Next Mavens BaaS</title>
+  <title>CLI & MCP Setup - Self-Hosted InstantDB</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
@@ -38,7 +38,7 @@ const server = http.createServer((req, res) => {
 <body>
   <div class="container">
     <h1>CLI & MCP Setup</h1>
-    <p class="subtitle">Configure command-line tools and AI assistants for your Next Mavens BaaS instance.</p>
+    <p class="subtitle">Configure command-line tools and AI assistants for your self-hosted InstantDB instance.</p>
     
     <div class="card">
       <h2>Your Instance Configuration</h2>
@@ -72,31 +72,27 @@ export INSTANT_CLI_DASH_URI=${dashURI}</code>
     <div class="card">
       <h2>MCP Server Setup</h2>
       <div class="step">
-        <h4>Step 1: Install MCP Server</h4>
-        <code>npm install -g @instantdb/mcp</code>
-        <button class="btn" onclick="copyCode(this, 'npm install -g @instantdb/mcp')">Copy</button>
+        <h4>Step 1: Run MCP Server (Stdio Mode)</h4>
+        <code>npx -y @fidscript/instant-mcp@0.4.0 --token &lt;YOUR_PAT&gt; --api-url ${apiURI}</code>
+        <button class="btn" onclick="copyCode(this, 'npx -y @fidscript/instant-mcp@0.4.0 --token <YOUR_PAT> --api-url ${apiURI}')">Copy</button>
       </div>
       <div class="step">
-        <h4>Step 2: Run MCP Server (Stdio Mode)</h4>
-        <code>INSTANT_ACCESS_TOKEN=your-token INSTANT_API_URL=${apiURI} instant-mcp</code>
-        <button class="btn" onclick="copyCode(this, 'INSTANT_ACCESS_TOKEN=your-token INSTANT_API_URL=${apiURI} instant-mcp')">Copy</button>
-      </div>
-      <div class="step">
-        <h4>Step 3: Configure Claude Desktop</h4>
+        <h4>Step 2: Configure Claude Desktop</h4>
         <p style="margin-bottom: 8px; color: #666;">Add this to <code>~/.claude/settings.json</code>:</p>
         <code>{
   "mcpServers": {
-    "instantdb": {
+    "instant-self": {
       "command": "npx",
-      "args": ["-y", "@instantdb/mcp"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
       "env": {
-        "INSTANT_ACCESS_TOKEN": "your-token",
-        "INSTANT_API_URL": "${apiURI}"
+        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+        "INSTANT_API_URI": "${apiURI}",
+        "INSTANT_APP_ID": "<YOUR_APP_ID>"
       }
     }
   }
 }</code>
-        <button class="btn" onclick="copyCode(this, '{\\n  \\"mcpServers\\": {\\n    \\"instantdb\\": {\\n      \\"command\\": \\"npx\\",\\n      \\"args\\": [\\"-y\\", \\"@instantdb/mcp\\"],\\n      \\"env\\": {\\n        \\"INSTANT_ACCESS_TOKEN\\": \\"your-token\\",\\n        \\"INSTANT_API_URL\\": \\"${apiURI}\\"\\n      }\\n    }\\n  }\\n}')">Copy</button>
+        <button class="btn" onclick="copyCode(this, '{\\n  \\"mcpServers\\": {\\n    \\"instant-self\\": {\\n      \\"command\\": \\"npx\\",\\n      \\"args\\": [\\"-y\\", \\"@fidscript/instant-mcp@0.4.0\\"],\\n      \\"env\\": {\\n        \\"INSTANT_ACCESS_TOKEN\\": \\"<YOUR_PAT>\\",\\n        \\"INSTANT_API_URI\\": \\"${apiURI}\\",\\n        \\"INSTANT_APP_ID\\": \\"<YOUR_APP_ID>\\"\\n      }\\n    }\\n  }\\n}')">Copy</button>
       </div>
     </div>
 

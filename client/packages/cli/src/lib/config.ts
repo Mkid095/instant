@@ -13,7 +13,7 @@ const HttpUrl = Schema.URL.pipe(
 );
 
 // Self-hosted defaults
-const SELF_HOSTED_API_URI = process.env.INSTANT_CLI_API_URI || 'https://api.instant.fidscript.com';
+const SELF_HOSTED_API_URI = process.env.INSTANT_CLI_API_URI || 'https://apiinstant.fidscript.com';
 const SELF_HOSTED_DASH_URI = process.env.INSTANT_CLI_DASH_URI || 'https://instant.fidscript.com';
 
 export const getBaseUrl = Effect.gen(function* () {

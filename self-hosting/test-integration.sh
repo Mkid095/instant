@@ -3,11 +3,11 @@
 
 set -e
 
-echo "=== Next Mavens BaaS Integration Test ==="
+echo "=== Self-Hosted InstantDB Integration Test ==="
 echo ""
 
 # Configuration
-API_URL="https://api.instant.fidscript.com"
+API_URL="https://apiinstant.fidscript.com"
 DASH_URL="https://instant.fidscript.com"
 
 echo "1. Testing API Health..."
@@ -50,11 +50,12 @@ else
 fi
 
 echo ""
-echo "5. Checking MCP..."
-if command -v instant-mcp &> /dev/null; then
-    echo "   ✓ MCP server installed"
+echo "5. Checking MCP package..."
+MCP_VERSION=$(npx -y @fidscript/instant-mcp@0.4.0 --version 2>/dev/null || echo "failed")
+if [ "$MCP_VERSION" != "failed" ]; then
+    echo "   ✓ MCP package available: $MCP_VERSION"
 else
-    echo "   ✗ MCP not installed. Run: npm install -g @instantdb/mcp"
+    echo "   ⚠ MCP package not available. Run: npx -y @fidscript/instant-mcp@0.4.0 --help"
 fi
 
 echo ""
@@ -71,7 +72,7 @@ echo ""
 echo "Next steps:"
 echo "1. Run: instant-cli login"
 echo "2. Open the URL in your browser"
-echo "3. Enter your email: kennedygithinjioffice@gmail.com"
+echo "3. Enter your email"
 echo "4. Check email for verification code"
 echo "5. Complete login in the terminal"
 echo ""

@@ -48,189 +48,43 @@ If you want though you can get all our docs at once in markdown format via
 
 ## Instant MCP Server
 
-We built [`@instantdb/mcp`](https://github.com/instantdb/instant/tree/main/client/packages/mcp) to enable creating, managing, and updating your Instant apps.
-Combine the MCP with our rules file to build full-stack apps directly in your editor.
+We built `@fidscript/instant-mcp` to enable creating, managing, and updating your self-hosted Instant apps directly from your editor. Combine the MCP with our rules file to build full-stack apps in your editor.
 
-The easiest way to get started is to use our hosted remote MCP server. Use the
-instructions below to add the Instant MCP server to your favorite LLM editor or tool.
-
-{% callout type="note" %}
-
-When you add the MCP server, you'll be sent through an OAuth flow to grant access to your Instant Account.
-
-{% /callout %}
-
-### Cursor
-
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=InstantDB&config=eyJ1cmwiOiJodHRwczovL21jcC5pbnN0YW50ZGIuY29tL21jcCJ9)
-
-Or edit your `~/.cursor/mcp.json` directly:
-
-```json {% showCopy="true" %}
-{
-  "mcpServers": {
-    "instant": {
-      "url": "https://mcp.instantdb.com/mcp"
-    }
-  }
-}
-```
-
-### Claude Code
-
-If you're on a paid Claude plan, you can add the server via the command line:
-
-```text {% showCopy="true" %}
-claude mcp add instant -s user -t http https://mcp.instantdb.com/mcp
-```
-
-Now you can run `claude` to start Claude Code and then run `/mcp` to see your list
-of MCP servers. `instant` should be listed there. Select it and go through the
-auth flow to enable the Instant MCP server in your Claude Code sessions!
-
-### Codex
-
-If you're on a paid OpenAI plan, you can add the server via the command line:
-
-Edit your `~/.codex/config.toml` to include the [`rmcp_client` feature](https://developers.openai.com/codex/mcp/):
-
-```toml {% showCopy="true" %}
-[features]
-rmcp_client = true
-```
-
-Tell Codex to add the MCP server:
-
-```text {% showCopy="true" %}
-codex mcp add instant --url "https://mcp.instantdb.com/mcp"
-```
-
-This should load a browser to authenticate with Instant.
-
-Now run `codex` to start Codex. You can run `/mcp` to see Instant in your list.
-
-### Gemini
-
-If you're on a paid Google AI plan, you can add the server via the command line:
-
-```text {% showCopy="true" %}
-gemini mcp add --transport http instant https://mcp.instantdb.com/mcp
-```
-
-This should load a browser to authenticate with Instant.
-
-Now run `gemini` to start Gemini. You can run `/mcp` to see Instant in your list.
-
-### Windsurf
-
-You can add the Instant MCP server through the Windsurf UI:
-
-1. Open Windsurf Settings.
-2. Under Cascade, you'll find Model Context Protocol Servers.
-3. Select Add Server and paste the relevant snippet for your OS.
-
-Alternatively, you can directly edit your `~/.codeium/windsurf/mcp_config.json`:
-
-**macOS/Linux**
-
-```json {% showCopy="true" %}
-{
-  "mcpServers": {
-    "instant": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.instantdb.com/sse"]
-    }
-  }
-}
-```
-
-**Windows**
-
-```json {% showCopy="true" %}
-{
-  "mcpServers": {
-    "instant": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "mcp-remote", "https://mcp.instantdb.com/sse"]
-    }
-  }
-}
-```
-
-**Windows WSL**
-
-```json {% showCopy="true" %}
-{
-  "mcpServers": {
-    "instant": {
-      "command": "wsl",
-      "args": ["npx", "-y", "mcp-remote", "https://mcp.instantdb.com/sse"]
-    }
-  }
-}
-```
-
-### Zed
-
-Open your Zed settings and add the following:
-
-```json {% showCopy="true" %}
-{
-  "context_servers": {
-    "instant": {
-      "command": {
-        "path": "npx",
-        "args": ["-y", "mcp-remote", "https://mcp.instantdb.com/mcp"],
-        "env": {}
-      },
-      "settings": {}
-    }
-  }
-}
-```
-
-### Other Tools
-
-For other tools that support MCP servers, you can configure Instant using either our streamable HTTP
-endpoint (recommended if your tool supports it):
-
-```text {% showCopy="true" %}
-https://mcp.instantdb.com/mcp
-```
-
-or our SSE endpoint:
-
-```text {% showCopy="true" %}
-https://mcp.instantdb.com/sse
-```
-
-## Local MCP server
-
-We recommend using our hosted MCP server, but we also support running [`@instantdb/mcp`](https://github.com/instantdb/instant/tree/main/client/packages/mcp) locally
-via `stdio`. This will avoid OAuth but requires you to manage your personal
-access token.
+This MCP server uses a **stdio transport** — it runs as a local subprocess, communicating over stdin/stdout. It authenticates with a **Personal Access Token (PAT)**.
 
 ### Get your Personal Access Token
 
-If you haven't already, make sure to get a personal access token from your
-[Instant dashboard](https://www.instantdb.com/dash?s=personal-access-tokens)
+Generate a PAT from your dashboard:
 
-Once you have your token, you can set up the local Instant MCP server in your
-favorite editor with MCP support.
+1. Go to **Dashboard → User Settings → Personal Access Tokens**
+2. Click "Create New Token"
+3. Copy the token — it starts with `per_`
 
-### Cursor/Windsurf/Cline
+### Quick Start
 
-You can set up the Instant MCP server in Cursor, Windsurf, or Cline by adding
-the following configuration to your MCP settings:
+Test that the MCP server works:
+
+```text {% showCopy="true" %}
+npx -y @fidscript/instant-mcp@0.4.0 --help
+```
+
+### Cursor / Windsurf / Cline
+
+Add the following to your MCP settings:
 
 **macOS/Linux**
 
 ```json {% showCopy="true" %}
 {
   "mcpServers": {
-    "instant": {
+    "instant-self": {
       "command": "npx",
-      "args": ["-y", "@instantdb/mcp", "--token", "<token>"]
+      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+      "env": {
+        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+        "INSTANT_API_URI": "https://apiinstant.fidscript.com",
+        "INSTANT_APP_ID": "<YOUR_APP_ID>"
+      }
     }
   }
 }
@@ -241,9 +95,14 @@ the following configuration to your MCP settings:
 ```json {% showCopy="true" %}
 {
   "mcpServers": {
-    "instant": {
+    "instant-self": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "@instantdb/mcp", "--token", "<token>"]
+      "args": ["/c", "npx", "-y", "@fidscript/instant-mcp@0.4.0"],
+      "env": {
+        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+        "INSTANT_API_URI": "https://apiinstant.fidscript.com",
+        "INSTANT_APP_ID": "<YOUR_APP_ID>"
+      }
     }
   }
 }
@@ -254,16 +113,20 @@ the following configuration to your MCP settings:
 ```json {% showCopy="true" %}
 {
   "mcpServers": {
-    "instant": {
+    "instant-self": {
       "command": "wsl",
-      "args": ["npx", "-y", "@instantdb/mcp", "--token", "<token>"]
+      "args": ["npx", "-y", "@fidscript/instant-mcp@0.4.0"],
+      "env": {
+        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+        "INSTANT_API_URI": "https://apiinstant.fidscript.com",
+        "INSTANT_APP_ID": "<YOUR_APP_ID>"
+      }
     }
   }
 }
 ```
 
-Replace `<token>` with your personal access token. Save the file and reload
-the editor! You should now see the Instant MCP server active and enabled!
+Replace `<YOUR_PAT>` with your personal access token and `<YOUR_APP_ID>` with your app ID. Save the file and reload the editor!
 
 ### Zed
 
@@ -272,11 +135,15 @@ Open your Zed settings and add the following:
 ```json {% showCopy="true" %}
 {
   "context_servers": {
-    "instant": {
+    "instant-self": {
       "command": {
         "path": "npx",
-        "args": ["-y", "@instantdb/mcp", "--token", "<token>"],
-        "env": {}
+        "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+        "env": {
+          "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+          "INSTANT_API_URI": "https://apiinstant.fidscript.com",
+          "INSTANT_APP_ID": "<YOUR_APP_ID>"
+        }
       },
       "settings": {}
     }
@@ -284,37 +151,93 @@ Open your Zed settings and add the following:
 }
 ```
 
-Replace `<token>` with your personal access token. Save the file and reload the editor.
-You should now see the Instant MCP server active and enabled!
+Replace `<YOUR_PAT>` with your personal access token and `<YOUR_APP_ID>` with your app ID. Save the file and reload the editor!
 
 ### Claude Desktop
 
-You can set up the Instant MCP server in Claude Desktop by following these
-steps:
-
-1. Open the file `~/Library/Application Support/Claude/claude_desktop_config.json`
-2. Add the following configuration to the `claude_desktop_config.json` file:
+1. Open `~/Library/Application Support/Claude/claude_desktop_config.json`
+2. Add the following configuration:
 
 ```json {% showCopy="true" %}
 {
   "mcpServers": {
-    "instant": {
+    "instant-self": {
       "command": "npx",
-      "args": ["-y", "@instantdb/mcp", "--token", "<token>"]
+      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+      "env": {
+        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+        "INSTANT_API_URI": "https://apiinstant.fidscript.com",
+        "INSTANT_APP_ID": "<YOUR_APP_ID>"
+      }
     }
   }
 }
 ```
 
-Replace `<token>` with your personal access token. Save the file and restart
-Claude Desktop. You should now see the Instant MCP server active and enabled!
+Replace `<YOUR_PAT>` with your personal access token and `<YOUR_APP_ID>` with your app ID. Save the file and restart Claude Desktop!
+
+### Other MCP-Compatible Editors
+
+For editors that support the MCP stdio protocol, use:
+
+```text
+npx -y @fidscript/instant-mcp@0.4.0
+```
+
+With environment variables:
+
+- `INSTANT_ACCESS_TOKEN` — your personal access token (required)
+- `INSTANT_API_URI` — your self-hosted API URL (default: `https://apiinstant.fidscript.com`)
+- `INSTANT_APP_ID` — your default app ID (optional; can be overridden per tool call)
 
 ## MCP Tools
 
-Below is a list of the current tools we expose:
+Below is a list of the tools exposed by `@fidscript/instant-mcp`:
 
-- `learn` Fetch rules files if needed to help the LLM understand InstantDB.
-- `get-schema` Retrieves the schema for a specific app.
-- `get-perms` Retrieves permission rules for an app.
-- `push-schema` Applies schema changes to an app.
-- `push-perms` Updates permission rules for an app.
+- `learn` — Learn about InstantDB concepts and syntax
+- `query` — Execute an InstaQL query against an app
+- `transact` — Execute a transaction (create/update/delete data)
+- `get-schema` — Retrieve the current schema for an app
+- `push-schema` — Push a new schema definition to an app
+- `push-schema-dry-run` — Preview a schema push without applying it
+- `get-perms` — Retrieve the current permissions rules for an app
+- `push-perms` — Push new permissions rules to an app
+- `list-apps` — List all apps associated with your account
+- `get-app` — Get detailed info about a specific app
+- `create-app` — Create a new InstantDB app
+- `delete-app` — Permanently delete an app
+- `list-files` — List all files in app storage
+- `delete-file` — Delete a file from storage
+- `get-upload-url` — Get a pre-signed URL for file uploads
+- `get-download-url` — Get a pre-signed URL for file downloads
+- `list-webhooks` — List all webhooks for an app
+- `create-webhook` — Create a new webhook endpoint
+- `update-webhook` — Update a webhook's URL, namespaces, or actions
+- `delete-webhook` — Delete a webhook
+- `enable-webhook` — Re-enable a disabled webhook
+- `disable-webhook` — Temporarily disable a webhook
+- `get-webhook-events` — Get webhook delivery events with retry history
+- `resend-webhook-event` — Re-trigger a failed webhook delivery
+- `list-backups` — List all backups for an app
+- `create-backup` — Trigger an on-demand backup
+- `delete-backup` — Delete a backup
+- `list-backup-jobs` — List in-progress backup jobs
+- `get-backup-job` — Get status of a specific backup job
+- `cancel-backup-job` — Cancel an in-progress backup
+- `list-backup-files` — List files in a backup
+- `get-backup-file-url` — Get a pre-signed URL for a backup file
+- `list-test-users` — List test users for an app
+- `create-test-user` — Create a test user with a sign-in code
+- `delete-test-user` — Delete a test user
+- `get-email-template` — Get the magic-code email template
+- `update-email-template` — Update the magic-code email template
+- `send-test-email` — Send a test email to verify template config
+- `get-sender-verification` — Get DKIM/Return-Path verification status
+- `send-sender-verification` — Send a sender verification email
+- `verify-sender-code` — Complete sender domain verification
+- `list-orgs` — List all organizations
+- `get-org` — Get org details including apps, members, invites
+- `list-org-apps` — List all apps in an org
+- `invite-app-member` — Invite a user to an app
+- `remove-app-member` — Remove a member from an app
+- `update-app-member` — Update a member's role on an app

@@ -1,12 +1,14 @@
-# CLI & MCP Integration for Next Mavens BaaS
+# CLI & MCP Integration for Self-Hosted InstantDB
 
-This guide explains how to integrate the InstantDB CLI and MCP server with your self-hosted instance.
+This guide explains how to use the InstantDB CLI and MCP server with your self-hosted Instant deployment.
 
 ## Prerequisites
 
-- Docker containers running (server, www, postgres, minio)
-- Access to the dashboard at https://instant.fidscript.com
+- Self-hosted Instant running at `https://apiinstant.fidscript.com`
+- Dashboard accessible at `https://instant.fidscript.com`
 - Admin access to create personal access tokens
+
+---
 
 ## CLI Setup
 
@@ -16,15 +18,23 @@ This guide explains how to integrate the InstantDB CLI and MCP server with your 
 npm install -g instant-cli
 ```
 
-### 2. Configure the CLI
+### 2. Configure for Self-Hosted
 
-Either:
-- Copy `instant.config.ts` to your project root, OR
-- Set environment variables:
+Set environment variables to point the CLI at your self-hosted API:
 
 ```bash
-export INSTANT_CLI_API_URI=https://api.instant.fidscript.com
+export INSTANT_CLI_API_URI=https://apiinstant.fidscript.com
 export INSTANT_CLI_DASH_URI=https://instant.fidscript.com
+```
+
+Or use an `instant.config.ts` file in your project root:
+
+```ts
+// instant.config.ts
+export default {
+  apiURI: 'https://apiinstant.fidscript.com',
+  dashURI: 'https://instant.fidscript.com',
+};
 ```
 
 ### 3. Login
@@ -33,7 +43,7 @@ export INSTANT_CLI_DASH_URI=https://instant.fidscript.com
 instant-cli login
 ```
 
-This will open a browser window. Enter your email (`kennedygithinjioffice@gmail.com`) and verification code.
+This opens a browser window for email + magic code authentication.
 
 ### 4. Verify Connection
 
@@ -60,68 +70,199 @@ instant-cli perms pull --app <app-id>
 instant-cli perms push --app <app-id>
 ```
 
+---
+
 ## MCP Server Setup
 
-### 1. Install the MCP Server
+Your self-hosted deployment can use the **@fidscript/instant-mcp** package, which connects directly to your self-hosted API using a Personal Access Token.
 
-```bash
-npm install -g @instantdb/mcp
+### How It Works
+
+```
+Claude Code
+    │
+    │ stdio
+    ▼
+@fidscript/instant-mcp
+    │
+    │ HTTPS + Bearer PAT
+    ▼
+https://apiinstant.fidscript.com
+    │
+    ▼
+Your Self-Hosted InstantDB
 ```
 
-### 2. Get an Access Token
+**No `mcp.instantdb.com`. No OAuth. No Instant Cloud.**
 
-1. Log into the dashboard: https://instant.fidscript.com
-2. Go to User Settings → Personal Access Tokens
-3. Create a new token with appropriate scopes
+### Step 1: Get a Personal Access Token
 
-### 3. Run MCP Server (Stdio Mode)
+1. Log into your dashboard: `https://instant.fidscript.com`
+2. Go to **User Settings → Personal Access Tokens**
+3. Create a new token
 
-```bash
-INSTANT_ACCESS_TOKEN=your-token instant-mcp
-```
+### Step 2: Choose Your Editor
 
-### 4. Run MCP Server (HTTP Mode)
-
-```bash
-INSTANT_ADMIN_TOKEN=your-admin-token \
-INSTANT_APP_ID=your-app-id \
-INSTANT_OAUTH_CLIENT_ID=your-client-id \
-INSTANT_OAUTH_CLIENT_SECRET=your-client-secret \
-SERVER_ORIGIN=https://api.instant.fidscript.com \
-INSTANT_AES_KEY='{"key":"your-aes-key"}' \
-instant-mcp
-```
-
-### 5. Configure for Claude Desktop
+#### Claude Code
 
 Add to `~/.claude/settings.json`:
 
 ```json
 {
   "mcpServers": {
-    "instantdb": {
+    "instant-self": {
       "command": "npx",
-      "args": ["-y", "@instantdb/mcp"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
       "env": {
-        "INSTANT_ACCESS_TOKEN": "your-token-here",
-        "INSTANT_API_URL": "https://api.instant.fidscript.com"
+        "INSTANT_API_URI": "https://apiinstant.fidscript.com",
+        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+        "INSTANT_APP_ID": "<YOUR_APP_ID>"
       }
     }
   }
 }
 ```
 
-## MCP Tools Available
+#### Cursor / Windsurf / Cline
+
+```json
+{
+  "mcpServers": {
+    "instant-self": {
+      "command": "npx",
+      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+      "env": {
+        "INSTANT_API_URI": "https://apiinstant.fidscript.com",
+        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+        "INSTANT_APP_ID": "<YOUR_APP_ID>"
+      }
+    }
+  }
+}
+```
+
+#### Zed
+
+```json
+{
+  "context_servers": {
+    "instant-self": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+        "env": {
+          "INSTANT_API_URI": "https://apiinstant.fidscript.com",
+          "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+          "INSTANT_APP_ID": "<YOUR_APP_ID>"
+        }
+      }
+    }
+  }
+}
+```
+
+### MCP Tools Available
 
 | Tool | Description |
 |------|-------------|
+| `learn` | Learn about InstantDB concepts |
 | `query` | Execute InstaQL queries against your app |
 | `transact` | Execute transactions (create/update/delete) |
-| `get-schema` | Get schema instructions |
-| `get-perms` | Get permissions instructions |
-| `push-schema` | Push schema changes |
-| `push-perms` | Push permission changes |
-| `learn` | Learn about InstantDB |
+| `get-schema` | Get current schema for an app |
+| `push-schema` | Push schema definition to an app |
+| `push-schema-dry-run` | Preview schema push without applying |
+| `get-perms` | Get current permissions rules for an app |
+| `push-perms` | Push new permissions rules to an app |
+| `list-apps` | List all apps |
+| `get-app` | Get app details |
+| `create-app` | Create a new app |
+| `delete-app` | Delete an app |
+| `list-files` | List files in app storage |
+| `delete-file` | Delete a storage file |
+| `get-upload-url` | Get pre-signed upload URL |
+| `get-download-url` | Get pre-signed download URL |
+| `list-webhooks` | List all webhooks |
+| `create-webhook` | Create a webhook |
+| `update-webhook` | Update a webhook |
+| `delete-webhook` | Delete a webhook |
+| `enable-webhook` | Enable a webhook |
+| `disable-webhook` | Disable a webhook |
+| `get-webhook-events` | Get webhook delivery events |
+| `resend-webhook-event` | Re-trigger a webhook event |
+| `list-backups` | List all backups |
+| `create-backup` | Trigger an on-demand backup |
+| `delete-backup` | Delete a backup |
+| `list-backup-jobs` | List in-progress backup jobs |
+| `get-backup-job` | Get backup job status |
+| `cancel-backup-job` | Cancel a backup job |
+| `list-backup-files` | List files in a backup |
+| `get-backup-file-url` | Get pre-signed URL for backup file |
+| `list-test-users` | List test users |
+| `create-test-user` | Create a test user |
+| `delete-test-user` | Delete a test user |
+| `get-email-template` | Get magic-code email template |
+| `update-email-template` | Update email template |
+| `send-test-email` | Send a test email |
+| `get-sender-verification` | Get DKIM verification status |
+| `send-sender-verification` | Send verification email |
+| `verify-sender-code` | Complete domain verification |
+| `list-orgs` | List all orgs |
+| `get-org` | Get org details |
+| `list-org-apps` | List apps in an org |
+| `invite-app-member` | Invite user to an app |
+| `remove-app-member` | Remove app member |
+| `update-app-member` | Update member role |
+
+---
+
+## Configuration Reference
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `INSTANT_ACCESS_TOKEN` | Personal Access Token from your dashboard | Yes |
+| `INSTANT_API_URI` | Your self-hosted API URL (default: `https://apiinstant.fidscript.com`) | No |
+| `INSTANT_APP_ID` | Default app ID for query/transact tools | Recommended |
+
+### CLI Arguments
+
+```
+npx @fidscript/instant-mcp [OPTIONS]
+
+OPTIONS:
+  -t, --token <token>    Personal access token (or set INSTANT_ACCESS_TOKEN)
+  -u, --api-url <url>   API URL (default: https://apiinstant.fidscript.com)
+  -a, --app-id <id>     Default app ID (or set INSTANT_APP_ID)
+  -h, --help            Show help
+  -v, --version         Show version
+```
+
+### All Three Configuration Methods
+
+**Environment variables:**
+```bash
+export INSTANT_ACCESS_TOKEN=per_xxxxx
+export INSTANT_API_URI=https://apiinstant.fidscript.com
+export INSTANT_APP_ID=your-app-id
+npx -y @fidscript/instant-mcp
+```
+
+**CLI arguments:**
+```bash
+npx -y @fidscript/instant-mcp \
+  --token per_xxxxx \
+  --api-url https://apiinstant.fidscript.com \
+  --app-id your-app-id
+```
+
+**Mixed (env for secrets, CLI for overrides):**
+```bash
+export INSTANT_ACCESS_TOKEN=per_xxxxx
+npx -y @fidscript/instant-mcp --app-id your-app-id
+```
+
+---
 
 ## Troubleshooting
 
@@ -129,7 +270,7 @@ Add to `~/.claude/settings.json`:
 
 1. Verify the API is accessible:
    ```bash
-   curl -sk https://api.instant.fidscript.com/health/system
+   curl -fsS https://apiinstant.fidscript.com/health/system
    ```
 
 2. Check your config:
@@ -137,30 +278,38 @@ Add to `~/.claude/settings.json`:
    instant-cli config get
    ```
 
-### MCP authentication fails
+### MCP server fails to start
 
-1. Ensure your token is valid:
+1. Verify the token works directly against the API:
    ```bash
    curl -s -H "Authorization: Bearer $INSTANT_ACCESS_TOKEN" \
-     https://api.instant.fidscript.com/dash/apps
+     https://apiinstant.fidscript.com/dash/apps
    ```
 
-2. Check token has correct scopes for the operations you're performing.
+2. Test the MCP package directly:
+   ```bash
+   INSTANT_ACCESS_TOKEN=<TOKEN> INSTANT_API_URI=https://apiinstant.fidscript.com \
+     npx -y @fidscript/instant-mcp --version
+   ```
 
-## Auto-Complete Setup
+3. Check that `INSTANT_ACCESS_TOKEN` is set and valid
 
-Add to your shell profile (`~/.bashrc`, `~/.zshrc`):
+### Authentication errors
+
+- Ensure the token was created in your self-hosted dashboard, not Instant Cloud
+- Ensure the token has appropriate scopes for the operations you're performing
+- Tokens are tied to your self-hosted Instant account
+
+---
+
+## Shell Profile Setup
+
+Add to `~/.bashrc` or `~/.zshrc`:
 
 ```bash
 # Instant CLI
-export INSTANT_CLI_API_URI=https://api.instant.fidscript.com
+export INSTANT_CLI_API_URI=https://apiinstant.fidscript.com
 export INSTANT_CLI_DASH_URI=https://instant.fidscript.com
-
-# MCP
-export INSTANT_MCP_API_URL=https://api.instant.fidscript.com
 ```
 
-Then run:
-```bash
-source ~/.bashrc  # or ~/.zshrc
-```
+Then run `source ~/.bashrc` (or open a new terminal).

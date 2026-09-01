@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Head from 'next/head';
-import { MainDashLayout, useFetchedDash } from '@/components/dash/MainDashLayout';
-import { useAuthToken } from '@/lib/auth';
+import { MainDashLayout } from '@/components/dash/MainDashLayout';
 import config from '@/lib/config';
-import { Button, Content, SectionHeading } from '@/components/ui';
+import { SectionHeading } from '@/components/ui';
 import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { isSelfHosted } from '@/lib/config';
 
 const copyToClipboard = (text: string) => {
   navigator.clipboard.writeText(text);
@@ -82,62 +80,20 @@ const StepCard = ({
 );
 
 export default function CliSetupPage() {
-  const token = useAuthToken();
-  const dash = useFetchedDash();
-  const [adminToken, setAdminToken] = useState<string>('');
-  const [generatedToken, setGeneratedToken] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [tokenError, setTokenError] = useState<string>('');
-
   const apiURI = config.apiURI;
   const dashURI = 'https://instant.fidscript.com';
 
-  useEffect(() => {
-    if (token) {
-      setAdminToken(token);
-    }
-  }, [token]);
-
-  const generateNewToken = async () => {
-    if (!token) return;
-    setIsLoading(true);
-    setTokenError('');
-    try {
-      const res = await fetch(`${apiURI}/dash/admin/tokens`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: 'MCP Server Token',
-          scopes: ['apps-read', 'apps-write', 'data-read', 'data-write'],
-        }),
-      });
-      const data = await res.json();
-      if (data.token) {
-        setGeneratedToken(data.token);
-      } else {
-        setTokenError(data.error || 'Failed to generate token');
-      }
-    } catch (e) {
-      setTokenError('Error generating token: ' + (e as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const mcpCommands = {
-    stdio: `INSTANT_ACCESS_TOKEN=${generatedToken || '<your-token>'} INSTANT_API_URL=${apiURI} instant-mcp`,
-    http: `INSTANT_ADMIN_TOKEN=${generatedToken || '<your-admin-token>'} \\\n  INSTANT_APP_ID='<your-app-id>' \\\n  SERVER_ORIGIN=${apiURI} \\\n  instant-mcp`,
+    stdio: `export INSTANT_ACCESS_TOKEN=<YOUR_PAT>\nexport INSTANT_API_URI=${apiURI}\nexport INSTANT_APP_ID=<YOUR_APP_ID>\nnpx -y @fidscript/instant-mcp@0.4.0`,
     claude: `{
   "mcpServers": {
-    "instantdb": {
+    "instant-self": {
       "command": "npx",
-      "args": ["-y", "@instantdb/mcp"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
       "env": {
-        "INSTANT_ACCESS_TOKEN": "${generatedToken || '<your-token>'}",
-        "INSTANT_API_URL": "${apiURI}"
+        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
+        "INSTANT_API_URI": "${apiURI}",
+        "INSTANT_APP_ID": "<YOUR_APP_ID>"
       }
     }
   }
@@ -155,7 +111,7 @@ export default function CliSetupPage() {
   return (
     <>
       <Head>
-        <title>CLI & MCP Setup - Next Mavens BaaS</title>
+        <title>CLI & MCP Setup - Self-Hosted InstantDB</title>
       </Head>
 
       <div className="flex flex-col gap-6 p-6">
@@ -165,7 +121,7 @@ export default function CliSetupPage() {
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Configure command-line tools and AI assistants to work with your
-            Next Mavens BaaS instance.
+            self-hosted InstantDB instance.
           </p>
         </div>
 
@@ -188,61 +144,6 @@ export default function CliSetupPage() {
               </code>
             </div>
           </div>
-        </div>
-
-        {/* Token Management */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-800">
-          <SectionHeading>Access Tokens</SectionHeading>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Generate tokens for CLI and MCP integration. Your current auth token
-            is shown below.
-          </p>
-
-          <div className="mt-4 rounded-md bg-gray-100 p-3 dark:bg-neutral-700">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">
-                Current Token:
-              </span>
-              <button
-                onClick={() => copyToClipboard(adminToken)}
-                className="text-xs text-blue-600 hover:text-blue-700"
-              >
-                Copy
-              </button>
-            </div>
-            <code className="mt-1 block break-all text-xs font-mono">
-              {adminToken?.slice(0, 50)}...
-            </code>
-          </div>
-
-          <button
-            onClick={generateNewToken}
-            disabled={isLoading}
-            className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {isLoading ? 'Generating...' : 'Generate New Token'}
-          </button>
-
-          {tokenError && (
-            <p className="mt-2 text-sm text-red-600">{tokenError}</p>
-          )}
-
-          {generatedToken && (
-            <div className="mt-4 rounded-md bg-green-50 p-3 dark:bg-green-950">
-              <span className="text-xs text-green-800 dark:text-green-200">
-                New Token Generated:
-              </span>
-              <code className="mt-1 block break-all text-xs font-mono text-green-900 dark:text-green-100">
-                {generatedToken}
-              </code>
-              <button
-                onClick={() => copyToClipboard(generatedToken)}
-                className="mt-2 text-xs text-green-700 hover:text-green-800"
-              >
-                Copy Token
-              </button>
-            </div>
-          )}
         </div>
 
         {/* CLI Setup */}
@@ -286,32 +187,29 @@ export default function CliSetupPage() {
           <SectionHeading>MCP Server Setup</SectionHeading>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Configure the Model Context Protocol server for AI assistants like
-            Claude.
+            Claude. The MCP server uses a Personal Access Token (PAT) for authentication.
           </p>
+          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+              Creating a Personal Access Token
+            </h4>
+            <ol className="mt-2 list-inside list-decimal space-y-1 text-sm text-blue-800 dark:text-blue-200">
+              <li>Go to <strong>Dashboard → User Settings → Personal Access Tokens</strong></li>
+              <li>Click "Create New Token" and give it a name (e.g. "Claude Desktop")</li>
+              <li>Copy the token — it starts with <code>per_</code></li>
+              <li>Paste it into your MCP configuration in place of <code>&lt;YOUR_PAT&gt;</code></li>
+            </ol>
+          </div>
 
           <div className="mt-4 flex flex-col gap-4">
             <StepCard
               step={1}
-              title="Install MCP Server"
-              description="Install the @instantdb/mcp package globally."
-              code="npm install -g @instantdb/mcp"
+              title="Verify MCP Package"
+              description="Run the MCP server in stdio mode for AI assistant integration."
+              code="npx -y @fidscript/instant-mcp@0.4.0 --help"
             />
             <StepCard
               step={2}
-              title="Run MCP Server (Stdio Mode)"
-              description="Start the MCP server in stdio mode for direct CLI integration."
-              code={mcpCommands.stdio}
-              label="Command"
-            />
-            <StepCard
-              step={3}
-              title="Run MCP Server (HTTP Mode)"
-              description="Start the MCP server in HTTP mode for web-based integration."
-              code={mcpCommands.http}
-              label="Command"
-            />
-            <StepCard
-              step={4}
               title="Configure for Claude Desktop"
               description="Add the MCP server configuration to your Claude Desktop settings."
               code={mcpCommands.claude}

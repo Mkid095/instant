@@ -1,0 +1,35 @@
+{
+  "name": "@fidscript/instant-mcp",
+  "version": "0.4.0",
+  "description": "MCP server for self-hosted InstantDB deployments. Use with Claude Code, Cursor, and other MCP-compatible editors.",
+  "license": "MIT",
+  "homepage": "https://github.com/fidscript/instant-mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fidscript/instant-mcp.git"
+  },
+  "type": "module",
+  "bin": {
+    "fidscript-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "prepublishOnly": "npm run build",
+    "publish-package": "npm run build && npm publish --access public",
+    "test": "echo 'Tests not yet implemented' && exit 0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.18",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.17.2",
+    "zod": "^3.25.39"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
