@@ -1,6 +1,6 @@
 {
   "name": "@fidscript/instant-admin",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "FIDScript self-hosted InstantDB Admin SDK",
   "license": "Apache-2.0",
   "type": "module",
@@ -30,6 +30,7 @@
   "dependencies": {
     "@fidscript/instant-sdk": "^0.1.0",
     "@instantdb/eventsource": "4.1.0-2",
+    "@instantdb/webhooks": "^1.0.67",
     "cookie": "^1.0.0",
     "uuid": "^11.1.0"
   },
