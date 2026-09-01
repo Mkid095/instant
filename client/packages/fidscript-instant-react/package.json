@@ -1,0 +1,63 @@
+{
+  "name": "@fidscript/instant-react",
+  "version": "0.1.1",
+  "description": "FIDScript self-hosted InstantDB React SDK - defaults to FIDScript infrastructure",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/commonjs/index.js",
+  "types": "./dist/commonjs/index.d.ts",
+  "module": "./dist/esm/index.js",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/commonjs/index.d.ts",
+        "default": "./dist/commonjs/index.js"
+      }
+    },
+    "./nextjs": {
+      "import": {
+        "types": "./dist/esm/next-ssr/index.d.ts",
+        "default": "./dist/esm/next-ssr/index.js"
+      },
+      "require": {
+        "types": "./dist/commonjs/next-ssr/index.d.ts",
+        "default": "./dist/commonjs/next-ssr/index.js"
+      }
+    }
+  },
+  "tshy": {
+    "selfLink": false,
+    "main": true,
+    "module": true,
+    "project": "./tsconfig.json",
+    "exports": {
+      "./package.json": "./package.json",
+      ".": "./src/index.ts",
+      "./nextjs": "./src/next-ssr/index.tsx"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist .tshy-build; tshy",
+    "check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=16"
+  },
+  "dependencies": {
+    "@fidscript/instant-sdk": "^0.1.1",
+    "@fidscript/instant-react-common": "0.1.1",
+    "eventsource": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.6.1",
+    "@types/react": ">=16",
+    "next": "^15.5.6",
+    "tshy": "^3.0.2",
+    "typescript": "^5.9.3"
+  }
+}
