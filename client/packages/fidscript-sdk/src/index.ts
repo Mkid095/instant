@@ -1080,6 +1080,7 @@ const init_experimental = init;
 export {
   // bada bing bada boom
   init,
+  init as core_init,
   init_experimental,
   id,
   tx,

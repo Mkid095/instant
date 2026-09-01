@@ -725,11 +725,11 @@ importers:
   packages/fidscript-instant-react:
     dependencies:
       '@fidscript/instant-sdk':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.1.1
+        version: 0.1.1
       eventsource:
-        specifier: ^3.0.0
-        version: 3.0.7
+        specifier: ^4.0.0
+        version: 4.0.0
     devDependencies:
       '@types/node':
         specifier: ^18.19.74
@@ -4641,6 +4641,9 @@ packages:
 
   '@fidscript/instant-sdk@0.1.0':
     resolution: {integrity: sha512-lQr93V+cz0As/VUp2tiTJJ/5tlxpbWGqOpdTtVx9V9TJpegKStR6dOsl4eslrIvenWnJWtezlA/7o1izjz0f/A==}
+
+  '@fidscript/instant-sdk@0.1.1':
+    resolution: {integrity: sha512-1ZKUVIPMhzueQ3h8NOuCBEGvezsj4k16euYhcpicF+p6aJjdbVoD7Y034TOy3aL16GNjk6R2pGVJvEirVxTgBQ==}
 
   '@firebase/ai@2.5.0':
     resolution: {integrity: sha512-OXv/jZLRjV9jTejWA4KOvW8gM1hNsLvQSCPwKhi2CEfe0Nap3rM6z+Ial0PGqXga0WgzhpypEvJOFvaAUFX3kg==}
@@ -11498,10 +11501,6 @@ packages:
   events@3.3.0:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
-
-  eventsource-parser@3.0.2:
-    resolution: {integrity: sha512-6RxOBZ/cYgd8usLwsEl+EC09Au/9BcmCKYF2/xbml6DNczf7nv0MQb+7BA2F+li6//I+28VNlQR37XfQtcAJuA==}
-    engines: {node: '>=18.0.0'}
 
   eventsource-parser@3.0.6:
     resolution: {integrity: sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg==}
@@ -22775,6 +22774,11 @@ snapshots:
       mutative: 1.1.0
       uuid: 11.1.0
 
+  '@fidscript/instant-sdk@0.1.1':
+    dependencies:
+      mutative: 1.1.0
+      uuid: 11.1.0
+
   '@firebase/ai@2.5.0(@firebase/app-types@0.9.3)(@firebase/app@0.14.5)':
     dependencies:
       '@firebase/app': 0.14.5
@@ -31021,8 +31025,6 @@ snapshots:
 
   events@3.3.0: {}
 
-  eventsource-parser@3.0.2: {}
-
   eventsource-parser@3.0.6: {}
 
   eventsource@3.0.7:
@@ -31031,7 +31033,7 @@ snapshots:
 
   eventsource@4.0.0:
     dependencies:
-      eventsource-parser: 3.0.2
+      eventsource-parser: 3.0.6
 
   exec-async@2.2.0: {}
 
