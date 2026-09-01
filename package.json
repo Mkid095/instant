@@ -1,0 +1,7 @@
+{
+  "packageManager": "pnpm@10.2.0",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  },
+  "version": "1.0.67"
+}

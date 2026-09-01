@@ -3,7 +3,7 @@
 
 set -e
 
-echo "=== Next Mavens BaaS CLI Setup ==="
+echo "=== Self-Hosted InstantDB CLI Setup ==="
 echo ""
 
 # Check if instant-cli is installed
@@ -18,7 +18,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
     echo "Creating $CONFIG_FILE..."
     cat > "$CONFIG_FILE" << 'CONFIG'
 export default {
-  apiURI: 'https://api.instant.fidscript.com',
+  apiURI: 'https://apiinstant.fidscript.com',
   dashURI: 'https://instant.fidscript.com',
 };
 CONFIG

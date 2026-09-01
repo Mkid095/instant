@@ -8,7 +8,7 @@
    [instant.util.token :as token-util])
   (:import
    (java.util UUID)
-   (instant.util.token PersonalAccessToken)))
+   (instant.util.token JWTString PersonalAccessToken)))
 
 ;; We lookup the user by the app-id, but want to evict
 ;; by both the app-id and the user-id
@@ -112,14 +112,17 @@
 (defn get-by-refresh-token
   ([params] (get-by-refresh-token (aurora/conn-pool :read) params))
   ([conn {:keys [refresh-token]}]
-   (sql/select-one
-    ::get-by-refresh-token
-    conn
-    ["SELECT instant_users.*
-     FROM instant_users
-     JOIN instant_user_refresh_tokens ON instant_users.id = instant_user_refresh_tokens.user_id
-     WHERE instant_user_refresh_tokens.id = ?::uuid"
-     refresh-token])))
+   (let [token-value (if (instance? JWTString refresh-token)
+                       (token-util/jwt-token-value refresh-token)
+                       refresh-token)]
+     (sql/select-one
+      ::get-by-refresh-token
+      conn
+      ["SELECT instant_users.*
+       FROM instant_users
+       JOIN instant_user_refresh_tokens ON instant_users.id = instant_user_refresh_tokens.user_id
+       WHERE instant_user_refresh_tokens.id = ?::uuid"
+       token-value]))))
 
 (defn get-by-refresh-token! [params]
   (ex/assert-record! (get-by-refresh-token params) :instant-user {:args [(select-keys params [:auth?])]}))

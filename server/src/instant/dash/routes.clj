@@ -1501,8 +1501,11 @@
 (defn account-invite-revoke-delete [req]
   (let [{user-id :id} (req->auth-user! req)
         invite-id (ex/get-param! req [:params :id] uuid-util/coerce)
-        invite (account-invites-model/get-by-id! {:id invite-id})]
-    (ex/assert-permitted! :invite-owner? (= (:invited_by invite) user-id))
+        invite (account-invites-model/get-by-id! {:id invite-id})
+        _ (when (not= (:invited_by invite) user-id)
+            (do (ex/throw+ {::type ::permission-denied
+                           ::message "Not the invite owner"})
+                nil))]
     (account-invites-model/revoke! {:id invite-id})
     (response/ok {})))
 

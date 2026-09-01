@@ -584,7 +584,166 @@ async function startSse() {
   app.listen(port, host, () => console.log(`listening on port ${port}`));
 }
 
+async function startSelfHostedHttp() {
+  const honeycomb = new HoneycombSDK({
+    apiKey: process.env.HONEYCOMB_API_KEY,
+    serviceName: 'mcp-server',
+  });
+
+  if (process.env.HONEYCOMB_API_KEY) {
+    honeycomb.start();
+  }
+
+  const tracer = trace.getTracer('mcp-server');
+
+  const accessToken = ensureEnv('INSTANT_ACCESS_TOKEN');
+  const apiUrl = process.env.INSTANT_API_URL || 'https://api.instantdb.com';
+
+  const api = new PlatformApi({ auth: { token: accessToken }, apiURI: apiUrl });
+
+  const app = express();
+  const logger = pino({ level: 'info' });
+
+  app.use((req, res, next) => {
+    const span = tracer.startSpan('http-req', {
+      kind: SpanKind.SERVER,
+      attributes: {
+        'http.method': req.method,
+        'http.url': req.url,
+        'http.target': req.path,
+        'http.host': req.get('host'),
+        'http.scheme': req.protocol,
+      },
+    });
+
+    const originalEnd = res.end.bind(res);
+    res.end = function (this: typeof res, ...args: any[]): typeof res {
+      span.setAttribute('http.status_code', res.statusCode);
+      span.setStatus({
+        code: res.statusCode >= 400 ? SpanStatusCode.ERROR : SpanStatusCode.OK,
+      });
+      span.end();
+      return originalEnd(...args);
+    };
+
+    next();
+  });
+
+  app.use(
+    pinoHttp({
+      logger,
+      autoLogging: {
+        ignore(req) {
+          return req.url === '/health';
+        },
+      },
+    }),
+  );
+  app.use(express.json());
+
+  // Handle POST requests for client-to-server communication
+  app.post('/mcp', async (req: Request, res: Response) => {
+    const server = createMCPServer();
+    try {
+      wrapServerWithTracing(server, tracer, {
+        'auth.type': 'personal-access-token',
+      });
+      registerTools(server, api);
+
+      const transport: StreamableHTTPServerTransport =
+        new StreamableHTTPServerTransport({
+          sessionIdGenerator: undefined,
+        });
+
+      req.on('close', () => {
+        transport.close();
+        server.close();
+      });
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (e) {
+      console.error('Error handling MCP request:', e);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32603,
+            message: 'Internal server error',
+          },
+          id: null,
+        });
+      }
+    }
+  });
+
+  // SSE for older clients
+  const transports = {
+    sse: {} as Record<string, SSEServerTransport>,
+  };
+
+  app.get('/sse', async (req: Request, res: Response) => {
+    const server = createMCPServer();
+    const transport = new SSEServerTransport('/messages', res);
+    res.on('close', () => {
+      delete transports.sse[transport.sessionId];
+    });
+
+    try {
+      wrapServerWithTracing(server, tracer, {
+        'auth.type': 'personal-access-token',
+      });
+      registerTools(server, api);
+      transports.sse[transport.sessionId] = transport;
+    } catch (e) {
+      console.error('Error handling MCP SSE request:', e);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32603,
+            message: 'Internal server error',
+          },
+          id: null,
+        });
+      }
+      return;
+    }
+
+    await server.connect(transport);
+  });
+
+  // Legacy message endpoint
+  app.post('/messages', async (req, res) => {
+    const sessionId = req.query.sessionId as string;
+    const transport = transports.sse[sessionId];
+    if (transport) {
+      await transport.handlePostMessage(req, res, req.body);
+    } else {
+      res.status(400).send('No transport found for sessionId');
+    }
+  });
+
+  app.get('/', (_req, res: Response) => {
+    res
+      .status(200)
+      .set('Content-Type', 'text/html; charset=UTF-8')
+      .send(indexHtml(process.env.SERVER_ORIGIN || 'https://instantmcp.fidscript.com'));
+  });
+
+  app.get('/health', (_req, res: Response) => {
+    res.status(200).send('Tip top!');
+  });
+
+  const port = parseInt(process.env.PORT || '8000');
+  const host = '0.0.0.0';
+
+  app.listen(port, host, () => console.log(`Self-hosted MCP listening on port ${port}`));
+}
+
 async function main() {
+  if (process.env.SERVER_TYPE === 'self-hosted-http') {
+    return startSelfHostedHttp();
+  }
   if (process.env.SERVER_TYPE === 'http') {
     return startSse();
   }

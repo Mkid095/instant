@@ -119,7 +119,7 @@ When using Cloudinary, the MinIO service is not required for file storage.
 - [ ] Configure email (Resend, SMTP, SendGrid, or Postmark)
 - [ ] Set DNS records for your domains:
   - `instant.fidscript.com` → your server IP
-  - `api.instant.fidscript.com` → your server IP
-  - `files.instant.fidscript.com` → your server IP
+  - `apiinstant.fidscript.com` → your server IP
+  - `filesinstant.fidscript.com` → your server IP
 - [ ] Run `docker compose -f docker-compose.with-caddy.yml up -d`
-- [ ] Verify health: `curl https://api.instant.fidscript.com/health/system`
+- [ ] Verify health: `curl https://apiinstant.fidscript.com/api/health`

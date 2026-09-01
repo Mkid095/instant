@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-SERVER_DIR="$PROJECT_ROOT/server"
+SERVER_DIR="$PROJECT_DIR/server"
 
 IMAGE_TAG="${1:-localhost:5000/instant-server:custom}"
 

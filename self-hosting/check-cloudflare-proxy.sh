@@ -2,9 +2,8 @@
 # Cloudflare Proxy Status Checker
 # Run this script periodically to ensure proxy is enabled
 
-DOMAINS=("instant.fidscript.com" "api.instant.fidscript.com" "files.instant.fidscript.com")
+DOMAINS=("instant.fidscript.com" "apiinstant.fidscript.com" "filesinstant.fidscript.com")
 VPS_IP="72.61.89.110"
-ALERT_EMAIL="kennedygithinjioffice@gmail.com"
 
 echo "=== Cloudflare Proxy Status Check ==="
 echo "Time: $(date)"

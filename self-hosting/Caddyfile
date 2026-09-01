@@ -7,6 +7,17 @@
 		X-Frame-Options "DENY"
 	}
 
+	# API and WebSocket routes — strip prefix and forward to server
+	@api path /api/*
+	handle @api {
+		uri strip_prefix /api
+		reverse_proxy server:8888
+	}
+	@runtime path /runtime/*
+	handle @runtime {
+		reverse_proxy server:8888
+	}
+
 	reverse_proxy www:3000
 }
 
@@ -36,3 +47,4 @@ cli.instant.fidscript.com {
 	encode gzip
 	reverse_proxy cli-setup:3100
 }
+

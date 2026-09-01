@@ -2,7 +2,7 @@
 
 ## Required DNS Records
 
-All three domains MUST have Cloudflare proxy enabled (orange cloud ON).
+All required domains MUST have Cloudflare proxy enabled (orange cloud ON).
 
 ### instant.fidscript.com
 - Type: A
@@ -11,28 +11,19 @@ All three domains MUST have Cloudflare proxy enabled (orange cloud ON).
 - Proxy status: **Proxied (Orange Cloud ON)**
 - SSL: Full (strict)
 
-### api.instant.fidscript.com
+### apiinstant.fidscript.com
 - Type: A
-- Name: api
-- Content: 72.61.89.110
-- Proxy status: **Proxied (Orange Cloud ON)** ⚠️ CURRENTLY DISABLED
-- SSL: Full (strict)
-
-### files.instant.fidscript.com
-- Type: A
-- Name: files
+- Name: apiinstant
 - Content: 72.61.89.110
 - Proxy status: **Proxied (Orange Cloud ON)**
 - SSL: Full (strict)
 
-## How to Fix
-
-1. Log in to Cloudflare Dashboard
-2. Select your domain: fidscript.com
-3. Go to DNS → Records
-4. Find the `api` A record
-5. Click the proxy status toggle to enable (orange cloud)
-6. Save
+### filesinstant.fidscript.com
+- Type: A
+- Name: filesinstant
+- Content: 72.61.89.110
+- Proxy status: **Proxied (Orange Cloud ON)**
+- SSL: Full (strict)
 
 ## Why This Matters
 
@@ -48,10 +39,10 @@ When Cloudflare proxy is disabled:
 After enabling proxy, verify with:
 ```bash
 # Should return Cloudflare IPs, not VPS IP
-dig api.instant.fidscript.com +short
+dig apiinstant.fidscript.com +short
 
 # Should show Cloudflare headers
-curl -sI https://api.instant.fidscript.com | grep -i cloudflare
+curl -sI https://apiinstant.fidscript.com | grep -i cloudflare
 ```
 
 Expected output:

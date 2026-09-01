@@ -12,8 +12,8 @@ Cloudflare (Proxy ON for all domains)
 Caddy (System-level, port 80/443)
     |
     +-- instant.fidscript.com --> localhost:3000 (www container)
-    +-- api.instant.fidscript.com --> localhost:8888 (server container)
-    +-- files.instant.fidscript.com --> localhost:9000 (minio container)
+    +-- apiinstant.fidscript.com --> localhost:8888 (server container)
+    +-- filesinstant.fidscript.com --> localhost:9000 (minio container)
 ```
 
 ## Current Deployment
@@ -45,8 +45,8 @@ Containers communicate via Docker network:
 
 Public endpoints:
 - Dashboard: https://instant.fidscript.com
-- API: https://api.instant.fidscript.com
-- Storage: https://files.instant.fidscript.com
+- API: https://apiinstant.fidscript.com
+- Storage: https://filesinstant.fidscript.com
 
 ## Cloudflare DNS Requirements
 
@@ -55,8 +55,8 @@ All domains MUST have proxy enabled:
 | Domain | Proxy Status | SSL Mode |
 |--------|--------------|----------|
 | instant.fidscript.com | ON (Orange) | Full (strict) |
-| api.instant.fidscript.com | ON (Orange) | Full (strict) |
-| files.instant.fidscript.com | ON (Orange) | Full (strict) |
+| apiinstant.fidscript.com | ON (Orange) | Full (strict) |
+| filesinstant.fidscript.com | ON (Orange) | Full (strict) |
 
 ## Prevention: How DNS Gets Changed
 
@@ -80,7 +80,7 @@ If proxy gets disabled:
 1. Log in to Cloudflare Dashboard
 2. Go to DNS → Records
 3. Enable proxy (orange cloud) for affected domains
-4. Verify with: `dig api.instant.fidscript.com +short`
+4. Verify with: `dig apiinstant.fidscript.com +short`
 5. Should return Cloudflare IPs, not VPS IP
 
 ## Security Notes

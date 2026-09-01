@@ -7,11 +7,11 @@
 
 export default {
   // API endpoint for your self-hosted Instant server
-  apiURI: 'https://api.instant.fidscript.com',
-  
+  apiURI: 'https://apiinstant.fidscript.com',
+
   // Dashboard URL
   dashURI: 'https://instant.fidscript.com',
-  
+
   // Optional: Pre-configure apps
   // apps: {
   //   'my-app': { id: 'your-app-uuid' },

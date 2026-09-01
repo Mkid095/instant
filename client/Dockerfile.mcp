@@ -55,7 +55,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY --from=prune /app/out/full/ .
 
-COPY tsconfig.base.json .
+COPY client/tsconfig.base.json .
 
 RUN pnpm exec turbo run build
 

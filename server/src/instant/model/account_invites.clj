@@ -156,7 +156,8 @@
                     :from :account_invites
                     :where [:and
                             [:= :email :?email]
-                            [:= :status [:inline "pending"]]]}))
+                            [:= :status [:inline "pending"]]
+                            [:> :expires_at :%now]]}))
 
 (defn pending-for-email
   "Gets all pending invites for an email that haven't expired.

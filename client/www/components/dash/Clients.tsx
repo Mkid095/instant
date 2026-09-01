@@ -118,7 +118,14 @@ export default function Clients() {
   };
 
   const pendingInvites = invites.filter((invite) => invite.status === 'pending');
-  const activeInvites = invites.filter((invite) => invite.status === 'accepted');
+  const activeInvites = Object.values(
+    invites
+      .filter((invite) => invite.status === 'accepted')
+      .reduce((acc, invite) => {
+        if (!acc[invite.email]) acc[invite.email] = invite;
+        return acc;
+      }, {} as Record<string, ClientInvite>)
+  );
   const revokedInvites = invites.filter((invite) => invite.status === 'revoked');
   const expiredInvites = invites.filter((invite) => invite.status === 'expired');
 
