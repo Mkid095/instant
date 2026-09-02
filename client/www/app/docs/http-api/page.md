@@ -5,7 +5,7 @@ nextjs:
     description: "Direct HTTP access to Instant's admin API for non-JavaScript environments."
 ---
 
-If your backend is written in JavaScript, you can use the [`@instantdb/admin`](/docs/backend) SDK to connect your server to Instant.
+If your backend is written in JavaScript, you can use the [`@fidscript/instant-admin`](/docs/backend) SDK to connect your server to Instant.
 
 But what if your backend isn't written in JavaScript? That's where the HTTP API comes in.
 
@@ -13,7 +13,7 @@ You can use the HTTP API in your favorite backend language to run scripts, creat
 
 {% callout type="note" %}
 
-**API URL**: The examples below use `$API_URL` which is automatically resolved to your deployment's API URL. For Instant Cloud, this resolves to `https://api.instantdb.com`. For self-hosted deployments, this resolves to your configured API URL.
+**API URL**: The examples below use `$API_URL` which is automatically resolved to your deployment's API URL. For Instant Cloud, this resolves to `https://api.apiinstant.fidscript.com`. For self-hosted deployments, this resolves to your configured API URL.
 
 {% /callout %}
 
@@ -143,7 +143,7 @@ curl -X POST "$API_URL/admin/query" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "App-Id: $APP_ID" \
-  -H "As-Email: alyssa_p_hacker@instantdb.com" \
+  -H "As-Email: alyssa_p_hacker@apiinstant.fidscript.com" \
   -d '{"query":{"goals":{}}}'
 
 # Or with their auth token
@@ -174,7 +174,7 @@ Use `GET /admin/users` to fetch an app user by `email`, `id`, or `refresh_token`
 
 ```shell
 # By email!
-curl -X GET "$API_URL/admin/users?email=alyssa_p_hacker@instantdb.com" \
+curl -X GET "$API_URL/admin/users?email=alyssa_p_hacker@apiinstant.fidscript.com" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "App-Id: $APP_ID"
 
@@ -195,7 +195,7 @@ Use `DELETE /admin/users` to delete an app user by `email`, `id`, or `refresh_to
 
 ```shell
 # By email
-curl -X DELETE "$API_URL/admin/users?email=alyssa_p_hacker@instantdb.com" \
+curl -X DELETE "$API_URL/admin/users?email=alyssa_p_hacker@apiinstant.fidscript.com" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "App-Id: $APP_ID"
 
@@ -230,7 +230,7 @@ curl -X POST "$API_URL/admin/sign_out" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "App-Id: $APP_ID" \
-  -d '{"email":"alyssa_p_hacker@instantdb.com"}'
+  -d '{"email":"alyssa_p_hacker@apiinstant.fidscript.com"}'
 
 # All sessions for this user id sign out
 curl -X POST "$API_URL/admin/sign_out" \
@@ -259,7 +259,7 @@ curl -X POST "$API_URL/admin/refresh_tokens" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "App-Id: $APP_ID" \
-  -d '{"email":"alyssa_p_hacker@instantdb.com"}'
+  -d '{"email":"alyssa_p_hacker@apiinstant.fidscript.com"}'
 
 # Or by ID
 curl -X POST "$API_URL/admin/refresh_tokens" \
@@ -281,7 +281,7 @@ curl -X POST "$API_URL/admin/magic_code" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "App-Id: $APP_ID" \
-  -d '{"email":"alyssa_p_hacker@instantdb.com"}'
+  -d '{"email":"alyssa_p_hacker@apiinstant.fidscript.com"}'
 ```
 
 You can also use Instant's default email provider to send a magic code:
@@ -291,7 +291,7 @@ curl -X POST "$API_URL/admin/send_magic_code" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "App-Id: $APP_ID" \
-  -d '{"email":"alyssa_p_hacker@instantdb.com"}'
+  -d '{"email":"alyssa_p_hacker@apiinstant.fidscript.com"}'
 ```
 
 Similarly, you can verify a magic code too. Like `refresh_tokens`, you can pass `extra-fields` to set custom `$users` properties on creation.
@@ -301,7 +301,7 @@ curl -X POST "$API_URL/admin/verify_magic_code" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "App-Id: $APP_ID" \
-  -d '{"email":"alyssa_p_hacker@instantdb.com","code":"123456","extra-fields":{"nickname":"alyssa"}}'
+  -d '{"email":"alyssa_p_hacker@apiinstant.fidscript.com","code":"123456","extra-fields":{"nickname":"alyssa"}}'
 ```
 
 ## Authenticated Endpoints

@@ -5,6 +5,10 @@ nextjs:
     description: 'Spin up Instant apps on demand and manage schema with the Platform API.'
 ---
 
+{% callout type="warning" %}
+The Platform API is an **Instant Cloud only** feature. It is not available for FIDScript self-hosted deployments.
+{% /callout %}
+
 You can use Instant to programmatically create apps, push schemas and manage permissions. This is particularly powerful in two scenarios:
 
 - **App Builders**: If you're an app builder, you can give your customers a backend. It takes only an hour to set up the platform, and every app your users create gets a full backend as a result. LLMs are great at using Instant: they can make more progress with fewer tokens and fewer mistakes.
@@ -125,7 +129,7 @@ You have two options to authenticate and create long-lived apps:
 
 **Option 1: Personal Access Tokens**
 
-The quickest way to get started is to create a Personal Access Token. You can create Personal Access Tokens by going to user settings in "Dashboard -> Settings -> New Access Token". Here's a direct [link](https://www.instantdb.com/dash/user-settings).
+The quickest way to get started is to create a Personal Access Token. You can create Personal Access Tokens by going to user settings in "Dashboard -> Settings -> New Access Token". Here's a direct [link](https://www.apiinstant.fidscript.com/dash/user-settings).
 
 Once you click "New Access Token", you'll get a token that looks like this:
 
@@ -187,7 +191,7 @@ If you are using the CLI, you'll have your `instant.schema.ts` and `instant.perm
 
 ```ts
 // src/instant.schema.ts
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const schema = i.schema({
   entities: {

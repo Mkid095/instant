@@ -127,7 +127,7 @@ Head on over to {% blank-link href="https://console.cloud.google.com/apis/creden
 {% conditional
    param="method"
    value=["web-redirect", "rn-web"] %}
-- Add `https://api.instantdb.com/runtime/oauth/callback` as an Authorized redirect URI.
+- Add `https://api.apiinstant.fidscript.com/runtime/oauth/callback` as an Authorized redirect URI.
 {% /conditional %}
 - If you're testing from localhost, **add both `http://localhost`** and `http://localhost:3000` to "Authorized JavaScript origins", replacing `3000` with the port you use.
 - For production, add your website's domain.
@@ -293,7 +293,7 @@ Once you install it, include the button, and use `db.auth.signInWithIdToken` to 
 'use client';
 
 import React, { useState } from 'react';
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 const APP_ID = '__APP_ID__';
@@ -383,7 +383,7 @@ Create an authorization URL via `db.auth.createAuthorizationURL` and then use th
 'use client';
 
 import React, { useState } from 'react';
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 const APP_ID = '__APP_ID__';
 
@@ -489,7 +489,7 @@ And from here you're ready to add a login button to your Expo app! Here's a full
 
 ```jsx {% showCopy=true %}
 import { View, Text, Button, StyleSheet } from 'react-native';
-import { init } from '@instantdb/react-native';
+import { init } from '@fidscript/instant-react-native';
 import {
   makeRedirectUri,
   useAuthRequest,
@@ -599,7 +599,7 @@ Now you're ready to add the Google sign-in button to your Expo app! Here's a ful
 
 ```jsx {% showCopy=true %}
 import { View, Text, Button, StyleSheet } from 'react-native';
-import { init } from '@instantdb/react-native';
+import { init } from '@fidscript/instant-react-native';
 import {
   GoogleSignin,
   GoogleSigninButton,

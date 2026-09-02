@@ -25,7 +25,7 @@ The fields must be optional attributes on `$users`, and `$users` must have a `cr
 'use client';
 
 import React, { useState } from 'react';
-import { init, User } from '@instantdb/react';
+import { init, User } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = '__APP_ID__';
@@ -89,7 +89,7 @@ Here is a full example using magic code auth:
 'use client';
 
 import React, { useState } from 'react';
-import { init, User } from '@instantdb/react';
+import { init, User } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = '__APP_ID__';

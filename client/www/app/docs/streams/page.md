@@ -5,6 +5,10 @@ nextjs:
     description: 'How to stream and persist data with Instant.'
 ---
 
+{% callout type="warning" %}
+Instant Streams are an **Instant Cloud only** feature. FIDScript does not currently support the Streams API.
+{% /callout %}
+
 Instant Streams provide a simple way to build durable, real-time data flows. They are excellent for LLM-native applications, making it easy to stream AI chat completions.
 
 ## How Streams work
@@ -97,7 +101,7 @@ First, define the link in your schema:
 
 ```ts {% showCopy=true %}
 // instant.schema.ts
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const _schema = i.schema({
   entities: {
@@ -167,7 +171,7 @@ In serverless environments, the process might be shut down before the stream has
 ```javascript {% showCopy=true %}
 // Next.js API Route example
 import { after } from 'next/server';
-import { init, id } from '@instantdb/admin';
+import { init, id } from '@fidscript/instant-admin';
 
 const db = init({
   appId: process.env.INSTANT_APP_ID,
@@ -199,7 +203,7 @@ Use the `resume` option in the `useChat` hook to enable stream resumption. When 
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import { id as generateId } from '@instantdb/react';
+import { id as generateId } from '@fidscript/instant-react';
 
 export function Chat({
   chatData,
@@ -239,7 +243,7 @@ import { readChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from '@instantdb/resumable-stream';
-import { id as generateId } from '@instantdb/admin';
+import { id as generateId } from '@fidscript/instant-admin';
 
 export async function POST(req: Request) {
   const {
@@ -333,7 +337,7 @@ By implementing a custom `DefaultChatTransport`, the Vercel AI SDK will automati
 import { useMemo } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage, type UIMessageChunk } from 'ai';
-import { id as generateId } from '@instantdb/react';
+import { id as generateId } from '@fidscript/instant-react';
 import { db } from '@/lib/db';
 
 class InstantChatTransport extends DefaultChatTransport<UIMessage> {
@@ -393,7 +397,7 @@ We'll start with a simple schema for our chats:
 
 ```ts {% showCopy=true %}
 // src/instant.schema.ts
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const _schema = i.schema({
   entities: {
@@ -432,7 +436,7 @@ And we'll set permissions so that the user can read their own chats. We'll handl
 
 ```ts {% showCopy=true %}
 // src/instant.perms.ts
-import type { InstantRules } from '@instantdb/react';
+import type { InstantRules } from '@fidscript/instant-react';
 
 const rules = {
   $default: {
@@ -472,7 +476,7 @@ We'll set up auth syncing so that the backend that talks to the LLM can authenti
 
 ```typescript {% showCopy=true %}
 // src/lib/db.ts
-import { init } from '@instantdb/react/nextjs';
+import { init } from '@fidscript/instant-react/nextjs';
 import schema from '@/instant.schema';
 
 export const db = init({
@@ -484,7 +488,7 @@ export const db = init({
 
 ```typescript {% showCopy=true %}
 // src/app/api/instant/route.ts
-import { createInstantRouteHandler } from '@instantdb/react/nextjs';
+import { createInstantRouteHandler } from '@fidscript/instant-react/nextjs';
 
 export const { POST } = createInstantRouteHandler({
   appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID!,
@@ -493,7 +497,7 @@ export const { POST } = createInstantRouteHandler({
 
 ```ts {% showCopy=true %}
 // src/lib/adminDb.ts
-import { init } from '@instantdb/admin';
+import { init } from '@fidscript/instant-admin';
 import schema from '@/instant.schema';
 
 export const db = init({
@@ -514,7 +518,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage, type UIMessageChunk } from 'ai';
 import { db } from '@/lib/db';
-import { id as generateId } from '@instantdb/react';
+import { id as generateId } from '@fidscript/instant-react';
 
 class InstantChatTransport extends DefaultChatTransport<UIMessage> {
   async reconnectToStream(
@@ -645,7 +649,7 @@ The POST handler saves the user message and pipes the AI completion to an Instan
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 import { after, NextResponse } from 'next/server';
-import { id as generateId } from '@instantdb/admin';
+import { id as generateId } from '@fidscript/instant-admin';
 import { db } from '@/lib/adminDb';
 
 async function saveChat({

@@ -54,7 +54,7 @@ Let's dive deeper into each step:
 4. Fill in the application details:
    - **Application name**: Your app's name (users will see this)
    - **Homepage URL**: Your app's website
-   - **Authorization callback URL**: `https://api.instantdb.com/runtime/oauth/callback`
+   - **Authorization callback URL**: `https://api.apiinstant.fidscript.com/runtime/oauth/callback`
 5. Click "Register application".
 6. After creation, you'll see your **Client ID**.
 7. Click "Generate a new client secret" to get your **Client Secret**.
@@ -129,7 +129,7 @@ Create an authorization URL via `db.auth.createAuthorizationURL` and then use th
 'use client';
 
 import React from 'react';
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 const APP_ID = '__APP_ID__';
 
@@ -233,7 +233,7 @@ And from here you're ready to add a login button to your Expo app! Here's a full
 
 ```jsx {% showCopy=true %}
 import { View, Text, Button } from 'react-native';
-import { init } from '@instantdb/react-native';
+import { init } from '@fidscript/instant-react-native';
 import {
   makeRedirectUri,
   useAuthRequest,

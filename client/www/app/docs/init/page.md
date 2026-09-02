@@ -11,7 +11,7 @@ The first step to using Instant in your app is to call `init`. Here is a simple
 example at the root of your app.
 
 ```javascript
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = '__APP_ID__';
@@ -30,7 +30,7 @@ With that, you can use `db` to [write data](/docs/instaml), [make queries](/docs
 If you're using TypeScript, `init` accepts a `schema` argument. Adding a schema provides auto-completion and typesafety for your queries and transactions.
 
 ```typescript
-import { init, i } from '@instantdb/react';
+import { init, i } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = '__APP_ID__';
@@ -68,7 +68,7 @@ reference from a utility file like so:
 <!-- prettier-ignore-start -->
 ```typescript
 // lib/db.ts
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 import schema from '../instant.schema';
 
 // Instant app
@@ -98,9 +98,9 @@ and `schema`. Here are all the options you can provide:
 
 - **schema?**: Instant schema export from your `instant.schema.ts` file. Provide this for typesafety and auto-completion in queries, transactions, and ephemeral features.
 
-- **websocketURI?**: Custom WebSocket endpoint for real-time connections. Defaults to `'wss://api.instantdb.com/runtime/session'`. For self-hosted deployments, set this to your API WebSocket endpoint (e.g., `'wss://apiinstant.fidscript.com/runtime/session'`).
+- **websocketURI?**: Custom WebSocket endpoint for real-time connections. Defaults to `'wss://apiinstant.fidscript.com/runtime/session'`. For self-hosted deployments, set this to your API WebSocket endpoint (e.g., `'wss://apiinstant.fidscript.com/runtime/session'`).
 
-- **apiURI?**: Custom HTTP API endpoint for auth and storage operations. Defaults to `'https://api.instantdb.com'`. For self-hosted deployments, set this to your API URL (e.g., `'https://apiinstant.fidscript.com'`).
+- **apiURI?**: Custom HTTP API endpoint for auth and storage operations. Defaults to `'https://apiinstant.fidscript.com'`. For self-hosted deployments, set this to your API URL (e.g., `'https://apiinstant.fidscript.com'`).
 
 - **devtool?**: Controls the Instant dev tool. Defaults to `true` on localhost. Set to `false` to disable, or configure its `position`, `allowedHosts`, and `dashURI`. Set `dashURI` when using a self-hosted dashboard.
 

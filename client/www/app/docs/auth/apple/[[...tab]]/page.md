@@ -56,8 +56,8 @@ Instant supports Sign In with Apple on the Web and in native applications.
 - Enable _Sign In with Apple_
 - Click _Configure_
 - Select _Primary App ID_ from Step 1
-- To _Domains_, add `api.instantdb.com`
-- To _Return URLs_, add `https://api.instantdb.com/runtime/oauth/callback`
+- To _Domains_, add `api.apiinstant.fidscript.com`
+- To _Return URLs_, add `https://api.apiinstant.fidscript.com/runtime/oauth/callback`
 - Click _Continue_ → _Save_
 
 ## Step 3.5: Generate Private Key (Web Redirect flow only)
@@ -336,7 +336,7 @@ Full example:
 ```jsx {% showCopy=true %}
 import React, { useState } from 'react';
 import { Button, View, Text, StyleSheet } from 'react-native';
-import { init, tx } from '@instantdb/react-native';
+import { init, tx } from '@fidscript/instant-react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
 const APP_ID = '__APP_ID__';

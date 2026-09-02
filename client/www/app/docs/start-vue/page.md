@@ -26,7 +26,7 @@ npm create vue@latest my-app
 Add the InstantDB Vue Library:
 
 ```shell
-npm i @instantdb/vue
+npm i @fidscript/instant-vue
 ```
 
 Use `instant-cli` to set up a new Instant project. This will prompt you to log in if you haven't already. It will then create schema and permissions files and update your `.env` file.
@@ -40,7 +40,7 @@ Create a database client in `src/lib/db.ts`:
 {% file label="src/lib/db.ts" /%}
 
 ```ts
-import { init } from '@instantdb/vue';
+import { init } from '@fidscript/instant-vue';
 import schema from '../instant.schema';
 
 export const db = init({
@@ -59,7 +59,7 @@ Let's add a "todo" entity to our schema file at `src/instant.schema.ts`:
 {% file label="src/instant.schema.ts" /%}
 
 ```ts {% showCopy=true lineHighlight="14-18" %}
-import { i } from '@instantdb/vue';
+import { i } from '@fidscript/instant-vue';
 
 const _schema = i.schema({
   entities: {
@@ -112,7 +112,7 @@ Replace the content of `src/App.vue` with the following:
 ```vue {% showCopy=true %}
 <script setup lang="ts">
 import { ref } from 'vue';
-import { id, type InstaQLEntity } from '@instantdb/vue';
+import { id, type InstaQLEntity } from '@fidscript/instant-vue';
 import { db } from './lib/db';
 import type { AppSchema } from './instant.schema';
 
@@ -248,7 +248,7 @@ Transactions in Vue work the same way they do in React via `db.transact`:
 
 ```vue
 <script setup lang="ts">
-import { id } from '@instantdb/vue';
+import { id } from '@fidscript/instant-vue';
 import { db } from './lib/db';
 
 function addTodo(text: string) {
@@ -304,7 +304,7 @@ For simpler cases where you just need to gate content on auth state, use the `Si
 
 ```vue
 <script setup lang="ts">
-import { SignedIn, SignedOut } from '@instantdb/vue';
+import { SignedIn, SignedOut } from '@fidscript/instant-vue';
 import { db } from './lib/db';
 </script>
 
@@ -330,7 +330,7 @@ A multiplayer cursor component that tracks mouse positions via presence. Wrap an
 
 ```vue
 <script setup lang="ts">
-import { Cursors } from '@instantdb/vue';
+import { Cursors } from '@fidscript/instant-vue';
 import { db } from './lib/db';
 
 const room = db.room('main', 'my-room-id');

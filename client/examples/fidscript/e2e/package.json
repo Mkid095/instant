@@ -1,0 +1,18 @@
+{
+  "name": "@fidscript-example/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --loader ts-node/esm test.ts",
+    "test:quick": "node --loader ts-node/esm test-quick.ts"
+  },
+  "dependencies": {
+    "@fidscript/instant-sdk": "^0.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.0"
+  }
+}

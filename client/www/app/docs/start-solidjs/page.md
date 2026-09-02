@@ -26,7 +26,7 @@ npx create-vite@latest -t solid-ts
 Add the InstantDB SolidJS Library:
 
 ```shell
-npm i @instantdb/solidjs
+npm i @fidscript/instant-solidjs
 ```
 
 Use `instant-cli` to set up a new Instant project. This will prompt you to log in if you haven't already. It will then create schema and permissions files and update your `.env` file.
@@ -40,7 +40,7 @@ Create a database client in `src/lib/db.ts`:
 {% file label="src/lib/db.ts" /%}
 
 ```ts
-import { init } from '@instantdb/solidjs';
+import { init } from '@fidscript/instant-solidjs';
 import schema from '../instant.schema';
 
 export const db = init({
@@ -59,7 +59,7 @@ Let's add a "todo" entity to our schema file at `src/instant.schema.ts`:
 {% file label="src/instant.schema.ts" /%}
 
 ```ts {% showCopy=true lineHighlight="14-18" %}
-import { i } from '@instantdb/solidjs';
+import { i } from '@fidscript/instant-solidjs';
 
 const _schema = i.schema({
   entities: {
@@ -110,7 +110,7 @@ Replace the content of `src/App.tsx` with the following:
 {% file label="src/App.tsx" /%}
 
 ```typescript {% showCopy=true %}
-import { id, type InstaQLEntity } from "@instantdb/solidjs";
+import { id, type InstaQLEntity } from "@fidscript/instant-solidjs";
 import { createSignal, For, Show, type Component } from "solid-js";
 import { db } from "./lib/db";
 import type { AppSchema } from "./instant.schema";
@@ -274,7 +274,7 @@ function Welcome() {
           class="border shadow flex flex-col py-8 gap-2 hover:bg-neutral-100 items-center justify-center font-semibold border-neutral-200 rounded"
         >
           <img
-            src="https://www.instantdb.com/img/icon/logo-512.svg"
+            src="https://www.apiinstant.fidscript.com/img/icon/logo-512.svg"
             width={34}
           />
           Instant Docs

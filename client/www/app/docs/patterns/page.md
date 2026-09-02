@@ -68,7 +68,7 @@ First the [schema](/docs/modeling-data):
 ```typescript
 // instant.schema.ts
 // Here we define users, todos, and a link between them.
-import { i } from '@instantdb/core';
+import { i } from '@fidscript/instant-sdk';
 
 const _schema = i.schema({
   entities: {
@@ -107,7 +107,7 @@ export default schema;
 Then the [permissions](/docs/permissions):
 
 ```typescript
-import type { InstantRules } from '@instantdb/react';
+import type { InstantRules } from '@fidscript/instant-react';
 // instant.perms.ts
 // And now we reference the `owner` link for todos to check the number
 // of todos a user has created.
@@ -164,12 +164,12 @@ function App() {
 ## Using Instant via CDN
 
 If you have a plain html page or avoid using a build step, you can use InstantDB
-via a CDN through [unpkg](https://www.unpkg.com/@instantdb/core/).
+via a CDN through [unpkg](https://www.unpkg.com/@fidscript/instant-sdk/).
 
 ```jsx {% showCopy=true %}
 <!-- Load Instant via unpkg -->
 <!-- Consider replacing @latest with a specific package -->
-<script src="https://www.unpkg.com/@instantdb/core@latest/dist/standalone/index.umd.cjs"></script>
+<script src="https://www.unpkg.com/@fidscript/instant-sdk@latest/dist/standalone/index.umd.cjs"></script>
 
 <!-- Use Instant like normal -->
 <script>
@@ -195,7 +195,7 @@ Sometimes you need an identifier that stays the same between refreshes. A "local
 Local ids are especially useful for features like "guest" mode. You need an identifier for the user who is accessing the service, but they haven't signed up yet. Well, you can use a `localId` for that. To generate one, use `db.getLocalId`:
 
 ```js
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = '__APP_ID__';
@@ -209,7 +209,7 @@ console.log(id, 'stays the same even if you refresh');
 Or a handy hook if you're inside React:
 
 ```js
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = '__APP_ID__';
@@ -275,7 +275,7 @@ How can you enforce this uniqueness in Instant?
 We don't have composite keys built-in, but you can manage them by creating a composite column. For example, you can make sure `locations` are unique by adding a `latLong` column:
 
 ```js
-import { i } from '@instantdb/core';
+import { i } from '@fidscript/instant-sdk';
 const _schema = i.schema({
   entities: {
     // ...
@@ -324,7 +324,7 @@ for production.
 
 ```javascript
 // lib/db.ts
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 const APP_ID = process.env.NEXT_PUBLIC_INSTANT_APP_ID;
 
@@ -396,7 +396,7 @@ The solution is to run an admin script to backfill the null values before pushin
 
 ```typescript
 // scripts/backfill-todos.ts
-import { init, tx } from '@instantdb/admin';
+import { init, tx } from '@fidscript/instant-admin';
 
 const db = init({
   appId: process.env.INSTANT_APP_ID!,

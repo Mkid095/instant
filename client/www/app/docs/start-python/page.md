@@ -173,7 +173,7 @@ db.transact([
     db.tx.goals[goal_id].update({"title": "Get fit"}),
     db.tx.todos[todo_id].update({"title": "Run"}),
     db.tx.goals[goal_id].link({"todos": todo_id}),
-    db.tx.users[lookup("email", "alyssa@instantdb.com")].update(
+    db.tx.users[lookup("email", "alyssa@apiinstant.fidscript.com")].update(
         {"name": "Alyssa"}
     ),
 ])
@@ -297,15 +297,15 @@ Mirrors the JS `db.auth` namespace.
 ### Magic codes
 
 ```python {% showCopy=true %}
-db.auth.send_magic_code("alyssa@instantdb.com")
+db.auth.send_magic_code("alyssa@apiinstant.fidscript.com")
 
 # Or generate the code yourself for a custom email provider
-code = db.auth.generate_magic_code("alyssa@instantdb.com")
+code = db.auth.generate_magic_code("alyssa@apiinstant.fidscript.com")
 print(code)
 
 # Verify it
 user, created = db.auth.check_magic_code(
-    email="alyssa@instantdb.com",
+    email="alyssa@apiinstant.fidscript.com",
     code="123456",
 )
 ```
@@ -314,7 +314,7 @@ user, created = db.auth.check_magic_code(
 
 ```python {% showCopy=true %}
 # Mint a token for a user (creates them if they don't exist)
-token = db.auth.create_token(email="alyssa@instantdb.com")
+token = db.auth.create_token(email="alyssa@apiinstant.fidscript.com")
 # or
 token = db.auth.create_token(id="...")
 
@@ -325,12 +325,12 @@ user = db.auth.verify_token(token)
 ### Users
 
 ```python {% showCopy=true %}
-user = db.auth.get_user(email="alyssa@instantdb.com")
+user = db.auth.get_user(email="alyssa@apiinstant.fidscript.com")
 user = db.auth.get_user(id="...")
 user = db.auth.get_user(refresh_token="...")
 
-db.auth.delete_user(email="alyssa@instantdb.com")
-db.auth.sign_out(email="alyssa@instantdb.com")
+db.auth.delete_user(email="alyssa@apiinstant.fidscript.com")
+db.auth.sign_out(email="alyssa@apiinstant.fidscript.com")
 ```
 
 ## Impersonation
@@ -340,7 +340,7 @@ were a specific user or guest.
 
 ```python {% showCopy=true %}
 # As a specific user
-scoped = db.as_user(email="alyssa@instantdb.com")
+scoped = db.as_user(email="alyssa@apiinstant.fidscript.com")
 goals_as_alyssa = scoped.query({"goals": {}})
 
 # As a guest

@@ -12,14 +12,14 @@ To use Instant in a brand new project, fire up your terminal and set up a new pr
 ```shell {% showCopy=true %}
 npx create-vite@latest -t vanilla-ts instant-vanilla
 cd instant-vanilla
-npm i @instantdb/core
+npm i @fidscript/instant-sdk
 npm run dev
 ```
 
 Now open up `src/main.ts` in your favorite editor and replace the entirety of the file with the following code.
 
 ```javascript {% showCopy=true %}
-import { init, i, id, InstaQLEntity } from "@instantdb/core";
+import { init, i, id, InstaQLEntity } from "@fidscript/instant-sdk";
 
 // Instant app
 const APP_ID = "__APP_ID__";

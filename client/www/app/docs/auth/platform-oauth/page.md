@@ -15,7 +15,7 @@ This guide walks you through the steps required to integrate your application wi
 
 The first step is to register your OAuth application with Instant. This is done through the Instant Dashboard:
 
-1.  Navigate to the **[OAuth Apps section of the Instant Dashboard](https://instantdb.com/dash?s=main&t=oauth-apps)**
+1.  Navigate to the **[OAuth Apps section of the Instant Dashboard](https://apiinstant.fidscript.com/dash?s=main&t=oauth-apps)**
 2.  Create a new "OAuth App" associated with your Instant App. Give it a descriptive name.
 3.  Within that OAuth App, create a new "OAuth Client".
     - Provide a name for the client (e.g., "My Web App Integration").
@@ -45,7 +45,7 @@ To start the flow, redirect the user from your application to the Instant author
 **Base URL:**
 
 ```text
-https://api.instantdb.com/platform/oauth/start
+https://api.apiinstant.fidscript.com/platform/oauth/start
 ```
 
 **Query Parameters:**
@@ -61,7 +61,7 @@ https://api.instantdb.com/platform/oauth/start
 **Example Authorization URL:**
 
 ```text
-https://api.instantdb.com/platform/oauth/start?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=YOUR_REDIRECT_URI&scope=apps-read%20apps-write&state=RANDOM_STATE_STRING
+https://api.apiinstant.fidscript.com/platform/oauth/start?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=YOUR_REDIRECT_URI&scope=apps-read%20apps-write&state=RANDOM_STATE_STRING
 ```
 
 When the user visits this URL, they will be prompted by Instant to log in (if they aren't already) and asked to grant your application the requested permissions (scopes).
@@ -98,7 +98,7 @@ Once you have verified the `state` and obtained the `code`, exchange the code fo
 **Endpoint:**
 
 ```text
-https://api.instantdb.com/platform/oauth/token
+https://api.apiinstant.fidscript.com/platform/oauth/token
 ```
 
 **Method:** `POST`
@@ -127,7 +127,7 @@ export CLIENT_SECRET="YOUR_CLIENT_SECRET"
 export REDIRECT_URI="YOUR_REDIRECT_URI"
 export CODE="YOUR_AUTHORIZATION_CODE"
 
-curl -v -X POST "https://api.instantdb.com/platform/oauth/token" \
+curl -v -X POST "https://api.apiinstant.fidscript.com/platform/oauth/token" \
   -H "Content-Type: application/json" \
   -d "{
         \"client_id\": \"$CLIENT_ID\",
@@ -170,7 +170,7 @@ Authorization: Bearer ACCESS_TOKEN_VALUE
 ```bash
 export ACCESS_TOKEN="ACCESS_TOKEN_VALUE"
 
-curl -v "https://api.instantdb.com/superadmin/apps" \
+curl -v "https://api.apiinstant.fidscript.com/superadmin/apps" \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
@@ -185,7 +185,7 @@ Make a `POST` request from your **backend server** to the token endpoint:
 **Endpoint:**
 
 ```text
-https://api.instantdb.com/platform/oauth/token
+https://api.apiinstant.fidscript.com/platform/oauth/token
 ```
 
 **Method:** `POST`
@@ -212,7 +212,7 @@ export CLIENT_ID="YOUR_CLIENT_ID"
 export CLIENT_SECRET="YOUR_CLIENT_SECRET"
 export REFRESH_TOKEN="REFRESH_TOKEN_VALUE"
 
-curl -v -X POST "[https://api.instantdb.com/platform/oauth/token](https://api.instantdb.com/platform/oauth/token)" \
+curl -v -X POST "[https://api.apiinstant.fidscript.com/platform/oauth/token](https://api.apiinstant.fidscript.com/platform/oauth/token)" \
   -H "Content-Type: application/json" \
   -d "{
         \"client_id\": \"$CLIENT_ID\",
@@ -246,7 +246,7 @@ You can invalidate an access token or a refresh token through the `revoke` endpo
 **Endpoint:**
 
 ```text
-https://api.instantdb.com/platform/oauth/revoke
+https://api.apiinstant.fidscript.com/platform/oauth/revoke
 ```
 
 **Method:** `POST`
@@ -258,7 +258,7 @@ https://api.instantdb.com/platform/oauth/revoke
 **Example URL:**
 
 ```text
-https://api.instantdb.com/platform/oauth/revoke?token=YOUR_TOKEN
+https://api.apiinstant.fidscript.com/platform/oauth/revoke?token=YOUR_TOKEN
 ```
 
 ## Endpoints

@@ -69,7 +69,7 @@ import {
   SignedIn,
   SignedOut,
 } from '@clerk/nextjs';
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 import { useEffect } from 'react';
 
 // Instant app

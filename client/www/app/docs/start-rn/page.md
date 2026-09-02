@@ -2,20 +2,20 @@
 nextjs:
   metadata:
     title: 'Getting started with React Native'
-    description: 'How to use Instant with React Native'
+    description: 'How to use FIDScript with React Native'
 ---
 
-You can use Instant in React Native projects too! Below is an example using Expo.
+You can use FIDScript in React Native projects too! Below is a guide for using FIDScript with Expo.
 
 Open up your terminal and do the following:
 
 ```shell {% showCopy=true %}
 # Create an app with expo
-npx create-expo-app instant-rn-demo
-cd instant-rn-demo
+npx create-expo-app fidscript-rn-demo
+cd fidscript-rn-demo
 
-# Install instant
-npm i @instantdb/react-native
+# Install FIDScript
+npm i @fidscript/instant-react-native
 
 # Install peer dependencies
 npm i @react-native-async-storage/async-storage @react-native-community/netinfo react-native-get-random-values
@@ -24,10 +24,10 @@ npm i @react-native-async-storage/async-storage @react-native-community/netinfo 
 Now open up `app/(tabs)/index.tsx` in your favorite editor and replace the entirety of the file with the following code.
 
 ```tsx {% showCopy=true %}
-import { init, i, InstaQLEntity } from '@instantdb/react-native';
+import { init, i, InstaQLEntity } from '@fidscript/instant-react-native';
 import { View, Text, Button, StyleSheet } from 'react-native';
 
-// Instant app
+// FIDScript app
 const APP_ID = '__APP_ID__';
 
 // Optional: You can declare a schema!
@@ -132,103 +132,17 @@ npm run start
 
 Scan the QR code with your phone and follow the instructions on the screen :)
 
-Huzzah 🎉 You've got your first React Native Instant app running! Check out the [Working with data](/docs/init) section to learn more about how to use Instant!
-
-## Using MMKV for faster storage (optional)
-
-By default, Instant uses [AsyncStorage](https://react-native-async-storage.github.io/async-storage/) to persist data on the device. If you want faster read/write performance, you can use [MMKV](https://github.com/mrousavy/react-native-mmkv) instead.
-
-### Install the MMKV package
-
-```shell {% showCopy=true %}
-npm i @instantdb/react-native-mmkv
-
-# Install MMKV peer dependencies
-npx expo install react-native-mmkv react-native-nitro-modules
-```
-
-Note: MMKV requires native code, so you'll need to run a prebuild:
-
-```shell {% showCopy=true %}
-npx expo prebuild
-```
-
-### Configure Instant to use MMKV
-
-Import `Store` from `@instantdb/react-native-mmkv` and pass it to `init`:
-
-```tsx {% showCopy=true %}
-import { init } from '@instantdb/react-native';
-import Store from '@instantdb/react-native-mmkv';
-
-const db = init({
-  appId: APP_ID,
-  Store: Store,
-});
-```
-
-Then run your app on a device or simulator:
-
-```shell {% showCopy=true %}
-npx expo run:ios # or npx expo run:android
-```
-
-That's it! Instant will now use MMKV for local persistence instead of AsyncStorage.
-
-When you use a custom store, `@react-native-async-storage/async-storage` becomes optional, so you can remove it from your dependencies.
-
-## Using expo-sqlite for storage (optional)
-
-If your app already uses [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/), you can use it for Instant's local persistence too.
-
-### Install the expo-sqlite package
-
-```shell {% showCopy=true %}
-npm i @instantdb/expo-sqlite
-
-# Install the expo-sqlite peer dependency
-npx expo install expo-sqlite
-```
-
-Note: expo-sqlite is included in Expo Go, so no prebuild is needed to try it out. For development builds, run a prebuild as usual:
-
-```shell {% showCopy=true %}
-npx expo prebuild
-```
-
-### Configure Instant to use expo-sqlite
-
-Import `Store` from `@instantdb/expo-sqlite` and pass it to `init`:
-
-```tsx {% showCopy=true %}
-import { init } from '@instantdb/react-native';
-import Store from '@instantdb/expo-sqlite';
-
-const db = init({
-  appId: APP_ID,
-  Store: Store,
-});
-```
-
-Then run your app on a device or simulator:
-
-```shell {% showCopy=true %}
-npx expo run:ios # or npx expo run:android
-```
-
-That's it! Instant will now use expo-sqlite for local persistence instead of AsyncStorage.
-
-When you use a custom store, `@react-native-async-storage/async-storage` becomes optional, so you can remove it from your dependencies.
+Huzzah 🎉 You've got your first React Native FIDScript app running! Check out the [Working with data](/docs/init) section to learn more about FIDScript concepts!
 
 ## Implementing your own store
 
-You can also implement your own local cache interface by extending `StoreInterface` from `@instantdb/react-native`. Here's an example in-memory store implementation:
+You can implement a custom local cache by extending `StoreInterface` from `@fidscript/instant-react-native`. Here's an example in-memory store:
 
 ```tsx {% showCopy=true %}
 import {
   StoreInterface,
   StoreInterfaceStoreName,
-} from '@instantdb/react-native';
+} from '@fidscript/instant-react-native';
 
 class InMemoryStore extends StoreInterface {
   _map: Map<string, any>;
@@ -261,7 +175,7 @@ class InMemoryStore extends StoreInterface {
 Then pass your custom store class to `init`:
 
 ```tsx {% showCopy=true %}
-import { init } from '@instantdb/react-native';
+import { init } from '@fidscript/instant-react-native';
 
 const db = init({
   appId: APP_ID,
@@ -271,18 +185,6 @@ const db = init({
 
 ## Next Steps
 
-Want a more in-depth tutorial on building an Expo app with Instant? Check out [Beto's](https://x.com/betomoedano) video on building a chat app below!
+For more advanced features, check out [Working with data](/docs/init) to learn more about FIDScript concepts.
 
-This video goes through core concepts of using Instant like setting up schema, writing queries, and using transactions!
-
-{% youtube src="https://www.youtube.com/watch?v=jyVR5NDjNJ4" title="Building a Real-Time Chat App with Instant DB" /%}
-
-For more advanced features, check out [Simon Grimm](https://x.com/schlimmson) building a mobile app builder with Instant!
-
-In this video, Simon builds on top of the concepts from Beto's video and shows off how to use Storage for uploading assets and the Platform API for programmatically spinning up databases.
-
-{% youtube src="https://www.youtube.com/watch?v=HRACNTmikZI" title="Use React Native + InstantDB to Build a Self-Building App" /%}
-
-If you prefer reading docs, you can also check out the [Working with data](/docs/init) section to learn more about Instant concepts.
-
-As you get more familiar with Instant, check out our [Recommended Workflow](/docs/workflow) docs for using Instant in your projects.
+As you get more familiar with FIDScript, check out our [Recommended Workflow](/docs/workflow) docs.

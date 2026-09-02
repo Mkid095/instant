@@ -13,7 +13,7 @@ Rate limits are configured in the `$rateLimits` key of your permissions. Each ra
 
 ```tsx {% showCopy=true %}
 // instant.perms.ts
-import type { InstantRules } from '@instantdb/react';
+import type { InstantRules } from '@fidscript/instant-react';
 
 const rules = {
   todos: {

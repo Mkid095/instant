@@ -44,7 +44,7 @@ particular functionality. For example, here are the recommended docs for [adding
 
 We recommend starting with the rules files above and adding more docs as needed.
 If you want though you can get all our docs at once in markdown format via
-[llms-full.txt](https://www.instantdb.com/llms-full.txt)
+[llms-full.txt](https://www.apiinstant.fidscript.com/llms-full.txt)
 
 ## Instant MCP Server
 

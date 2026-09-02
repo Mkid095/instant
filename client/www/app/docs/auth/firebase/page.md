@@ -45,7 +45,7 @@ Here is a full example:
 ```tsx
 'use client';
 
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,

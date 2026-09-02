@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "src/__types__"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "strictNullChecks": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@fidscript/instant-sdk": ["../../fidscript-instant-sdk/dist/commonjs"],
+      "@fidscript/instant-react-common": ["../../fidscript-instant-react-common/dist/commonjs"]
+    }
+  }
+}

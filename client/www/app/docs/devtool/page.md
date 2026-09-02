@@ -24,7 +24,7 @@ Or the `Sandbox` to try out different queries and transactions:
 You can choose where to position your devtool as well. Pass in the `devtool` configuration in `init`:
 
 ```typescript
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 import schema from '../instant.schema.ts';
 
@@ -44,7 +44,7 @@ You can set it to `bottom-left`, `top-left`, `top-right`, or `bottom-right`.
 By default, the devtool only shows up on `localhost`. But you can decide which hosts to show it on too. Pass in the `allowedHosts` option:
 
 ```typescript
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 import schema from '../instant.schema.ts';
 
@@ -63,7 +63,7 @@ When connecting to a self-hosted Instant deployment, set `dashURI` to the
 deployment's dashboard URL:
 
 ```typescript
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 import schema from '../instant.schema.ts';
 
@@ -86,7 +86,7 @@ management.
 If you would like to hide the devtool completely, you can add `devtool: false` in `init`:
 
 ```typescript
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 import schema from '../instant.schema.ts';
 

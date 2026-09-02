@@ -10,20 +10,20 @@ running scripts, custom auth flows, or sensitive application logic.
 
 We currently offer two server-side SDKs:
 
-- **JavaScript:** `@instantdb/admin` — the focus of this page.
+- **JavaScript:** `@fidscript/instant-admin` — the focus of this page.
 - **Python:** `instantdb` — see [Getting started with Python](/docs/start-python)
   for the equivalent surface in Python.
 
 ## Admin SDK
 
-`@instantdb/admin` is the JavaScript Admin SDK for using Instant in a
+`@fidscript/instant-admin` is the JavaScript Admin SDK for using Instant in a
 non-browser context. This library is similar to our client SDK with a few
 tweaks.
 
 ### init
 
 ```javascript
-import { init, id } from '@instantdb/admin';
+import { init, id } from '@fidscript/instant-admin';
 
 // Instant app
 const APP_ID = '__APP_ID__';
@@ -33,7 +33,7 @@ const db = init({
 });
 ```
 
-As with `@instantdb/react`, you must `init` before doing any queries or
+As with `@fidscript/instant-react`, you must `init` before doing any queries or
 writes. Running `init` authenticates you against our admin API. In addition to
 providing your `appId`, you can provide your `adminToken`.
 
@@ -71,7 +71,7 @@ console.log('New todo entry made for with tx-id', res['tx-id']);
 ```
 
 `db.transact` is an async function that behaves nearly identically to `db.transact`
-from `@instantdb/react`. It returns a `tx-id` on success.
+from `@fidscript/instant-react`. It returns a `tx-id` on success.
 
 ## Subscriptions on the backend
 
@@ -126,7 +126,7 @@ Subscriptions keep a live connection open on your backend. Be sure to close them
 `init` also accepts a schema argument:
 
 ```typescript {% showCopy=true %}
-import { init, id } from '@instantdb/admin';
+import { init, id } from '@fidscript/instant-admin';
 import schema from '../instant.schema.ts';
 
 // Instant app
@@ -151,9 +151,9 @@ You can do this with the `db.asUser` function.
 
 ```typescript {% showCopy=true %}
 // Scope by their email
-const scopedDb = db.asUser({ email: 'alyssa_p_hacker@instantdb.com' });
+const scopedDb = db.asUser({ email: 'alyssa_p_hacker@apiinstant.fidscript.com' });
 // Or with their auth token
-const token = db.auth.createToken({ email: 'alyssa_p_hacker@instantdb.com' });
+const token = db.auth.createToken({ email: 'alyssa_p_hacker@apiinstant.fidscript.com' });
 const scopedDb = db.asUser({ token });
 // Or use the db as a guest!
 const scopedDb = db.asUser({ guest: true });
@@ -166,7 +166,7 @@ await scopedDb.query({ logs: {} });
 Impersonation can also let you run the Admin SDK _without_ exposing an admin token.
 
 ```javascript {% showCopy=true %}
-import { init } from '@instantdb/admin';
+import { init } from '@fidscript/instant-admin';
 
 // If you only impersonate with a user token or as a guest,
 // you can _skip_ admin credentials
@@ -202,7 +202,7 @@ Without an `adminToken`, you must use `.asUser({ token })` or `asUser({ guest: t
 As an admin, you can retrieve an app user record by `email`, `id`, or `refresh_token`. You can do this with the `db.auth.getUser` function.
 
 ```typescript {% showCopy=true %}
-const user = await db.auth.getUser({ email: 'alyssa_p_hacker@instantdb.com' });
+const user = await db.auth.getUser({ email: 'alyssa_p_hacker@apiinstant.fidscript.com' });
 const user = await db.auth.getUser({
   id: userId,
 });
@@ -217,7 +217,7 @@ You can also delete an app user record by `email`, `id`, or `refresh_token`. You
 
 ```typescript {% showCopy=true %}
 const deletedUser = await db.auth.deleteUser({
-  email: 'alyssa_p_hacker@instantdb.com',
+  email: 'alyssa_p_hacker@apiinstant.fidscript.com',
 });
 const deletedUser = await db.auth.deleteUser({
   id: userId,
@@ -266,7 +266,7 @@ The `db.auth.signOut` method allows you to log out users. You can log a user out
 
 ```typescript {% showCopy=true %}
 // All sessions for this email sign out
-await db.auth.signOut({ email: 'alyssa_p_hacker@instantdb.com' });
+await db.auth.signOut({ email: 'alyssa_p_hacker@apiinstant.fidscript.com' });
 // All sessions for this user id sign out
 const user = await db.auth.signOut({
   id: userId,
@@ -313,7 +313,7 @@ Here's a full example:
 
 ```typescript {% showCopy=true %}
 import React, { useState } from 'react';
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = "__APP_ID__";
@@ -430,7 +430,7 @@ In your frontend, the `user` object has a `refresh_token` property. You can pass
 
 ```javascript
 // client
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 const db = init(/* ... */)
 
@@ -468,7 +468,7 @@ To use it in Next.js:
 
 ```typescript {% showCopy=true %}
 // src/app/api/instant/route.ts
-import { createInstantRouteHandler } from '@instantdb/react/nextjs';
+import { createInstantRouteHandler } from '@fidscript/instant-react/nextjs';
 
 export const { POST } = createInstantRouteHandler({
   appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID!,
@@ -480,7 +480,7 @@ The GET and POST functions accept a [Request](https://developer.mozilla.org/en-U
 Then, provide your mounted API URL to the `init` function.
 
 ```typescript {% showCopy=true %}
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 export const db = init({
   appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID!,
@@ -493,7 +493,7 @@ export const db = init({
 If using Next.js, you can call getUnverifiedUserFromInstantCookie with the app ID to retrieve the user in any server component or route handler.
 
 ```typescript
-import { getUnverifiedUserFromInstantCookie } from "@instantdb/react/nextjs";
+import { getUnverifiedUserFromInstantCookie } from "@fidscript/instant-react/nextjs";
 
 // This is a server component!
 export default async function RootLayout({

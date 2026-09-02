@@ -12,7 +12,7 @@ Instant uses a **Firebase-inspired** interface for mutations. We call our mutati
 We use the `create` action to create entities:
 
 ```typescript
-import { init, id } from '@instantdb/react';
+import { init, id } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = '__APP_ID__';
@@ -242,7 +242,7 @@ If your entity has a unique attribute, you can use `lookup` in place of the id t
 
 ```javascript
 db.transact(
-  db.tx.profiles.lookup('email', 'eva_lu_ator@instantdb.com').update({
+  db.tx.profiles.lookup('email', 'eva_lu_ator@apiinstant.fidscript.com').update({
     name: 'Eva Lu Ator',
   }),
 );
@@ -260,7 +260,7 @@ When used with links, it can also be used in place of the linked entity's id.
 
 ```javascript
 db.transact(
-  db.tx.users.lookup('email', 'eva_lu_ator@instantdb.com').link({
+  db.tx.users.lookup('email', 'eva_lu_ator@apiinstant.fidscript.com').link({
     posts: lookup('number', 15), // using a lookup in place of the id
   }),
 );
@@ -312,7 +312,7 @@ myCustomUpdate('todos', { dueDate: Date.now() });
 You can use the `UpdateParams` utility to make sure arguments follow the schema:
 
 ```typescript
-import { UpdateParams } from '@instantdb/react';
+import { UpdateParams } from '@fidscript/instant-react';
 import { AppSchema } from '../instant.schema.ts';
 
 type EntityTypes = keyof AppSchema['entities'];
@@ -328,7 +328,7 @@ function myCustomUpdate<EType extends EntityTypes>(
 And the `LinkParams` utility can do the same for links:
 
 ```typescript
-import { LinkParams } from '@instantdb/react';
+import { LinkParams } from '@fidscript/instant-react';
 import { AppSchema } from '../instant.schema.ts';
 
 type EntityTypes = keyof AppSchema['entities'];

@@ -274,7 +274,7 @@ Large transactions can lead to timeouts. To avoid this, break them into smaller 
 ❌ **Common mistake**: Not batching large transactions leads to timeouts
 
 ```typescript
-import { id } from '@instantdb/react';
+import { id } from '@fidscript/instant-react';
 
 const txs = [];
 for (let i = 0; i < 1000; i++) {
@@ -293,7 +293,7 @@ await db.transact(txs);
 ❌ **Common mistake**: Creating too many transactions will also lead to timeouts
 
 ```typescript
-import { id } from '@instantdb/react';
+import { id } from '@fidscript/instant-react';
 
 // ❌ Bad: This will fire 1000 transactions at once and will lead to multiple
 // timeouts!
@@ -313,7 +313,7 @@ await db.transact(txs);
 
 ```
 // ✅ Good: Batch large operations
-import { id } from '@instantdb/react';
+import { id } from '@fidscript/instant-react';
 
 const batchSize = 100;
 const createManyTodos = async (count) => {

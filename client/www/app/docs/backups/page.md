@@ -62,7 +62,7 @@ If the key in the entity map represents a has-one link, the value will be the en
 {% file label="entities/$users.jsonl" /%}
 
 ```json
-{"entity":{"email":"dww@instantdb.com","id":"81d4e04d-4057-4fc0-92f7-d99618fd540a","type":"user"},"createdAt":1772650963417}
+{"entity":{"email":"dww@apiinstant.fidscript.com","id":"81d4e04d-4057-4fc0-92f7-d99618fd540a","type":"user"},"createdAt":1772650963417}
 {"entity":{"id":"0e212052-a4ba-4d3c-a679-3812ba22cde2","type":"guest"},"createdAt":1776458067727}
 ```
 

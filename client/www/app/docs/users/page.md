@@ -20,7 +20,7 @@ set some default permissions.
 
 ```javascript
 // instant.perms.ts
-import type { InstantRules } from "@instantdb/react";
+import type { InstantRules } from "@fidscript/instant-react";
 
 const rules = {
   $users: {
@@ -44,7 +44,7 @@ If you want to make the users table public, you can always change the `view` per
 
 ```javascript
 // instant.perms.ts
-import type { InstantRules } from "@instantdb/react";
+import type { InstantRules } from "@fidscript/instant-react";
 
 const rules = {
   $users: {
@@ -66,7 +66,7 @@ You can add optional properties on the `$users` table. Here is an example of a s
 
 ```javascript
 // instant.schema.ts
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const _schema = i.schema({
   entities: {
@@ -109,7 +109,7 @@ We created two links, `userRoles` and `todoOwner`:
 
 ```typescript
 // instant.schema.ts
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const _schema = i.schema({
   // ..
@@ -134,7 +134,7 @@ Now look at the `nickname` attribute we just added:
 
 ```typescript
 // instant.schema.ts
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const _schema = i.schema({
   entities: {

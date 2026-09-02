@@ -14,7 +14,7 @@ The useInfiniteQuery hook is designed to work just like the useQuery hook. You m
 This example demonstrates a typical social media feed where the newest posts are at the top.
 
 ```ts
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 import { db } from "../db"
 import { Post } from "../components/Post"
 
@@ -66,7 +66,7 @@ Changing any part of the query will result in a full reset of all data, returnin
 
 ## Vanilla JS
 
-The `@instantdb/core` library also supports making infinite queries with the same syntax as `db.subscribeQuery()`.
+The `@fidscript/instant-sdk` library also supports making infinite queries with the same syntax as `db.subscribeQuery()`.
 
 Example:
 

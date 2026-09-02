@@ -26,7 +26,7 @@ npx sv create my-app
 Add the InstantDB Svelte Library:
 
 ```shell
-npm i @instantdb/svelte
+npm i @fidscript/instant-svelte
 ```
 
 Use `instant-cli` to set up a new Instant project. This will prompt you to log in if you haven't already. It will then create schema and permissions files and update your `.env` file.
@@ -40,7 +40,7 @@ Create a database client in `src/lib/db.ts`:
 {% file label="src/lib/db.ts" /%}
 
 ```ts
-import { init } from '@instantdb/svelte';
+import { init } from '@fidscript/instant-svelte';
 import schema from '../instant.schema';
 
 export const db = init({
@@ -59,7 +59,7 @@ Let's add a "todo" entity to our schema file at `src/instant.schema.ts`:
 {% file label="src/instant.schema.ts" /%}
 
 ```ts {% showCopy=true lineHighlight="14-18" %}
-import { i } from '@instantdb/svelte';
+import { i } from '@fidscript/instant-svelte';
 
 const _schema = i.schema({
   entities: {
@@ -120,7 +120,7 @@ Replace the content of `src/routes/+page.svelte` with the following:
 
 ```svelte {% showCopy=true %}
 <script lang="ts">
-  import { id, type InstaQLEntity } from '@instantdb/svelte';
+  import { id, type InstaQLEntity } from '@fidscript/instant-svelte';
   import { db } from '$lib/db';
   import type { AppSchema } from '../instant.schema';
 
@@ -274,7 +274,7 @@ Transactions in Svelte work the same way they do in React via `db.transact`:
 
 ```svelte
 <script lang="ts">
-  import { id } from '@instantdb/svelte';
+  import { id } from '@fidscript/instant-svelte';
   import { db } from '$lib/db';
 
   function addTodo(text: string) {
@@ -333,7 +333,7 @@ For simpler cases where you just need to gate content on auth state, you can use
 
 ```svelte
 <script lang="ts">
-  import { SignedIn, SignedOut } from '@instantdb/svelte';
+  import { SignedIn, SignedOut } from '@fidscript/instant-svelte';
   import { db } from '$lib/db';
 </script>
 
@@ -357,7 +357,7 @@ A multiplayer cursor component that tracks mouse positions via presence. Wrap an
 
 ```svelte
 <script lang="ts">
-  import { Cursors } from '@instantdb/svelte';
+  import { Cursors } from '@fidscript/instant-svelte';
   import { db } from '$lib/db';
 
   const room = db.room('main', 'my-room-id');

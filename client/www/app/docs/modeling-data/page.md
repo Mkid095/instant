@@ -33,7 +33,7 @@ Open `instant.schema.ts`, and paste the following:
 ```typescript {% showCopy=true %}
 // instant.schema.ts
 
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const _schema = i.schema({
   entities: {
@@ -384,7 +384,7 @@ The CLI will look at your app in production, show you the new columns you'd crea
 
 ```
 Checking for an Instant SDK...
-Found [32m@instantdb/react[39m in your package.json.
+Found [32m@fidscript/instant-react[39m in your package.json.
 Found [32mNEXT_PUBLIC_INSTANT_APP_ID[39m: *****
 Planning schema...
 The following changes will be applied to your production schema:
@@ -417,7 +417,7 @@ The following changes will be applied to your production schema:
 You can also use your schema inside `init`:
 
 ```typescript
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 import schema from '../instant.schema.ts';
 
@@ -441,7 +441,7 @@ You can always modify or delete attributes after creating them. **You can't use 
 
 Say we wanted to rename `posts.createdAt` to `posts.publishedAt`:
 
-1. Go to your [Dashboard](https://instantdb.com/dash)
+1. Go to your [Dashboard](https://apiinstant.fidscript.com/dash)
 2. Click "Explorer"
 3. Click "posts"
 4. Click "Edit Schema"
@@ -459,7 +459,7 @@ To prevent changes to your schema on the fly, simply add these permissions to yo
 
 ```typescript
 // instant.perms.ts
-import type { InstantRules } from '@instantdb/react';
+import type { InstantRules } from '@fidscript/instant-react';
 
 const rules = {
   attrs: {
@@ -482,7 +482,7 @@ npx instant-cli@latest push perms
 
 ```
 Checking for an Instant SDK...
-Found [32m@instantdb/react[39m in your package.json.
+Found [32m@fidscript/instant-react[39m in your package.json.
 Found [32mNEXT_PUBLIC_INSTANT_APP_ID[39m: *****
 Planning perms...
 The following changes will be applied to your perms:

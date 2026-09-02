@@ -9,7 +9,7 @@ You can customize all aspects of your Instant app's "magic code" email: the body
 
 ## Dashboard
 
-To start, go to your Dashboard's [auth tab](https://instantdb.com/dash?s=main&t=auth). Click "Custom Magic Code Email", and you're ready to go.
+To start, go to your Dashboard's [auth tab](https://apiinstant.fidscript.com/dash?s=main&t=auth). Click "Custom Magic Code Email", and you're ready to go.
 
 ### Variables
 
@@ -33,4 +33,4 @@ You can also set the `from` and `reply-to` fields on Instant's emails to an addr
 
 If you provide a custom sender address, you'll need to confirm it before we can start delivering from it.
 
-Our email partner, Postmark, will send a confirmation to the provided address with a link to verify it. Until the address is verified, emails will continue to be sent from Instant's default auth sender (`auth@pm.instantdb.com`).
+Our email partner, Postmark, will send a confirmation to the provided address with a link to verify it. Until the address is verified, emails will continue to be sent from Instant's default auth sender (`auth@pm.apiinstant.fidscript.com`).

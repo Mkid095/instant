@@ -10,7 +10,7 @@ At a high level, here is the recommended workflow for developing with Instant:
 1. Authenticate with Instant in your terminal via `npx instant-cli login`.
 1. Create new projects via `npx create-instant-app`.
 1. Push changes to your schema and permissions via `npx instant-cli push`.
-1. Use the [Sandbox](https://www.instantdb.com/dash?t=sandbox) to debug queries,
+1. Use the [Sandbox](https://www.apiinstant.fidscript.com/dash?t=sandbox) to debug queries,
    transactions, and permissions.
 1. When you're ready for production, [restrict creating](/docs/patterns#restrict-creating-new-attributes) new attributes.
 1. If you need more help, check out our [patterns page](/docs/patterns) for common
@@ -53,14 +53,14 @@ recommend using the Instant CLI to do this. You can make
 edits to your local schema and permission files, and then run `npx instant-cli push` to push changes to your project.
 
 If you prefer a GUI, you can also make changes via the explorer in the [Instant
-dashboard](https://www.instantdb.com/dash?t=explorer). To pull these changes
+dashboard](https://www.apiinstant.fidscript.com/dash?t=explorer). To pull these changes
 into your local files, run `npx instant-cli pull`.
 
 ## Debugging queries, transactions, and permissions
 
 If you're not sure why a query or transaction isn't working, or if you're
 running into permission issues, you can use the
-[Sandbox](https://www.instantdb.com/dash?t=sandbox) to help you debug.
+[Sandbox](https://www.apiinstant.fidscript.com/dash?t=sandbox) to help you debug.
 
 The sandbox is a REPL-like environment that lets you run queries and
 transactions against your project. It serves two goals:

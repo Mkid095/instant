@@ -5,6 +5,10 @@ nextjs:
     description: 'Use the Explorer Component in your own apps'
 ---
 
+{% callout type="warning" %}
+The Explorer Component is an **Instant Cloud only** feature. It is not available for FIDScript self-hosted deployments.
+{% /callout %}
+
 The explorer page from the Instant Dashboard is available as an installable React component that you can use in your own apps. This is especially useful if you're building **a platform or app builder** powered by Instant.
 
 ```tsx

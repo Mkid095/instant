@@ -37,7 +37,7 @@ npm run dev
 Add the InstantDB React Library:
 
 ```shell
-npm i @instantdb/react
+npm i @fidscript/instant-react
 ```
 
 Set up and connect your Instant app.
@@ -52,7 +52,7 @@ Create a database client in `src/lib/db.ts`:
 {% file label="src/lib/db.ts" /%}
 
 ```ts
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 import schema from '../instant.schema';
 
 export const db = init({
@@ -71,7 +71,7 @@ Let's add a "todo" entity to our schema file at `src/instant.schema.ts`:
 {% file label="src/instant.schema.ts" /%}
 
 ```ts {% showCopy=true lineHighlight="14-18" %}
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const _schema = i.schema({
   entities: {
@@ -126,7 +126,7 @@ Replace the content of `src/app/page.tsx` with the following:
 
 import schema from "@/instant.schema";
 import { db } from "@/lib/db";
-import { id, i, init, InstaQLEntity } from "@instantdb/react";
+import { id, i, init, InstaQLEntity } from "@fidscript/instant-react";
 
 type Todo = InstaQLEntity<typeof schema, "todos", {}, undefined, true>;
 

@@ -42,7 +42,7 @@ Here's a full example of magic code auth in a React app. Open up your `app/page.
 'use client';
 
 import React, { useState } from 'react';
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 const APP_ID = '__APP_ID__';
 const db = init({ appId: APP_ID });
@@ -185,7 +185,7 @@ Here's a full example of magic code auth in a React Native app. Open up your `ap
 ```tsx {% showCopy=true %}
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
-import { init } from '@instantdb/react-native';
+import { init } from '@fidscript/instant-react-native';
 
 const APP_ID = '__APP_ID__';
 const db = init({ appId: APP_ID });
@@ -301,7 +301,7 @@ export default App;
 Here's a full example of magic code auth with vanilla JavaScript. Open up your `src/main.ts` file, and replace the entirety of it with the following code:
 
 ```typescript {% showCopy=true %}
-import { init, type User } from '@instantdb/core';
+import { init, type User } from '@fidscript/instant-sdk';
 
 const APP_ID = '__APP_ID__';
 const db = init({ appId: APP_ID });

@@ -7,7 +7,7 @@ nextjs:
 
 If you use Next.js and want to do server-side rendering, we have an experimental library for you.
 
-`@instantdb/react/nextjs` can let you run Instant queries both on the server and the client, and for the first time, _share caches between them_. (If you don’t get what this means yet, no worries, we’ll explain in detail in the document! Suffice it to say it’s pretty cool.)
+`@fidscript/instant-react/nextjs` can let you run Instant queries both on the server and the client, and for the first time, _share caches between them_. (If you don’t get what this means yet, no worries, we’ll explain in detail in the document! Suffice it to say it’s pretty cool.)
 
 This is an experimental feature, and you may not need SSR for many applications. But when you do, you can get some exceptional UX from it.
 
@@ -62,9 +62,9 @@ Put these benefits together, and sometimes SSR really is worth it.
 
 ## How Instant works with SSR
 
-So, if the benefits are worth it for you, how can you use Instant with SSR? That’s where `@instantdb/react/nextjs` comes in.
+So, if the benefits are worth it for you, how can you use Instant with SSR? That’s where `@fidscript/instant-react/nextjs` comes in.
 
-With `@instantdb/react/nextjs` you get a special package with a new hook: `db.useSuspenseQuery`:
+With `@fidscript/instant-react/nextjs` you get a special package with a new hook: `db.useSuspenseQuery`:
 
 ![useSuspenseQuery diagram](/img/docs/next-ssr-suspense-query.png)
 
@@ -92,11 +92,11 @@ Here’s the step-by-step guide.
 
 First things first, we’ll want to replace our db client to work with SSR.
 
-Instead of importing from `@instantdb/react`, you’ll import from `@instantdb/react/nextjs`:
+Instead of importing from `@fidscript/instant-react`, you’ll import from `@fidscript/instant-react/nextjs`:
 
 ```typescript {% showCopy=true lineHighlight="2,8" %}
 // src/lib/db.ts
-import { init } from '@instantdb/react/nextjs';
+import { init } from '@fidscript/instant-react/nextjs';
 import schema from '../instant.schema';
 
 export const db = init({
@@ -116,7 +116,7 @@ Let's create a route handler under `app/api/instant/route.ts`:
 
 ```typescript {% showCopy=true %}
 // src/app/api/instant/route.ts
-import { createInstantRouteHandler } from '@instantdb/react/nextjs';
+import { createInstantRouteHandler } from '@fidscript/instant-react/nextjs';
 
 export const { POST } = createInstantRouteHandler({
   appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID!,
@@ -133,8 +133,8 @@ SSR relies on suspense. To support that we’ll need to make an `InstantProvider
 // src/InstantProvider.tsx
 "use client";
 import { db } from "@/app/lib/db";
-import { type User } from "@instantdb/react";
-import { InstantSuspenseProvider } from "@instantdb/react/nextjs";
+import { type User } from "@fidscript/instant-react";
+import { InstantSuspenseProvider } from "@fidscript/instant-react/nextjs";
 import React from "react";
 
 export const InstantProvider = ({
@@ -156,7 +156,7 @@ Now we’ll want to use our InstantProvider in a server component, usually `app/
 
 ```typescript {% showCopy=true %}
 // src/app/layout.tsx
-import { getUnverifiedUserFromInstantCookie } from "@instantdb/react/nextjs";
+import { getUnverifiedUserFromInstantCookie } from "@fidscript/instant-react/nextjs";
 import { InstantProvider } from "@/InstantProvider";
 
 export default async function RootLayout({ children }) {

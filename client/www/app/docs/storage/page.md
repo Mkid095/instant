@@ -15,7 +15,7 @@ Let's build a full example of how to upload and display a grid of images:
 ```shell {% showCopy=true %}
 npx create-next-app instant-storage --tailwind --yes
 cd instant-storage
-npm i @instantdb/react
+npm i @fidscript/instant-react
 ```
 
 Initialize your schema and permissions via the [CLI tool](/docs/cli):
@@ -27,7 +27,7 @@ npx instant-cli@latest init
 Now open `instant.schema.ts` and replace the contents with the following code.
 
 ```javascript {% showCopy=true %}
-import { i } from "@instantdb/react";
+import { i } from "@fidscript/instant-react";
 
 const _schema = i.schema({
   entities: {
@@ -55,7 +55,7 @@ export default schema;
 Similarly, open `instant.perms.ts` and replace the contents with the following:
 
 ```javascript {% showCopy=true %}
-import type { InstantRules } from "@instantdb/react";
+import type { InstantRules } from "@fidscript/instant-react";
 
 // Not recommended for production since this allows anyone to
 // upload/delete, but good for getting started
@@ -83,7 +83,7 @@ And then replace the contents of `app/page.tsx` with the following code.
 ```javascript {% showCopy=true %}
 'use client';
 
-import { init, InstaQLEntity } from '@instantdb/react';
+import { init, InstaQLEntity } from '@fidscript/instant-react';
 import schema, { AppSchema } from '../instant.schema';
 import React from 'react';
 
@@ -329,7 +329,7 @@ to filter and sort your files.
 ```javascript {% showCopy=true %}
 // instant.schema.ts
 // ---------------
-import { i } from '@instantdb/core';
+import { i } from '@fidscript/instant-sdk';
 const _schema = i.schema({
   entities: {
     $files: i.entity({
@@ -396,7 +396,7 @@ You can use `db.transact` to update file paths, as well as any custom columns yo
 So if your schema looked like this:
 
 ```javascript
-import { i } from "@instantdb/react";
+import { i } from "@fidscript/instant-react";
 
 const _schema = i.schema({
   entities: {

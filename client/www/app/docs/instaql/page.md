@@ -12,7 +12,7 @@ Instant uses a declarative syntax for querying. It's like GraphQL without the co
 One of the simplest queries you can write is to simply get all entities of a namespace.
 
 ```javascript
-import { init } from '@instantdb/react';
+import { init } from '@fidscript/instant-react';
 
 // Instant app
 const APP_ID = '__APP_ID__';
@@ -627,7 +627,7 @@ const query = {
   todos: {
     $: {
       where: {
-        'owner.name': 'alyssa.p.hacker@instantdb.com',
+        'owner.name': 'alyssa.p.hacker@apiinstant.fidscript.com',
       },
     },
   },
@@ -1182,7 +1182,7 @@ As your app grows, you may want to start enforcing types. When you're ready you 
 ```typescript
 // instant.schema.ts
 
-import { i } from '@instantdb/react';
+import { i } from '@fidscript/instant-react';
 
 const _schema = i.schema({
   entities: {
@@ -1229,7 +1229,7 @@ Instant also comes with some utility types to help you use your schema in TypeSc
 For example, you could define your `query` upfront:
 
 ```typescript
-import { InstaQLParams } from '@instantdb/react';
+import { InstaQLParams } from '@fidscript/instant-react';
 import { AppSchema } from '../instant.schema.ts';
 
 // `query` typechecks against our schema!
@@ -1241,7 +1241,7 @@ const query = {
 Or you can define your result type:
 
 ```typescript
-import { InstaQLResult } from '@instantdb/react';
+import { InstaQLResult } from '@fidscript/instant-react';
 import { AppSchema } from '../instant.schema.ts';
 
 type GoalsTodosResult = InstaQLResult<AppSchema, { goals: { todos: {} } }>;
@@ -1250,7 +1250,7 @@ type GoalsTodosResult = InstaQLResult<AppSchema, { goals: { todos: {} } }>;
 Or you can extract a particular entity:
 
 ```typescript
-import { InstaQLEntity } from '@instantdb/react';
+import { InstaQLEntity } from '@fidscript/instant-react';
 import { AppSchema } from '../instant.schema.ts';
 
 type Todo = InstaQLEntity<AppSchema, 'todos'>;
