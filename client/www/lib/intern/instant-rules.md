@@ -41,7 +41,14 @@ const db = init({ appId: 'your-app-id' }); // Uses https://apiinstant.fidscript.
 
 For FIDScript self-hosted, use the FIDScript MCP server (`instant-self`) to manage InstantDB directly from Claude Code, Cursor, Windsurf, and other MCP-compatible editors.
 
-**Important:** FIDScript self-hosted server/API behavior can differ from Cloud InstantDB. The SDK/client schema representation and the server push schema representation are different layers — do not send client-side TypeScript schema directly to `push-schema`. Permissions DSL syntax also differs; use simple direct expressions (`auth.id == data.field`) rather than compound boolean operators. See the `instant-self` skill operating procedure for the full compatibility guide.
+**Important:** FIDScript self-hosted server/API behavior can differ from Cloud InstantDB. The SDK/client schema representation and the server push schema representation are different layers — do not send client-side TypeScript schema directly to `push-schema`. Permissions DSL syntax also differs; use simple direct expressions (`auth.id == data.field`) rather than compound boolean operators.
+
+For the complete FIDScript self-hosted compatibility guide, see the `instant-self` skill operating procedure. Key points:
+
+- **Schema push:** `push-schema` expects server JSON format, not TypeScript SDK representation. Example: `{"entities":{"customers":{"attrs":{"name":{"type":"string","required":true}}}}}` not the `i.schema({...})` form.
+- **Permissions DSL:** Use simple direct expressions. Verified compatible: `auth.id == data.field`, `auth.uid != null`, `data.ref()`. Avoid: `bind`, `!=`, `&&`.
+- **Auth expression:** `auth.uid != null` (not `auth.id != null` which is Cloud InstantDB style).
+- **Always use `push-schema-dry-run`** before applying schema or permissions changes.
 
 # Managing Instant Apps
 
