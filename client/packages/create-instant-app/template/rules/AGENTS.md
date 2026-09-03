@@ -46,20 +46,90 @@ sure to fetch the python documentation listed below.
 
 # FIDScript MCP Server
 
-For **FIDScript self-hosted deployments**, you can use the MCP server to manage InstantDB directly from Claude Code, Cursor, Windsurf, and other MCP-compatible editors:
+For **FIDScript self-hosted deployments**, use the FIDScript MCP server to manage InstantDB directly from Claude Code, Cursor, Windsurf, and other MCP-compatible editors.
+
+**Important:** FIDScript self-hosted server/API behavior can differ from Cloud InstantDB. The SDK/client schema representation and the server push schema representation are different layers — do not send client-side TypeScript schema directly to `push-schema`. Permissions DSL syntax also differs; use simple direct expressions (`auth.id == data.field`) rather than compound boolean operators. See `INSTANT_SELF_SKILL.md` for the full compatibility guide.
+
+## First-Time Setup
+
+If Claude Code does not have the FIDScript MCP configured, install it:
 
 ```bash
-npx @fidscript/instant-mcp --token <YOUR_PAT> --app-id <YOUR_APP_ID>
+claude mcp add instant-self \
+  -e INSTANT_ACCESS_TOKEN=<YOUR_PAT> \
+  -e INSTANT_API_URI=https://apiinstant.fidscript.com \
+  -e INSTANT_APP_ID=<YOUR_APP_ID> \
+  -- npx -y @fidscript/instant-mcp@0.4.1
 ```
 
-Or set environment variables:
+Verify the MCP is connected:
+
 ```bash
-export INSTANT_ACCESS_TOKEN=<YOUR_PAT>
-export INSTANT_APP_ID=<YOUR_APP_ID>
-npx @fidscript/instant-mcp
+claude mcp list
 ```
 
-The MCP server provides 47 tools for managing apps, schema, permissions, storage, webhooks, backups, test users, email templates, organizations, and more. It defaults to FIDScript infrastructure automatically.
+## Operating Procedure
+
+**For the complete FIDScript self-hosted operating procedure, see `INSTANT_SELF_SKILL.md`.**
+
+When working with a FIDScript project, Claude should:
+1. Use `list-apps`, `get-app`, `get-schema`, `get-perms` to inspect before acting.
+2. Create new apps via `create-app` — never delete existing apps during initialization.
+3. Use `push-schema-dry-run` before `push-schema` to preview changes.
+4. Never expose secrets (PATs, admin tokens, API secrets) in output or source files.
+5. Never redirect the user to the dashboard when the MCP can perform the operation.
+
+## MCP Tool Selection
+
+```
+Need apps?          → list-apps
+Need app details?   → get-app (app-id required)
+Need a new app?     → create-app (returns app-id + admin-token)
+Need schema?        → get-schema (app-id required)
+Need permissions?   → get-perms (app-id required)
+Need schema change? → push-schema-dry-run / push-schema
+Need storage?       → list-files, get-upload-url
+Need webhooks?      → list-webhooks, create-webhook
+Need email config?  → get-email-template
+Need backups?       → list-backups, create-backup
+Need to verify MCP?  → learn (health check)
+```
+
+## Safety Rules
+
+```
+RULE 1: NEVER delete an application during initialization.
+RULE 2: "New project" = create NEW app. Never reuse an existing app from list-apps.
+RULE 3: Existing INSTANT_APP_ID = use that app. Do NOT create a new one.
+RULE 4: Never assume an app from list-apps belongs to this project.
+RULE 5: Verify App ID before destructive operations.
+RULE 6: Never expose secrets in output or source files.
+RULE 7: Inspect before modifying.
+RULE 8: Use push-schema-dry-run before push-schema.
+RULE 9: Never redirect to dashboard when MCP can perform the operation.
+RULE 10: Never destroy unrelated projects.
+```
+
+## Project Identity
+
+After creating or identifying a FIDScript app, persist the project identity:
+
+**Option A — `.env`** (if already used):
+```
+INSTANT_APP_ID=<APP_ID>
+INSTANT_API_URI=https://apiinstant.fidscript.com
+```
+
+**Option B — `.fidscript/project.json`** (if no .env convention):
+```json
+{
+  "provider": "fidscript",
+  "apiUri": "https://apiinstant.fidscript.com",
+  "appId": "<APP_ID>"
+}
+```
+
+Detect existing projects by checking for `INSTANT_APP_ID` in `.env` or `appId` in `.fidscript/project.json`.
 
 # Managing Instant Apps
 
