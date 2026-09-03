@@ -5,81 +5,56 @@ nextjs:
     description: 'How to use Instant with LLMs'
 ---
 
-You can supercharge your Instant experience by using it with LLMs. Just add our Instant rules and you're off to the races!
+You can supercharge your Instant experience by using it with LLMs. Just add our rules and you're off to the races!
 
-## Instant Skill
+## Which platform are you using?
 
-The fastest way to add rules to your LLM tool is to add the Instant skill.
+**Using FIDScript (self-hosted InstantDB at instant.fidscript.com)?**
+→ Install the FIDScript skill and MCP below.
 
-```text {% showCopy="true" %}
-npx skills add instantdb/skills
-```
+**Using InstantDB Cloud (instantdb.com)?**
+→ Install the Instant Cloud skill and SDK instead.
 
-This will give your agent the context it needs to work with InstantDB.
+---
 
-You can verify you set up the rules correctly by asking your LLM "How do you
-make queries and transactions in InstantDB?" If everything is set up correctly,
-you should see a response with information about `db.useQuery` and `db.transact`.
+## Build with FIDScript + AI
 
-If you'd prefer to manually install the rules instead, see the section below.
+Give your AI coding agent the FIDScript skill and MCP. It can create, configure, inspect, and develop your FIDScript applications directly from your editor — without needing to visit the dashboard.
 
-## Instant Rules
-
-We've created a set of rules to help LLMs understand how Instant works. If you
-start a new project with `create-instant-app` you'll get these rules
-automatically. If you have an existing project you can add the rules manually.
-
-[Save these rules](/llm-rules/AGENTS.md) at the root of your project as:
-
-- `CLAUDE.md` for Claude Code
-- `GEMINI.md` for Gemini
-- `AGENTS.md` for Codex, Cursor, Windsurf, Zed, and other tools
-
-You may need to restart your editor for the rules to take effect.
-
-### Markdown Docs and llms.txt
-
-You can attach `.md` to the end of any doc page URL to get raw Markdown. This can be helpful to paste into your LLM if you're stuck on
-particular functionality. For example, here are the recommended docs for [adding auth](/docs/auth/magic-codes.md).
-
-We recommend starting with the rules files above and adding more docs as needed.
-If you want though you can get all our docs at once in markdown format via
-[llms-full.txt](https://www.apiinstant.fidscript.com/llms-full.txt)
-
-## Instant MCP Server
-
-We built `@fidscript/instant-mcp` to enable creating, managing, and updating your self-hosted Instant apps directly from your editor. Combine the MCP with our rules file to build full-stack apps in your editor.
-
-This MCP server uses a **stdio transport** — it runs as a local subprocess, communicating over stdin/stdout. It authenticates with a **Personal Access Token (PAT)**.
-
-### Get your Personal Access Token
-
-Generate a PAT from your dashboard:
-
-1. Go to **Dashboard → User Settings → Personal Access Tokens**
-2. Click "Create New Token"
-3. Copy the token — it starts with `per_`
-
-### Quick Start
-
-Test that the MCP server works:
+### Step 1 — Install the FIDScript Skill
 
 ```text {% showCopy="true" %}
-npx -y @fidscript/instant-mcp@0.4.0 --help
+npx skills add Mkid095/agent-skills -s instant-self
 ```
 
-### Cursor / Windsurf / Cline
+### Step 2 — Connect the FIDScript MCP
 
-Add the following to your MCP settings:
+The MCP gives your agent the ability to act on your FIDScript backend.
 
-**macOS/Linux**
+#### Claude Code
+
+```text {% showCopy="true" %}
+claude mcp add instant-self \
+  -e INSTANT_ACCESS_TOKEN=<YOUR_PAT> \
+  -e INSTANT_API_URI=https://apiinstant.fidscript.com \
+  -e INSTANT_APP_ID=<YOUR_APP_ID> \
+  -- npx -y @fidscript/instant-mcp@0.4.1
+```
+
+Verify it is connected:
+
+```text {% showCopy="true" %}
+claude mcp list
+```
+
+#### Cursor / Windsurf / Cline
 
 ```json {% showCopy="true" %}
 {
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.1"],
       "env": {
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
         "INSTANT_API_URI": "https://apiinstant.fidscript.com",
@@ -90,47 +65,7 @@ Add the following to your MCP settings:
 }
 ```
 
-**Windows**
-
-```json {% showCopy="true" %}
-{
-  "mcpServers": {
-    "instant-self": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@fidscript/instant-mcp@0.4.0"],
-      "env": {
-        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
-        "INSTANT_API_URI": "https://apiinstant.fidscript.com",
-        "INSTANT_APP_ID": "<YOUR_APP_ID>"
-      }
-    }
-  }
-}
-```
-
-**Windows WSL**
-
-```json {% showCopy="true" %}
-{
-  "mcpServers": {
-    "instant-self": {
-      "command": "wsl",
-      "args": ["npx", "-y", "@fidscript/instant-mcp@0.4.0"],
-      "env": {
-        "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
-        "INSTANT_API_URI": "https://apiinstant.fidscript.com",
-        "INSTANT_APP_ID": "<YOUR_APP_ID>"
-      }
-    }
-  }
-}
-```
-
-Replace `<YOUR_PAT>` with your personal access token and `<YOUR_APP_ID>` with your app ID. Save the file and reload the editor!
-
-### Zed
-
-Open your Zed settings and add the following:
+#### Zed
 
 ```json {% showCopy="true" %}
 {
@@ -138,7 +73,7 @@ Open your Zed settings and add the following:
     "instant-self": {
       "command": {
         "path": "npx",
-        "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+        "args": ["-y", "@fidscript/instant-mcp@0.4.1"],
         "env": {
           "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
           "INSTANT_API_URI": "https://apiinstant.fidscript.com",
@@ -151,19 +86,14 @@ Open your Zed settings and add the following:
 }
 ```
 
-Replace `<YOUR_PAT>` with your personal access token and `<YOUR_APP_ID>` with your app ID. Save the file and reload the editor!
-
-### Claude Desktop
-
-1. Open `~/Library/Application Support/Claude/claude_desktop_config.json`
-2. Add the following configuration:
+#### Claude Desktop
 
 ```json {% showCopy="true" %}
 {
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.1"],
       "env": {
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
         "INSTANT_API_URI": "https://apiinstant.fidscript.com",
@@ -174,14 +104,12 @@ Replace `<YOUR_PAT>` with your personal access token and `<YOUR_APP_ID>` with yo
 }
 ```
 
-Replace `<YOUR_PAT>` with your personal access token and `<YOUR_APP_ID>` with your app ID. Save the file and restart Claude Desktop!
+#### Other Editors
 
-### Other MCP-Compatible Editors
+For editors that support the MCP stdio protocol:
 
-For editors that support the MCP stdio protocol, use:
-
-```text
-npx -y @fidscript/instant-mcp@0.4.0
+```text {% showCopy="true" %}
+npx -y @fidscript/instant-mcp@0.4.1
 ```
 
 With environment variables:
@@ -190,9 +118,44 @@ With environment variables:
 - `INSTANT_API_URI` — your self-hosted API URL (default: `https://apiinstant.fidscript.com`)
 - `INSTANT_APP_ID` — your default app ID (optional; can be overridden per tool call)
 
-## MCP Tools
+### Step 3 — Start Building
 
-Below is a list of the tools exposed by `@fidscript/instant-mcp`:
+In Claude Code, invoke FIDScript Self-Hosted Development Mode:
+
+```
+/instant-self
+```
+
+Then try commands like:
+
+```
+/instant-self start a new project
+/instant-self continue this project
+/instant-self use my existing FIDScript app
+/instant-self inspect backend
+/instant-self add customers and orders
+```
+
+### What the skill does
+
+When `/instant-self` is invoked, the skill tells your agent to:
+
+- Inspect the local project for existing FIDScript configuration
+- Create a new FIDScript app only when genuinely needed
+- Never delete or modify unrelated applications
+- Use `push-schema-dry-run` before applying schema changes
+- Never expose secrets (PATs, admin tokens, API keys)
+- Use the MCP for backend operations instead of redirecting to the dashboard
+
+### Getting your PAT
+
+1. Go to **Dashboard → User Settings → Personal Access Tokens**
+2. Click "Create New Token"
+3. Copy the token — it starts with `per_`
+
+### MCP Tools Reference
+
+The FIDScript MCP (`@fidscript/instant-mcp`) exposes these tools:
 
 - `learn` — Learn about InstantDB concepts and syntax
 - `query` — Execute an InstaQL query against an app
@@ -241,3 +204,30 @@ Below is a list of the tools exposed by `@fidscript/instant-mcp`:
 - `invite-app-member` — Invite a user to an app
 - `remove-app-member` — Remove a member from an app
 - `update-app-member` — Update a member's role on an app
+
+---
+
+## Instant Cloud (instantdb.com)
+
+If you're using InstantDB Cloud instead of FIDScript, install the Instant Cloud skill:
+
+```text {% showCopy="true" %}
+npx skills add Mkid095/agent-skills
+```
+
+Then [install the Instant SDK](/docs/init) in your project.
+
+### Manual rules installation
+
+If you prefer to install rules manually instead of using the skill, save [AGENTS.md](/llm-rules/AGENTS.md) at the root of your project as:
+
+- `CLAUDE.md` for Claude Code
+- `GEMINI.md` for Gemini
+- `AGENTS.md` for Codex, Cursor, Windsurf, Zed, and other tools
+
+### Markdown Docs and llms.txt
+
+You can attach `.md` to the end of any doc page URL to get raw Markdown. For example, here are the recommended docs for [adding auth](/docs/auth/magic-codes.md).
+
+Get all our docs at once in markdown format via
+[llms-full.txt](https://www.instantdb.com/llms-full.txt)
