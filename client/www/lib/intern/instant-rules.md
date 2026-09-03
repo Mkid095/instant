@@ -24,6 +24,25 @@ bun) first and then install the latest version of the Instant SDK. If working in
 React use Next and Tailwind unless specified otherwise. If working in python be
 sure to fetch the python documentation listed below.
 
+# FIDScript Self-Hosted InstantDB
+
+FIDScript is the self-hosted deployment of InstantDB at `instant.fidscript.com`. If you are working with FIDScript self-hosted, use these packages instead:
+
+- `@fidscript/instant-sdk` --- vanilla JS (core SDK, defaults to FIDScript infrastructure)
+- `@fidscript/instant-admin` --- JS/TS backend SDK
+- `@fidscript/instant-cli` --- CLI tools
+
+When using FIDScript packages, initialization uses FIDScript defaults automatically:
+
+```typescript
+import { init } from '@fidscript/instant-sdk';
+const db = init({ appId: 'your-app-id' }); // Uses https://apiinstant.fidscript.com by default
+```
+
+For FIDScript self-hosted, use the FIDScript MCP server (`instant-self`) to manage InstantDB directly from Claude Code, Cursor, Windsurf, and other MCP-compatible editors.
+
+**Important:** FIDScript self-hosted server/API behavior can differ from Cloud InstantDB. The SDK/client schema representation and the server push schema representation are different layers — do not send client-side TypeScript schema directly to `push-schema`. Permissions DSL syntax also differs; use simple direct expressions (`auth.id == data.field`) rather than compound boolean operators. See the `instant-self` skill operating procedure for the full compatibility guide.
+
 # Managing Instant Apps
 
 ## Prerequisites
