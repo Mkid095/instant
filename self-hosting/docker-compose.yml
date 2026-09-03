@@ -36,6 +36,8 @@ services:
     environment:
       # Where the backend url will be available externally
       - INSTANT_BACKEND_URL=${INSTANT_BACKEND_URL:-http://localhost:8888}
+      - INSTANT_API_URI=${INSTANT_API_URI:-http://localhost:8888}
+      - INSTANT_DASHBOARD_URL=${INSTANT_DASHBOARD_URL:-http://localhost:3000}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 15s

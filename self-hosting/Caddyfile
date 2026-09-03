@@ -17,6 +17,10 @@
 	handle @runtime {
 		reverse_proxy server:8888
 	}
+	@dashauth path /dash/auth/*
+	handle @dashauth {
+		reverse_proxy server:8888
+	}
 
 	reverse_proxy www:3000
 }
@@ -43,7 +47,7 @@
 	reverse_proxy minio:9000
 }
 
-cli.instant.fidscript.com {
+cliinstant.fidscript.com {
 	encode gzip
 	reverse_proxy cli-setup:3100
 }
