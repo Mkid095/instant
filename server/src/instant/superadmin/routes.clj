@@ -342,7 +342,7 @@
         token (http-util/req->bearer-token! req)
         user (req->superadmin-user! :data/read req)
         app-id-param (ex/get-param! req [:params :app_id] uuid-util/coerce)
-        app (app-model/get-by-id! {:app-id app-id-param})
+        app (app-model/get-by-id-without-creator! {:app-id app-id-param})
         perms {:app-id (:id app) :admin? true :show-cel-errors? true}
         attrs (attr-model/get-by-app-id (:id app))
         ctx (merge {:db {:conn-pool (aurora/conn-pool :read)}
@@ -363,7 +363,7 @@
         token (http-util/req->bearer-token! req)
         user (req->superadmin-user! :data/write req)
         app-id-param (ex/get-param! req [:params :app_id] uuid-util/coerce)
-        app (app-model/get-by-id! {:app-id app-id-param})
+        app (app-model/get-by-id-without-creator! {:app-id app-id-param})
         perms {:app-id (:id app) :admin? true :show-cel-errors? true}
         attrs (attr-model/get-by-app-id (:id app))
         ctx (merge {:db {:conn-pool (aurora/conn-pool :write)}
