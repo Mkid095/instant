@@ -703,17 +703,19 @@ Full docs: https://instantdb.com/docs/instaql`,
     `Execute a transaction to create, update, link, or delete data.
 
 Steps:
-  ["create", "namespace", {"field": "value"}] — create a new entity (ID is auto-generated)
-  ["update", "namespace", "entity-id", {"field": "value"}] — update an existing entity
-  ["link", "namespace", "entity-id", {"linkAttr": "target-id"}] — link to another entity
+  ["create", "namespace", {"field": "value"}] — create a new entity. ID is auto-generated UUID (do NOT provide an ID manually).
+  ["update", "namespace", "entity-id", {"field": "value"}] — update an existing entity. entity-id must be a UUID.
+  ["link", "namespace", "entity-id", {"linkAttr": "target-id"}] — link entity to another. Both IDs must be UUIDs.
   ["unlink", "namespace", "entity-id", {"linkAttr": "target-id"}] — remove a link
-  ["delete", "namespace", "entity-id"] — delete an entity
+  ["delete", "namespace", "entity-id"] — delete an entity. entity-id must be a UUID.
 
-Example — create a todo:
+IMPORTANT — entity IDs in update/link/delete must be UUIDs. Do NOT use string literals like "AUTO_GENERATED_ID" or "USER_ID" — in a multi-step transaction, use the actual UUID returned by a preceding create step.
+
+Example — create a todo (no ID in create step):
 [["create", "todos", {"title": "Hello", "done": false}]]
 
-Example — create and link in one transaction:
-[["create", "todos", {"title": "Hello"}], ["link", "todos", "AUTO_GENERATED_ID", {"user": "USER_ID"}]]
+Example — create a product:
+[["create", "products", {"name": "New Product"}]]
 
 Full docs: https://instantdb.com/docs/instaml`,
     {
