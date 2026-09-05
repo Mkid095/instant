@@ -57,19 +57,14 @@
                       :attributes {:app-id app-id
                                    :location-id location-id
                                    :content-type content-type}}
-    (let [timestamp (long (/ (System/currentTimeMillis) 1000))
-          public-id (->public-id app-id location-id)
-          sig (signature timestamp {"public_id" public-id
-                                     "folder" (str "instant/" app-id)})
+    (let [public-id (->public-id app-id location-id)
           upload-url (build-upload-url)]
       (let [boundary "----CloudinaryBoundary123"
             baos (ByteArrayOutputStream.)
             os baos]
-        (doseq [[key value] [["timestamp" (str timestamp)]
+        (doseq [[key value] [["upload_preset" "inspo-next"]
                               ["public_id" public-id]
-                              ["folder" (str "instant/" app-id)]
-                              ["signature" sig]
-                              ["api_key" (config/cloudinary-api-key)]]]
+                              ["folder" (str "instant/" app-id)]]]
           (.write os (str "--" boundary "\r\n"
                           "Content-Disposition: form-data; name=\"" key "\"\r\n\r\n"
                           value "\r\n")

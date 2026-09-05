@@ -10,7 +10,7 @@ When this skill is invoked, enter "FIDScript Self-Hosted Development Mode." Use 
 
 **Backend:** Self-hosted InstantDB via FIDScript
 **API:** `https://apiinstant.fidscript.com`
-**MCP Package:** `@fidscript/instant-mcp@0.4.1`
+**MCP Package:** `@fidscript/instant-mcp@0.4.2`
 **MCP Name:** `instant-self` (configured in Claude Code via `claude mcp add`)
 
 **Use these environment variables:**

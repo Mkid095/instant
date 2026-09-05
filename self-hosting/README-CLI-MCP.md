@@ -2,6 +2,22 @@
 
 This guide explains how to use the InstantDB CLI and MCP server with your self-hosted Instant deployment.
 
+## FIDScript Skill for Claude Code
+
+For Claude Code, you can use the FIDScript Agent Skill for an automated development workflow:
+
+```bash
+npx skills add Mkid095/agent-skills -s instant-self
+```
+
+Then invoke FIDScript Self-Hosted Development Mode with:
+
+```
+/instant-self
+```
+
+This skill understands how to create projects, manage schema, and use the MCP tools automatically.
+
 ## Prerequisites
 
 - Self-hosted Instant running at `https://apiinstant.fidscript.com`
@@ -105,14 +121,38 @@ Your Self-Hosted InstantDB
 
 #### Claude Code
 
-Add to `~/.claude/settings.json`:
+The recommended way to install for Claude Code is with the `claude mcp add` command:
+
+```bash
+claude mcp add instant-self \
+  -e INSTANT_ACCESS_TOKEN=<YOUR_PAT> \
+  -e INSTANT_API_URI=https://apiinstant.fidscript.com \
+  -e INSTANT_APP_ID=<YOUR_APP_ID> \
+  -- npx -y @fidscript/instant-mcp@0.4.2
+```
+
+Verify it is registered:
+
+```bash
+claude mcp list
+```
+
+You should see `instant-self` listed.
+
+To remove:
+
+```bash
+claude mcp remove instant-self
+```
+
+Alternatively, add to `~/.claude/settings.json` manually:
 
 ```json
 {
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
       "env": {
         "INSTANT_API_URI": "https://apiinstant.fidscript.com",
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
@@ -130,7 +170,7 @@ Add to `~/.claude/settings.json`:
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
       "env": {
         "INSTANT_API_URI": "https://apiinstant.fidscript.com",
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
@@ -149,7 +189,7 @@ Add to `~/.claude/settings.json`:
     "instant-self": {
       "command": {
         "path": "npx",
-        "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+        "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
         "env": {
           "INSTANT_API_URI": "https://apiinstant.fidscript.com",
           "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",

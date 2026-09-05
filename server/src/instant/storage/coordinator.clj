@@ -51,7 +51,7 @@
                                            :path path
                                            :current-user current-user}))
   (let [location-id (str (random-uuid))
-        _ (storage-provider/upload-file! (assoc ctx :location-id location-id) file)
+        upload-result (storage-provider/upload-file! (assoc ctx :location-id location-id) file)
         _ (when-let [copy-bucket (flags/copy-file-bucket app-id)]
             (try
               (instant-s3/copy-file {:destination-bucket copy-bucket
@@ -67,7 +67,14 @@
                   (storage-provider/delete-file! app-id location-id)
                   (catch Throwable _ nil))
                 (throw e))))
-        metadata (storage-provider/get-object-metadata app-id location-id)]
+        ;; For Cloudinary, the upload result contains bytes/content-type.
+        ;; For S3, we fetch metadata separately.
+        metadata (if (and upload-result (map? upload-result))
+                   {:content-type (or (:content-type upload-result)
+                                      (:content-type ctx))
+                    :content-length (:bytes upload-result)
+                    :content-disposition nil}
+                   (storage-provider/get-object-metadata app-id location-id))]
     (try
       (app-file-model/create!
        {:app-id app-id

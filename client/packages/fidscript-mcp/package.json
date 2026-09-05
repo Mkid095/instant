@@ -1,6 +1,6 @@
 {
   "name": "@fidscript/instant-mcp",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "description": "MCP server for self-hosted InstantDB deployments. Use with Claude Code, Cursor, and other MCP-compatible editors.",
   "license": "MIT",
   "homepage": "https://github.com/fidscript/instant-mcp",

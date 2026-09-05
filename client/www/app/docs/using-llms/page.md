@@ -38,7 +38,7 @@ claude mcp add instant-self \
   -e INSTANT_ACCESS_TOKEN=<YOUR_PAT> \
   -e INSTANT_API_URI=https://apiinstant.fidscript.com \
   -e INSTANT_APP_ID=<YOUR_APP_ID> \
-  -- npx -y @fidscript/instant-mcp@0.4.1
+  -- npx -y @fidscript/instant-mcp@0.4.2
 ```
 
 Verify it is connected:
@@ -54,7 +54,7 @@ claude mcp list
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.1"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
       "env": {
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
         "INSTANT_API_URI": "https://apiinstant.fidscript.com",
@@ -73,7 +73,7 @@ claude mcp list
     "instant-self": {
       "command": {
         "path": "npx",
-        "args": ["-y", "@fidscript/instant-mcp@0.4.1"],
+        "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
         "env": {
           "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
           "INSTANT_API_URI": "https://apiinstant.fidscript.com",
@@ -93,7 +93,7 @@ claude mcp list
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.1"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
       "env": {
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
         "INSTANT_API_URI": "https://apiinstant.fidscript.com",
@@ -109,7 +109,7 @@ claude mcp list
 For editors that support the MCP stdio protocol:
 
 ```text {% showCopy="true" %}
-npx -y @fidscript/instant-mcp@0.4.1
+npx -y @fidscript/instant-mcp@0.4.2
 ```
 
 With environment variables:

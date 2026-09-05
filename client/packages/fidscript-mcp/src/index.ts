@@ -158,7 +158,8 @@ async function adminQuery(
   appId: string,
   query: Record<string, any>,
 ): Promise<any> {
-  return apiPost(apiURI, token, "/admin/query", { query });
+  // Use superadmin route for data-plane access — bypasses creator-level check
+  return apiPost(apiURI, token, `/superadmin/apps/${appId}/data/query`, { query });
 }
 
 async function adminTransact(
@@ -167,7 +168,8 @@ async function adminTransact(
   appId: string,
   steps: any[][],
 ): Promise<any> {
-  return apiPost(apiURI, token, "/admin/transact", { steps });
+  // Use superadmin route for data-plane access — bypasses creator-level check
+  return apiPost(apiURI, token, `/superadmin/apps/${appId}/data/transact`, { steps });
 }
 
 async function getSchema(

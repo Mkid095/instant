@@ -152,6 +152,21 @@
 (defn get-by-id-and-creator! [params]
   (ex/assert-record! (get-by-id-and-creator params) :app {:args [params]}))
 
+(defn get-by-id
+  ([params] (get-by-id (aurora/conn-pool :read) params))
+  ([conn {:keys [app-id]}]
+   (sql/select-one ::get-by-id
+                   conn
+                   ["SELECT a.*
+                      FROM apps a
+                      WHERE
+                      a.id = ?::uuid AND
+                      a.deletion_marked_at IS NULL"
+                    app-id])))
+
+(defn get-by-id! [params]
+  (ex/assert-record! (get-by-id params) :app {:args [params]}))
+
 (comment
   (def user-id "6412d553-2749-4f52-898a-0b3ec42ffd28")
   (def app-id "68b75bac-3ff7-4efe-9596-97ac0d03ab65")

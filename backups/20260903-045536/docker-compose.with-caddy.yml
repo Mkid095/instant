@@ -1,6 +1,5 @@
 services:
   postgres:
-    restart: unless-stopped
     image: ghcr.io/instantdb/postgresql:postgresql-17-pg-hint-plan
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pass}
@@ -43,12 +42,43 @@ services:
       - INSTANT_API_URI=${INSTANT_API_URI}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BROWSER: "on"
+      MINIO_SKIP_CLIENT_CERT_VALIDATION: "on"
+    command: server /data --console-address ":9001" --address ":9000"
+    volumes:
+      - minio_data:/data
+    networks:
+      - self-hosting_default
+
+  createbuckets:
+    image: minio/mc
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET: ${S3_BUCKET:-instant-bucket}
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD;
+      /usr/bin/mc mb --ignore-existing local/$$S3_BUCKET;
+      exit"
 
   server:
     depends_on:
       postgres:
         condition: service_started
+      createbuckets:
+        condition: service_completed_successfully
     image: ${INSTANT_SERVER_IMAGE:-ghcr.io/instantdb/server:custom}
     env_file: .env
     networks:
@@ -56,7 +86,7 @@ services:
         aliases:
           - server
     ports:
-      - "127.0.0.1:8888:8888"
+      - "8888:8888"
     environment:
       WAL_HISTORY_STORAGE: pg
       DATABASE_URL: "postgresql://${POSTGRES_USER:-instant}:${POSTGRES_PASSWORD:-pass}@postgres:5432/${POSTGRES_DB:-instant}?sslmode=disable"
@@ -91,9 +121,27 @@ services:
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_REGION: ${AWS_REGION:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-instant-bucket}
     volumes:
       - server_config:/app/resources/config
     restart: unless-stopped
+
+  cli-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.cli-setup
+    environment:
+      - INSTANT_API_URI=${INSTANT_API_URI}
+      - INSTANT_DASHBOARD_URI=${INSTANT_DASHBOARD_URL}
+      - PORT=3100
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
 
   caddy:
     image: caddy:2-alpine
@@ -103,11 +151,14 @@ services:
         condition: service_started
       server:
         condition: service_started
+      minio:
+        condition: service_started
     env_file:
       - .env
     environment:
       DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:-localhost}
       BACKEND_DOMAIN: ${BACKEND_DOMAIN:-api.localhost}
+      STORAGE_DOMAIN: ${STORAGE_DOMAIN:-files.localhost}
     ports:
       - "80:80"
       - "443:443"
@@ -120,6 +171,7 @@ services:
 
 volumes:
   backend-db:
+  minio_data:
   caddy_data:
   caddy_config:
   server_config:

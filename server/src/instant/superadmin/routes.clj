@@ -2,8 +2,21 @@
   (:require [clojure.walk :as w]
             [compojure.core :as compojure :refer [defroutes DELETE GET POST]]
             [hiccup2.core :as h]
+            [instant.admin.model :as admin-model]
+            [instant.db.datalog :as d]
+            [instant.db.instaql :as iq]
             [instant.db.model.attr :as attr-model]
+            [instant.db.permissioned-transaction :as permissioned-tx]
+            [instant.flags :as flags]
+            [instant.jdbc.aurora :as aurora]
+            [instant.jdbc.sql :as sql]
+            [instant.rate-limit :as rate-limit]
+            [instant.reactive.ephemeral :as eph]
+            [instant.util.async :as ua]
+            [instant.util.tracer :as tracer]
             [instant.model.app :as app-model]
+            [instant.model.app-user :as app-user-model]
+            [instant.model.app-user-refresh-token :as app-user-refresh-token-model]
             [instant.model.instant-personal-access-token :as instant-personal-access-token-model]
             [instant.model.instant-user :as instant-user-model]
             [instant.model.member-invites :as member-invites-model]
@@ -15,6 +28,7 @@
             [instant.util.email :as email]
             [instant.util.exception :as ex]
             [instant.util.http :as http-util]
+            [instant.util.instaql :refer [instaql-nodes->object-tree]]
             [instant.util.posthog :as posthog]
             [instant.util.roles :refer [assert-least-privilege!
                                         get-app-with-role!]]
@@ -309,6 +323,83 @@
                     {:app-id (str app-id)})
     (response/ok (merge plan plan-result))))
 
+;; ------
+;; Data access — bypass creator-level check for PATs with data scope
+
+(defn rate-limit! [app-id type]
+  (when-let [rate-limit-config (flags/app-admin-rate-limit-config app-id)]
+    (rate-limit/consume-user-rate-limit (eph/get-rate-limit)
+                                        {:app-id app-id
+                                         :bucket-key app-id
+                                         :bucket-name (str "__instant-admin-" type)
+                                         :config rate-limit-config})))
+
+(defn superadmin-query-post [req]
+  (let [query (ex/get-param! req [:body :query] #(when (map? %) %))
+        inference? (-> req :body :inference? boolean)
+        token (http-util/req->bearer-token! req)
+        user (req->superadmin-user! :data/read req)
+        app-id-param (ex/get-param! req [:params :app_id] uuid-util/coerce)
+        app (app-model/get-by-id! {:app-id app-id-param})
+        perms {:app-id (:id app) :admin? true :show-cel-errors? true}
+        attrs (attr-model/get-by-app-id (:id app))
+        ctx (merge {:db {:conn-pool (aurora/conn-pool :read)}
+                    :app-id (:id app)
+                    :attrs attrs
+                    :datalog-query-fn d/query
+                    :datalog-loader (d/make-loader)
+                    :inference? inference?}
+                   perms)
+        _ (rate-limit! (:id app) "query")
+        nodes (iq/permissioned-query ctx query)
+        result (instaql-nodes->object-tree ctx nodes)]
+    (response/ok result)))
+
+(defn superadmin-transact-post [req]
+  (let [steps (ex/get-param! req [:body :steps] #(when (coll? %) %))
+        throw-on-missing-attrs? (ex/get-optional-param! req [:body :throw-on-missing-attrs?] boolean)
+        token (http-util/req->bearer-token! req)
+        user (req->superadmin-user! :data/write req)
+        app-id-param (ex/get-param! req [:params :app_id] uuid-util/coerce)
+        app (app-model/get-by-id! {:app-id app-id-param})
+        perms {:app-id (:id app) :admin? true :show-cel-errors? true}
+        attrs (attr-model/get-by-app-id (:id app))
+        ctx (merge {:db {:conn-pool (aurora/conn-pool :write)}
+                    :app-id (:id app)
+                    :attrs attrs
+                    :datalog-query-fn d/query
+                    :rules (rule-model/get-by-app-id {:app-id (:id app)})}
+                   perms)
+        tx-steps (admin-model/->tx-steps! {:attrs attrs
+                                           :throw-on-missing-attrs? throw-on-missing-attrs?}
+                                          steps)
+        _ (rate-limit! (:id app) "transact")
+        use-tx-queue? (flags/admin-tx-queue-enabled? (:id app))]
+    (tracer/add-data! {:attributes {:use-tx-queue use-tx-queue?}})
+    (if-not use-tx-queue?
+      (let [{tx-id :id} (permissioned-tx/transact! ctx tx-steps)]
+        (response/ok {:tx-id tx-id}))
+      (let [response (promise)
+            start (Instant/now)
+            child-vfutures (ua/new-child-vfutures)
+            statement-tracker (sql/make-statement-tracker)
+            canceled? (atom false)
+            _ (tx-queue/put! {:app-id (:id app)
+                              :ctx ctx
+                              :tx-steps tx-steps
+                              :response-promise response
+                              :span tracer/*span*
+                              :child-vfutures child-vfutures
+                              :statement-tracker statement-tracker
+                              :canceled? canceled?
+                              :start start
+                              :timeout-ms 5000})
+            result (deref response 5000 ::timeout)]
+        (if (= result ::timeout)
+          (do (reset! canceled? true)
+              (ex/throw-query-timeout!))
+          (response/ok result))))))
+
 (comment
   (def user (instant-user-model/get-by-email {:email "stepan.p@gmail.com"}))
   (def token (instant-personal-access-token-model/create! {:id (UUID/randomUUID)
@@ -347,5 +438,8 @@
 
   (GET "/superadmin/apps/:app_id/perms" [] app-rules-get)
   (POST "/superadmin/apps/:app_id/perms" [] app-rules-post)
+
+  (POST "/superadmin/apps/:app_id/data/query" [] superadmin-query-post)
+  (POST "/superadmin/apps/:app_id/data/transact" [] superadmin-transact-post)
 
   (DELETE "/superadmin/apps/:app_id" [] app-delete))

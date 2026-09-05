@@ -3,6 +3,7 @@
    [compojure.core :as compojure :refer [defroutes DELETE GET POST PUT]]
    [datascript.core :refer [squuid]]
    [instant.admin.model :as admin-model]
+   [instant.config :as config]
    [instant.db.datalog :as d]
    [instant.db.instaql :as iq]
    [instant.db.model.attr :as attr-model]
@@ -41,6 +42,7 @@
    [instant.model.schema :as schema-model]
    [clojure.string :as string]
    [instant.storage.coordinator :as storage-coordinator]
+   [instant.storage.cloudinary :as instant-cloudinary]
    [instant.storage.s3 :as instant-s3]
    [clojure.walk :as w]
    [instant.reactive.ephemeral :as eph]
@@ -731,16 +733,26 @@
 ;; Legacy StorageFile format that was only used by the list() endpoint
 (defn legacy-storage-file-format
   [app-id file]
-  (let [object-key (instant-s3/->object-key app-id (:location-id file))]
-    {:key object-key
-     :name (:path file)
-     :size (:size file)
-     :etag nil
-     :last_modified nil}))
+  (if (= :cloudinary (config/storage-provider))
+    ;; Cloudinary: return the public URL derived from location-id
+    (let [url (instant-cloudinary/get-file-url app-id (:location-id file))]
+      {:key url
+       :name (:path file)
+       :size (:size file)
+       :url url
+       :etag nil
+       :last_modified nil})
+    ;; S3/MinIO: return S3 object key
+    (let [object-key (instant-s3/->object-key app-id (:location-id file))]
+      {:key object-key
+       :name (:path file)
+       :size (:size file)
+       :etag nil
+       :last_modified nil})))
 
 (defn files-get [req]
   (let [{:keys [app-id]} (req->app-id-authed! req :storage/write)
-        res (query-post (assoc-in req [:body :query] {:$files {}}))
+        res (query-post (assoc req :body {:query {:$files {}}}))
         files (get-in res [:body "$files"])
         data (map (fn [item]
                     (->> item

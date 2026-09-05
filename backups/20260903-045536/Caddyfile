@@ -37,3 +37,18 @@
 	reverse_proxy server:8888
 }
 
+{$STORAGE_DOMAIN:files.localhost} {
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	reverse_proxy minio:9000
+}
+
+cliinstant.fidscript.com {
+	encode gzip
+	reverse_proxy cli-setup:3100
+}
+

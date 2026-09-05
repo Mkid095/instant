@@ -59,7 +59,7 @@ claude mcp add instant-self \
   -e INSTANT_ACCESS_TOKEN=<YOUR_PAT> \
   -e INSTANT_API_URI=https://apiinstant.fidscript.com \
   -e INSTANT_APP_ID=<YOUR_APP_ID> \
-  -- npx -y @fidscript/instant-mcp@0.4.1
+  -- npx -y @fidscript/instant-mcp@0.4.2
 ```
 
 Verify the MCP is connected:
