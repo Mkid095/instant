@@ -50,6 +50,10 @@ For the complete FIDScript self-hosted compatibility guide, see the `instant-sel
 - **Auth expression:** `auth.uid != null` (not `auth.id != null` which is Cloud InstantDB style).
 - **Always use `push-schema-dry-run`** before applying schema or permissions changes.
 
+### If transact or query returns "Bad request"
+
+If `transact` or `query` fails but `push-schema` works, the PAT may lack data-read/data-write scope. Verify the PAT has data access permissions in User Settings → Personal Access Tokens. Also check that new namespaces added via `push-schema` have explicit allow rules in permissions — new namespaces default to `false` (no access).
+
 # Managing Instant Apps
 
 ## Prerequisites
