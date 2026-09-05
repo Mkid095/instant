@@ -166,8 +166,9 @@
     (some? (get opts "upsert"))
     (assoc :mode (if (get opts "upsert") :upsert :update))))
 
-(defn expand-create [attrs [etype eid obj]]
-  (let [lookup (extract-lookup attrs etype eid)
+(defn expand-create [attrs [etype obj]]
+  (let [new-id (UUID/randomUUID)
+        lookup [:db/id new-id]
         opts'  {:mode :create}]
     (map (fn [[label value]]
            (let [attr (attr-model/seek-by-fwd-ident-name [etype label] attrs)]
@@ -409,7 +410,7 @@
 
 (def ops-with-eid
   "Admin ops that have an entity ID at index 2"
-  #{"create" "update" "merge" "link" "unlink" "delete" "ruleParams"})
+  #{"update" "merge" "link" "unlink" "delete" "ruleParams"})
 
 (defn check-for-invalid-entity-ids!
   "Checks admin steps for invalid entity IDs and throws a helpful error."
@@ -441,7 +442,7 @@
    (s/keys :opt-un [::upsert])))
 
 (s/def ::create-op
-  (s/cat :op #{"create"} :args (s/cat :etype string? :eid ::lookup :args map?)))
+  (s/cat :op #{"create"} :args (s/cat :etype string? :args map?)))
 
 (s/def ::update-op
   (s/cat :op #{"update"} :args (s/cat :etype string? :eid ::lookup :args map? :opts (s/? ::update-opts))))
