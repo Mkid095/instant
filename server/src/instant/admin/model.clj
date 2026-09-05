@@ -166,9 +166,10 @@
     (some? (get opts "upsert"))
     (assoc :mode (if (get opts "upsert") :upsert :update))))
 
-(defn expand-create [attrs [etype obj]]
-  (let [new-id (UUID/randomUUID)
-        lookup [:db/id new-id]
+(defn expand-create [attrs [etype eid obj]]
+  (let [lookup (if eid
+                 (extract-lookup attrs etype eid)
+                 [:db/id (UUID/randomUUID)])
         opts'  {:mode :create}]
     (map (fn [[label value]]
            (let [attr (attr-model/seek-by-fwd-ident-name [etype label] attrs)]
@@ -270,7 +271,7 @@
 (def obj-actions #{"link" "unlink" "create" "update" "merge"})
 (def update-actions #{"create" "update" "merge"})
 (def ref-actions #{"link" "unlink"})
-(def supports-lookup-actions #{"link" "unlink" "create" "update" "merge" "delete"})
+(def supports-lookup-actions #{"link" "unlink" "update" "merge" "delete"})
 
 (defn add-attr [{:keys [attrs add-ops]} attr]
   {:attrs (conj attrs attr)
@@ -410,7 +411,7 @@
 
 (def ops-with-eid
   "Admin ops that have an entity ID at index 2"
-  #{"update" "merge" "link" "unlink" "delete" "ruleParams"})
+  #{"create" "update" "merge" "link" "unlink" "delete" "ruleParams"})
 
 (defn check-for-invalid-entity-ids!
   "Checks admin steps for invalid entity IDs and throws a helpful error."
@@ -418,7 +419,8 @@
   (doseq [[idx step] (map-indexed vector steps)
           :when (and (coll? step)
                      (>= (count step) 3)
-                     (contains? ops-with-eid (first step)))]
+                     (contains? ops-with-eid (first step)))
+          :when (not (and (= "create" (first step)) (= (count step) 3)))]
     (let [eid (nth step 2)]
       (when (invalid-eid? eid)
         (ex/throw-validation-err!
@@ -442,7 +444,7 @@
    (s/keys :opt-un [::upsert])))
 
 (s/def ::create-op
-  (s/cat :op #{"create"} :args (s/cat :etype string? :args map?)))
+  (s/cat :op #{"create"} :args (s/cat :etype string? :eid (s/? ::lookup) :args map?)))
 
 (s/def ::update-op
   (s/cat :op #{"update"} :args (s/cat :etype string? :eid ::lookup :args map? :opts (s/? ::update-opts))))
