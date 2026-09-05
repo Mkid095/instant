@@ -128,7 +128,7 @@ claude mcp add instant-self \
   -e INSTANT_ACCESS_TOKEN=<YOUR_PAT> \
   -e INSTANT_API_URI=https://apiinstant.fidscript.com \
   -e INSTANT_APP_ID=<YOUR_APP_ID> \
-  -- npx -y @fidscript/instant-mcp@0.4.2
+  -- npx -y @fidscript/instant-mcp@0.4.3
 ```
 
 Verify it is registered:
@@ -152,7 +152,7 @@ Alternatively, add to `~/.claude/settings.json` manually:
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.3"],
       "env": {
         "INSTANT_API_URI": "https://apiinstant.fidscript.com",
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
@@ -170,7 +170,7 @@ Alternatively, add to `~/.claude/settings.json` manually:
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
+      "args": ["-y", "@fidscript/instant-mcp@0.4.3"],
       "env": {
         "INSTANT_API_URI": "https://apiinstant.fidscript.com",
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
@@ -189,7 +189,7 @@ Alternatively, add to `~/.claude/settings.json` manually:
     "instant-self": {
       "command": {
         "path": "npx",
-        "args": ["-y", "@fidscript/instant-mcp@0.4.2"],
+        "args": ["-y", "@fidscript/instant-mcp@0.4.3"],
         "env": {
           "INSTANT_API_URI": "https://apiinstant.fidscript.com",
           "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",

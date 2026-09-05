@@ -703,13 +703,17 @@ Full docs: https://instantdb.com/docs/instaql`,
     `Execute a transaction to create, update, link, or delete data.
 
 Steps:
-  ["update", "namespace", "entity-id", {"field": "value"}] — create or update entity
-  ["link", "namespace", "entity-id", {"linkAttr": "target-id"}] — create a link
+  ["create", "namespace", {"field": "value"}] — create a new entity (ID is auto-generated)
+  ["update", "namespace", "entity-id", {"field": "value"}] — update an existing entity
+  ["link", "namespace", "entity-id", {"linkAttr": "target-id"}] — link to another entity
   ["unlink", "namespace", "entity-id", {"linkAttr": "target-id"}] — remove a link
   ["delete", "namespace", "entity-id"] — delete an entity
 
-Example — create a todo linked to a user:
-[["update", "todos", "UUID-HERE", {"title": "Hello", "done": false, "user_link": "USER-UUID-HERE"}]]
+Example — create a todo:
+[["create", "todos", {"title": "Hello", "done": false}]]
+
+Example — create and link in one transaction:
+[["create", "todos", {"title": "Hello"}], ["link", "todos", "AUTO_GENERATED_ID", {"user": "USER_ID"}]]
 
 Full docs: https://instantdb.com/docs/instaml`,
     {
