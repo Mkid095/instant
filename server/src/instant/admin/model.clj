@@ -344,15 +344,16 @@
     (add-attrs-for-lookup acc lookup link-etype)))
 
 (defn op->lookups [[action etype eid obj]]
-  (when (contains? supports-lookup-actions action)
-    (concat (when-let [lookup-pair (eid->lookup-pair eid)]
-              [{:etype etype :lookup-pair lookup-pair}])
-            (when (= "link" action)
-              (for [[label eid-or-eids] obj
-                    eid (if (coll? eid-or-eids) eid-or-eids [eid-or-eids])
-                    :let [lookup-pair (eid->lookup-pair eid)]
-                    :when lookup-pair]
-                {:etype etype :lookup-pair lookup-pair :link-label label})))))
+  (let [result (cond
+                 (not (supports-lookup-actions action)) nil
+                 :else (do (println (format "TRACE op->lookups: action=%s step=[%s %s ...]" action etype (type eid)))
+                           (case action
+                             ("link" "unlink") (link->lookups etype eid obj)
+                             ("update" "merge") (update->lookups etype eid obj)
+                             "delete" (delete->lookups etype eid obj)
+                             nil))]
+        _ (println (format "TRACE op->lookups: result=%s" (pr-str result)))
+        result)
 
 (defn create-lookup-attrs [acc ops]
   (reduce (fn [acc op]
