@@ -268,7 +268,7 @@
              :index? false}
             props))))
 
-(def obj-actions #{"link" "unlink" "create" "update" "merge"})
+(def obj-actions #{"link" "unlink" "update" "merge"})
 (def update-actions #{"create" "update" "merge"})
 (def ref-actions #{"link" "unlink"})
 (def supports-lookup-actions #{"link" "unlink" "update" "merge" "delete"})
