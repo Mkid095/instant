@@ -279,6 +279,7 @@
 
 (defn add-attrs-for-obj [acc op]
   (let [[action etype _eid obj] op
+        _ (println (format "TRACE add-attrs-for-obj: op=%s action=%s count=%d" (pr-str op) action (count op)))
         acc (if (attr-model/seek-by-fwd-ident-name [etype "id"] (:attrs acc))
               acc
               (add-attr acc (create-object-attr etype
@@ -368,7 +369,8 @@
 
 (defn create-attrs-from-objs [acc ops]
   (reduce (fn [acc op]
-            (let [[action _etype _eid _obj] op]
+            (let [[action _etype _eid _obj] op
+                  _ (println (format "TRACE create-attrs-from-objs: op=%s action=%s" (pr-str op) action))]
               (if (contains? obj-actions action)
                 (add-attrs-for-obj acc op)
                 acc)))
@@ -382,7 +384,9 @@
       (create-attrs-from-objs ops)))
 
 (defn transform [{:keys [attrs throw-on-missing-attrs?] :as _ctx} steps]
-  (let [{attrs :attrs add-attr-tx-steps :add-ops} (create-missing-attrs attrs steps)
+  (let [_ (println (format "TRACE transform: steps=%s" (pr-str steps)))
+        {attrs :attrs add-attr-tx-steps :add-ops} (create-missing-attrs attrs steps)
+        _ (println (format "TRACE after create-missing-attrs: add-ops=%s" (pr-str add-attr-tx-steps)))
         _ (when (and throw-on-missing-attrs? (seq add-attr-tx-steps))
             (let [ident-names (->> add-attr-tx-steps
                                    (map (comp
