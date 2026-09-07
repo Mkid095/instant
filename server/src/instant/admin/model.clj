@@ -167,15 +167,17 @@
     (assoc :mode (if (get opts "upsert") :upsert :update))))
 
 (defn expand-create [attrs [etype eid obj]]
-  (let [lookup (if eid
-                 (extract-lookup attrs etype eid)
-                 [:db/id (UUID/randomUUID)])
-        opts'  {:mode :create}]
-    (map (fn [[label value]]
-           (let [attr (attr-model/seek-by-fwd-ident-name [etype label] attrs)]
-             [:add-triple lookup (:id attr) value opts']))
-         ;; id first so that we don't clobber updates on the lookup field
-         (concat [["id" lookup]] obj))))
+  (let [new-eid (UUID/randomUUID)
+        id-attr (attr-model/seek-by-fwd-ident-name [etype "id"] attrs)
+        id-lookup [:db/id new-eid]
+        opts'  {:mode :create}
+        attrs-to-process (if (map? eid) eid obj)
+        pairs (concat [["id" id-lookup]] attrs-to-process)
+        result (doall (map (fn [[label value]]
+                             (let [attr (attr-model/seek-by-fwd-ident-name [etype label] attrs)]
+                               [:add-triple new-eid (:id attr) (if (= label "id") id-lookup value) opts']))
+                           pairs))]
+    result))
 
 (defn expand-update [attrs [etype eid obj opts]]
   (let [lookup (extract-lookup attrs etype eid)
@@ -279,7 +281,6 @@
 
 (defn add-attrs-for-obj [acc op]
   (let [[action etype _eid obj] op
-        _ (println (format "TRACE add-attrs-for-obj: op=%s action=%s count=%d" (pr-str op) action (count op)))
         acc (if (attr-model/seek-by-fwd-ident-name [etype "id"] (:attrs acc))
               acc
               (add-attr acc (create-object-attr etype
@@ -344,16 +345,15 @@
     (add-attrs-for-lookup acc lookup link-etype)))
 
 (defn op->lookups [[action etype eid obj]]
-  (let [result (cond
-                 (not (supports-lookup-actions action)) nil
-                 :else (do (println (format "TRACE op->lookups: action=%s step=[%s %s ...]" action etype (type eid)))
-                           (case action
-                             ("link" "unlink") (link->lookups etype eid obj)
-                             ("update" "merge") (update->lookups etype eid obj)
-                             "delete" (delete->lookups etype eid obj)
-                             nil))]
-        _ (println (format "TRACE op->lookups: result=%s" (pr-str result)))
-        result)
+  (when (contains? supports-lookup-actions action)
+    (concat (when-let [lookup-pair (eid->lookup-pair eid)]
+              [{:etype etype :lookup-pair lookup-pair}])
+            (when (= "link" action)
+              (for [[label eid-or-eids] obj
+                    eid (if (coll? eid-or-eids) eid-or-eids [eid-or-eids])
+                    :let [lookup-pair (eid->lookup-pair eid)]
+                    :when lookup-pair]
+                {:etype etype :lookup-pair lookup-pair :link-label label})))))
 
 (defn create-lookup-attrs [acc ops]
   (reduce (fn [acc op]
@@ -370,8 +370,7 @@
 
 (defn create-attrs-from-objs [acc ops]
   (reduce (fn [acc op]
-            (let [[action _etype _eid _obj] op
-                  _ (println (format "TRACE create-attrs-from-objs: op=%s action=%s" (pr-str op) action))]
+            (let [[action _etype _eid _obj] op]
               (if (contains? obj-actions action)
                 (add-attrs-for-obj acc op)
                 acc)))
@@ -385,9 +384,7 @@
       (create-attrs-from-objs ops)))
 
 (defn transform [{:keys [attrs throw-on-missing-attrs?] :as _ctx} steps]
-  (let [_ (println (format "TRACE transform: steps=%s" (pr-str steps)))
-        {attrs :attrs add-attr-tx-steps :add-ops} (create-missing-attrs attrs steps)
-        _ (println (format "TRACE after create-missing-attrs: add-ops=%s" (pr-str add-attr-tx-steps)))
+  (let [{attrs :attrs add-attr-tx-steps :add-ops} (create-missing-attrs attrs steps)
         _ (when (and throw-on-missing-attrs? (seq add-attr-tx-steps))
             (let [ident-names (->> add-attr-tx-steps
                                    (map (comp

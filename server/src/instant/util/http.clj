@@ -65,9 +65,12 @@
 (defn req->auth-user!
   "Extracts authenticated user from request. Throws if unauthenticated."
   [req]
-  (let [refresh-token (req->bearer-token! req)]
-    (instant-user-model/get-by-refresh-token! {:refresh-token refresh-token
-                                               :auth? true})))
+  (let [token (req->bearer-token! req)]
+    (if (token-util/is-personal-access-token? token)
+      (let [pat (token-util/->PersonalAccessToken (str token))]
+        (instant-user-model/get-by-personal-access-token! {:personal-access-token pat}))
+      (instant-user-model/get-by-refresh-token! {:refresh-token token
+                                                 :auth? true}))))
 
 (defn req->app-and-user!
   ([req] (req->app-and-user! :owner req))

@@ -37,3 +37,22 @@
 	reverse_proxy server:8888
 }
 
+
+whatsapp.nextmavens.com {
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+
+	@api {
+		path /api/v1/*
+	}
+	handle @api {
+		reverse_proxy platform-api:8080
+	}
+
+	reverse_proxy viventure-web:3000
+}

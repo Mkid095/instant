@@ -26,6 +26,14 @@ FROM amazoncorretto:26
 WORKDIR /app
 
 COPY --from=builder /app/target/instant-standalone.jar ./target/instant-standalone.jar
+COPY --from=builder /app/start.sh ./start.sh
+COPY --from=builder /app/resources/ ./resources/
+COPY --from=builder /usr/local/bin/clojure /usr/local/bin/clojure
+COPY --from=builder /usr/local/bin/clj /usr/local/bin/clj
+COPY --from=builder /usr/local/lib/clojure /usr/local/lib/clojure
+COPY migrate /usr/local/bin/migrate
 
 EXPOSE 5000
 EXPOSE 6005
+
+CMD ["/app/start.sh"]

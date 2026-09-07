@@ -28,7 +28,82 @@ const VERSION = getVersion();
 // Error handling utilities
 // -----------
 
+type ServerError = {
+  type?: string;
+  message?: string;
+  hint?: {
+    errors?: Array<{ message?: string }>;
+    retry_after?: number;
+    retry_at?: string;
+    data_type?: string;
+    input?: string;
+    condition?: string;
+    debug_uri?: string;
+    args?: Record<string, any>[];
+    record_type?: string;
+  };
+  trace_id?: string;
+};
+
+function formatServerError(body: ServerError | string, status: number): string {
+  // Try to parse body if it's a string
+  let err: ServerError = {};
+  if (typeof body === "string") {
+    try { err = JSON.parse(body); } catch { err.message = body; }
+  } else {
+    err = body;
+  }
+
+  const parts: string[] = [];
+  const type = err.type?.toUpperCase().replace(/-/g, "_") || `HTTP_${status}`;
+  parts.push(`[${type}]`);
+
+  if (err.message) {
+    parts.push(err.message);
+  }
+
+  // Add hints for specific error types
+  if (err.hint) {
+    if (err.hint.errors && err.hint.errors.length > 0) {
+      const msgs = err.hint.errors.map(e => e.message).filter(Boolean);
+      if (msgs.length > 0) parts.push(`Details: ${msgs.join("; ")}`);
+    }
+    if (err.hint.data_type && err.hint.input) {
+      parts.push(`Parameter '${err.hint.data_type}' received: ${err.hint.input}`);
+    }
+    if (err.hint.retry_after) {
+      parts.push(`Retry after ${err.hint.retry_after} seconds`);
+    }
+    if (err.hint.retry_at) {
+      parts.push(`Retry at: ${err.hint.retry_at}`);
+    }
+    if (err.hint.condition === "unknown" && err.hint.debug_uri) {
+      parts.push(`Debug: ${err.hint.debug_uri}`);
+    }
+    if (err.hint.record_type && err.hint.args) {
+      const id = err.hint.args[0]?.id || err.hint.args[0]?.app_id || "unknown";
+      parts.push(`Expected ${err.hint.record_type} with id: ${id}`);
+    }
+  }
+
+  if (err.trace_id) {
+    parts.push(`Trace: ${err.trace_id}`);
+  }
+
+  return parts.join(" | ");
+}
+
 function classifyHttpError(status: number, statusText: string, bodyStr: string): string {
+  // First try to parse as structured server error
+  try {
+    const parsed = JSON.parse(bodyStr);
+    if (parsed && typeof parsed === "object") {
+      const formatted = formatServerError(parsed, status);
+      if (formatted) return formatted;
+    }
+  } catch { /* fall through */ }
+
+  // Fallback to status-based messages
   switch (status) {
     case 400: return `Bad request: ${statusText}`;
     case 401: return "Authentication failed — check your INSTANT_ACCESS_TOKEN";
@@ -40,7 +115,19 @@ function classifyHttpError(status: number, statusText: string, bodyStr: string):
     case 502: return "InstantDB gateway error (502)";
     case 503: return "InstantDB service unavailable (503)";
     default:
-      if (status >= 500) return `InstantDB server error (${status})`;
+      if (status >= 500) {
+        // Try to extract error details from body
+        try {
+          const parsed = JSON.parse(bodyStr);
+          if (parsed?.message) {
+            const msg = parsed.message;
+            // Include more detail for SQL errors
+            if (msg.includes("SQL Exception")) return `InstantDB server error (${status}): ${msg}`;
+            return `InstantDB server error (${status}): ${msg}`;
+          }
+        } catch {}
+        return `InstantDB server error (${status})`;
+      }
       if (status >= 400) return `Request failed (${status})`;
       return `Unexpected response (${status}): ${statusText}`;
   }
@@ -125,6 +212,7 @@ async function apiDelete(
   path: string,
   params?: Record<string, string>,
   appId?: string,
+  body?: unknown,
 ): Promise<any> {
   let url = `${apiURI}${path}`;
   if (params) {
@@ -133,7 +221,11 @@ async function apiDelete(
   }
   const res = await fetchWithTimeout(url, {
     method: "DELETE",
-    headers: authHeaders(token, appId),
+    headers: {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...authHeaders(token, appId),
+    },
+    body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -146,7 +238,7 @@ async function apiDelete(
 function authHeaders(token: string, appId?: string): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
-    ...(appId ? { "App-Id": appId } : {}),
+    ...(appId ? { "app-id": appId } : {}),
   };
 }
 
@@ -385,7 +477,7 @@ async function resendWebhookEvent(
   webhookId: string,
   eventIsn: string,
 ): Promise<any> {
-  return apiPost(apiURI, token, `/dash/apps/${appId}/webhooks/${webhookId}/events/${eventIsn}`);
+  return apiPost(apiURI, token, `/dash/apps/${appId}/webhooks/${webhookId}/events/${eventIsn}`, undefined);
 }
 
 // Backups
@@ -485,7 +577,7 @@ async function deleteTestUser(
   appId: string,
   testUserId: string,
 ): Promise<any> {
-  return apiDelete(apiURI, token, `/dash/apps/${appId}/test_users`, { id: testUserId });
+  return apiDelete(apiURI, token, `/dash/apps/${appId}/test_users`, undefined, undefined, { id: testUserId });
 }
 
 // Org management
@@ -521,7 +613,7 @@ async function inviteAppMember(
   inviteeEmail: string,
   role: string,
 ): Promise<any> {
-  return apiPost(apiURI, token, `/dash/apps/${appId}/invite/send`, { inviteeEmail, role });
+  return apiPost(apiURI, token, `/dash/apps/${appId}/invite/send`, { "invitee-email": inviteeEmail, role });
 }
 
 async function removeAppMember(
@@ -530,7 +622,7 @@ async function removeAppMember(
   appId: string,
   memberId: string,
 ): Promise<any> {
-  return apiDelete(apiURI, token, `/dash/apps/${appId}/members/remove`, { id: memberId });
+  return apiDelete(apiURI, token, `/dash/apps/${appId}/members/remove`, undefined, undefined, { id: memberId });
 }
 
 async function updateAppMember(
@@ -623,8 +715,64 @@ function createMCPServer(): McpServer {
   });
 }
 
+// Auth API helpers (for user-level token management)
+// -----------
+async function sendMagicCode(
+  apiURI: string,
+  email: string,
+): Promise<any> {
+  return apiPost(apiURI, "", `/dash/auth/send_magic_code`, { email });
+}
+
+async function verifyMagicCode(
+  apiURI: string,
+  email: string,
+  code: string,
+): Promise<any> {
+  return apiPost(apiURI, "", `/dash/auth/verify_magic_code`, { email, code });
+}
+
+async function listPersonalAccessTokens(
+  apiURI: string,
+  token: string,
+): Promise<any> {
+  return apiGet(apiURI, token, "/dash/personal_access_tokens");
+}
+
+async function createPersonalAccessToken(
+  apiURI: string,
+  token: string,
+  name: string,
+): Promise<any> {
+  return apiPost(apiURI, token, "/dash/personal_access_tokens", { name });
+}
+
+async function deletePersonalAccessToken(
+  apiURI: string,
+  token: string,
+  id: string,
+): Promise<any> {
+  return apiDelete(apiURI, token, `/dash/personal_access_tokens/${id}`);
+}
+
 // Tools
 // -----------
+// Registers a tool with both hyphenated and underscore names
+function tool(
+  server: McpServer,
+  name: string,
+  description: string,
+  inputSchema: Record<string, any>,
+  handler: (params: any) => Promise<any>,
+) {
+  const hyphen = name;
+  const underscore = name.replace(/-/g, "_");
+  server.tool(hyphen, description, inputSchema, handler);
+  if (underscore !== hyphen) {
+    server.tool(underscore, description, inputSchema, handler);
+  }
+}
+
 function registerTools(
   server: McpServer,
   apiURI: string,
@@ -632,8 +780,89 @@ function registerTools(
   _appId: string,
 ) {
 
+  // ---- Auth ----
+  tool(
+    server,
+    "send-magic-code",
+    "Send a magic code to an email address for user authentication. Use this before verify-magic-code to log in.",
+    {
+      email: z.string().email().describe("Email address to send the magic code to"),
+    },
+    async ({ email }) => {
+      try {
+        const data = await sendMagicCode(apiURI, email);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Error sending magic code: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "verify-magic-code",
+    "Verify a magic code sent to an email address and get a user token for authentication.",
+    {
+      email: z.string().email().describe("Email address that received the code"),
+      code: z.string().describe("6-digit magic code"),
+    },
+    async ({ email, code }) => {
+      try {
+        const data = await verifyMagicCode(apiURI, email, code);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Error verifying magic code: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "list-personal-access-tokens",
+    "List all Personal Access Tokens for the authenticated user.",
+    {},
+    async () => {
+      try {
+        const data = await listPersonalAccessTokens(apiURI, token);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Error listing PATs: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "create-personal-access-token",
+    "Create a new Personal Access Token for API authentication.",
+    {
+      name: z.string().min(1).describe("Name/label for the token"),
+    },
+    async ({ name }) => {
+      try {
+        const data = await createPersonalAccessToken(apiURI, token, name);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Error creating PAT: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "delete-personal-access-token",
+    "Revoke/delete a Personal Access Token.",
+    {
+      id: z.string().uuid().describe("UUID of the token to delete"),
+    },
+    async ({ id }) => {
+      try {
+        const data = await deletePersonalAccessToken(apiURI, token, id);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Error deleting PAT: ${e.message}` }] };
+      }
+    },
+  );
+
   // ---- Learning ----
-  server.tool(
+  tool(server,
     "learn",
     "Get an overview of InstantDB concepts, data modeling, permissions, and CLI commands.",
     {},
@@ -674,7 +903,7 @@ DOCUMENTATION: https://www.instantdb.com/docs`,
 
   // ---- Data Operations ----
 
-  server.tool(
+  tool(server,
     "query",
     `Execute an InstaQL query against an app. Returns query results as JSON.
 
@@ -693,12 +922,12 @@ Full docs: https://instantdb.com/docs/instaql`,
         const data = await adminQuery(apiURI, token, appId, query);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error querying app: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to query app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "transact",
     `Execute a transaction to create, update, link, or delete data.
 
@@ -727,14 +956,14 @@ Full docs: https://instantdb.com/docs/instaml`,
         const data = await adminTransact(apiURI, token, appId, steps);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error transacting: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to transact on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
   // ---- Schema ----
 
-  server.tool(
+  tool(server,
     "get-schema",
     "Fetch the current schema (attribute definitions) for an app. Returns all namespaces, their attrs, refs, and blob fields.",
     {
@@ -745,12 +974,12 @@ Full docs: https://instantdb.com/docs/instaml`,
         const data = await getSchema(apiURI, token, appId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error fetching schema: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to fetch schema for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "push-schema",
     `Push a schema definition to an app. The schema is a map of namespace names to namespace definitions.
 
@@ -783,12 +1012,12 @@ This performs a plan-then-apply. Use push-schema-dry-run first to preview change
         const data = await pushSchema(apiURI, token, appId, schema);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error pushing schema: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to push schema to app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "push-schema-dry-run",
     "Preview what a schema push would do without applying it. Shows the diff between current and proposed schema.",
     {
@@ -800,14 +1029,14 @@ This performs a plan-then-apply. Use push-schema-dry-run first to preview change
         const data = await pushSchemaDryRun(apiURI, token, appId, schema);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error planning schema: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to preview schema for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
   // ---- Permissions ----
 
-  server.tool(
+  tool(server,
     "get-perms",
     "Fetch the current permissions rules for an app. Returns the allow/deny rule definitions.",
     {
@@ -818,28 +1047,28 @@ This performs a plan-then-apply. Use push-schema-dry-run first to preview change
         const data = await getPerms(apiURI, token, appId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error fetching permissions: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to fetch permissions for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "push-perms",
-    `Push new permissions rules to an app. Permissions use a simple DSL.
+    `Push new permissions rules to an app. Permissions use CEL expressions.
 
 Example:
 {
   "todos": {
     "allow": {
-      "view": "always",
-      "create": "always",
-      "update": "auth.uid != null",
+      "view": "true",
+      "create": "auth.uid != null",
+      "update": "auth.uid != null && auth.uid = data.user",
       "delete": "auth.uid = data.user"
     }
   },
   "$default": {
     "allow": {
-      "view": "always",
+      "view": "true",
       "create": "false",
       "update": "false",
       "delete": "false"
@@ -847,7 +1076,7 @@ Example:
   }
 }
 
-Special values: "always", "never", "auth" (checks auth.uid != null).
+Special values: "true" (allow all), "false" (deny all), "auth.uid != null" (require login).
 Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
     {
       appId: z.string().uuid().describe("UUID of the app"),
@@ -858,14 +1087,14 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await pushPerms(apiURI, token, appId, perms);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error pushing permissions: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to push permissions to app ${appId}: ${e.message}` }] };
       }
     },
   );
 
   // ---- App Management ----
 
-  server.tool(
+  tool(server,
     "list-apps",
     "List all apps associated with your account. Returns app IDs, titles, creation dates, and storage usage.",
     {},
@@ -874,12 +1103,12 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await listApps(apiURI, token);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error listing apps: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to list apps: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "get-app",
     "Get detailed information about a specific app including title, created date, and storage stats.",
     {
@@ -890,12 +1119,12 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await getApp(apiURI, token, appId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error fetching app: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to fetch app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "create-app",
     "Create a new InstantDB app. Returns the new app ID and details. After creating, use push-schema to define the data model.",
     {
@@ -906,12 +1135,12 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await createApp(apiURI, token, title);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error creating app: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to create app '${title}': ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "delete-app",
     "Permanently delete an app and all its data. This cannot be undone. Use with extreme caution.",
     {
@@ -922,14 +1151,14 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await deleteApp(apiURI, token, appId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error deleting app: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to delete app ${appId}: ${e.message}` }] };
       }
     },
   );
 
   // ---- Storage ----
 
-  server.tool(
+  tool(server,
     "list-files",
     "List all files uploaded to the app's storage. Returns filenames, sizes, and metadata.",
     {
@@ -940,12 +1169,12 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await listFiles(apiURI, token, appId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error listing files: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to list storage files for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "delete-file",
     "Delete a file from the app's storage by its filename.",
     {
@@ -957,12 +1186,12 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await deleteFile(apiURI, token, appId, filename);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error deleting file: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to delete file '${filename}' from app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "get-upload-url",
     "Get a pre-signed URL for uploading a file directly to storage. Upload the file to the returned URL using HTTP PUT.",
     {
@@ -974,12 +1203,12 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await getStorageUploadUrl(apiURI, token, appId, filename);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error getting upload URL: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to get upload URL for '${filename}' on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "get-download-url",
     "Get a time-limited pre-signed URL for downloading a file from storage.",
     {
@@ -991,14 +1220,14 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await getStorageDownloadUrl(apiURI, token, appId, filename);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error getting download URL: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to get download URL for '${filename}' on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
   // ---- Webhooks ----
 
-  server.tool(
+  tool(server,
     "list-webhooks",
     "List all webhooks configured for an app. Returns webhook IDs, URLs, namespaces, actions, and status.",
     {
@@ -1009,12 +1238,12 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         const data = await listWebhooks(apiURI, token, appId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error listing webhooks: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to list webhooks for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "create-webhook",
     `Create a new webhook to receive notifications when data changes.
 
@@ -1032,12 +1261,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await createWebhook(apiURI, token, appId, url, namespaces, actions);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error creating webhook: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to create webhook on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "update-webhook",
     "Update an existing webhook's URL, watched namespaces, or actions.",
     {
@@ -1052,12 +1281,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await updateWebhook(apiURI, token, appId, webhookId, updates);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error updating webhook: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to update webhook ${webhookId} on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "delete-webhook",
     "Delete a webhook. The endpoint will no longer receive notifications.",
     {
@@ -1069,12 +1298,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await deleteWebhook(apiURI, token, appId, webhookId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error deleting webhook: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to delete webhook ${webhookId} from app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "enable-webhook",
     "Re-enable a previously disabled webhook.",
     {
@@ -1086,12 +1315,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await enableWebhook(apiURI, token, appId, webhookId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error enabling webhook: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to enable webhook ${webhookId} on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "disable-webhook",
     "Temporarily disable a webhook. It can be re-enabled later.",
     {
@@ -1104,12 +1333,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await disableWebhook(apiURI, token, appId, webhookId, reason);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error disabling webhook: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to disable webhook ${webhookId} on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "get-webhook-events",
     "Get recent webhook delivery events (successes and failures) with attempt history.",
     {
@@ -1122,12 +1351,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await getWebhookEvents(apiURI, token, appId, webhookId, after);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error fetching webhook events: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to fetch events for webhook ${webhookId} on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "resend-webhook-event",
     "Re-trigger delivery of a specific webhook event (for retrying failed deliveries).",
     {
@@ -1140,14 +1369,14 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await resendWebhookEvent(apiURI, token, appId, webhookId, eventId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error resending webhook event: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to resend event ${eventId} for webhook ${webhookId} on app ${appId}: ${e.message}` }] };
       }
     },
   );
 
   // ---- Backups ----
 
-  server.tool(
+  tool(server,
     "list-backups",
     "List all backups for an app. Returns backup IDs, creation dates, descriptions, and status.",
     {
@@ -1158,12 +1387,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await listBackups(apiURI, token, appId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error listing backups: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to list backups for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "create-backup",
     "Create an on-demand backup of the app. Returns a job object you can poll with get-backup-job.",
     {
@@ -1175,12 +1404,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await createBackup(apiURI, token, appId, description);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error creating backup: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to create backup for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "delete-backup",
     "Delete a backup. The backup's storage is freed (S3 objects expire automatically).",
     {
@@ -1192,12 +1421,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await deleteBackup(apiURI, token, appId, backupId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error deleting backup: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to delete backup ${backupId} from app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "list-backup-jobs",
     "List in-progress backup jobs for an app. Use this to check status of recently started backups.",
     {
@@ -1208,12 +1437,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await listBackupJobs(apiURI, token, appId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error listing backup jobs: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to list backup jobs for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "get-backup-job",
     "Get the status of a specific backup job including progress percentage.",
     {
@@ -1225,12 +1454,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await getBackupJob(apiURI, token, appId, jobId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error getting backup job: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to get backup job ${jobId} for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "cancel-backup-job",
     "Cancel an in-progress backup job. A processing job will abort at its next checkpoint.",
     {
@@ -1242,12 +1471,12 @@ url: the HTTPS endpoint to send webhook payloads to`,
         const data = await cancelBackupJob(apiURI, token, appId, jobId);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
-        return { isError: true, content: [{ type: "text", text: `Error canceling backup job: ${e.message}` }] };
+        return { isError: true, content: [{ type: "text", text: `Failed to cancel backup job ${jobId} for app ${appId}: ${e.message}` }] };
       }
     },
   );
 
-  server.tool(
+  tool(server,
     "list-backup-files",
     "List the data files included in a specific backup (for inspection before restore).",
     {
@@ -1264,7 +1493,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     },
   );
 
-  server.tool(
+  tool(server,
     "get-backup-file-url",
     "Get a pre-signed URL to download a specific file from a backup (for inspection).",
     {
@@ -1284,7 +1513,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
 
   // ---- Test Users ----
 
-  server.tool(
+  tool(server,
     "list-test-users",
     "List all test users for an app. Test users are guest accounts for development testing.",
     {
@@ -1300,7 +1529,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     },
   );
 
-  server.tool(
+  tool(server,
     "create-test-user",
     `Create a test user for development testing. The test user can be signed in as without email verification.
 
@@ -1320,7 +1549,7 @@ The 6-digit code is the magic code the test user enters to sign in. You can shar
     },
   );
 
-  server.tool(
+  tool(server,
     "delete-test-user",
     "Delete a test user from an app.",
     {
@@ -1339,7 +1568,7 @@ The 6-digit code is the magic code the test user enters to sign in. You can shar
 
   // ---- Email Templates ----
 
-  server.tool(
+  tool(server,
     "get-email-template",
     "Get the current email template used for magic code authentication. Returns subject, body, and sender info.",
     {},
@@ -1353,7 +1582,7 @@ The 6-digit code is the magic code the test user enters to sign in. You can shar
     },
   );
 
-  server.tool(
+  tool(server,
     "update-email-template",
     `Update the magic code email template. The template must include {code} in both subject and body.
 
@@ -1383,7 +1612,7 @@ Example:
     },
   );
 
-  server.tool(
+  tool(server,
     "send-test-email",
     "Send a test email to verify your email template configuration. The recipient must be an authorized app member.",
     {
@@ -1406,7 +1635,7 @@ Example:
 
   // ---- Org Management ----
 
-  server.tool(
+  tool(server,
     "list-orgs",
     "List all organizations (workspaces) associated with your account. Returns org IDs, titles, and creation dates.",
     {},
@@ -1420,7 +1649,7 @@ Example:
     },
   );
 
-  server.tool(
+  tool(server,
     "get-org",
     "Get detailed information about a specific org/workspace including apps, members, and invites.",
     {
@@ -1436,7 +1665,7 @@ Example:
     },
   );
 
-  server.tool(
+  tool(server,
     "list-org-apps",
     "List all apps in an org. Optionally includes schema and perms in the response.",
     {
@@ -1455,13 +1684,13 @@ Example:
 
   // ---- App Members ----
 
-  server.tool(
+  tool(server,
     "invite-app-member",
     "Invite a user to an app with a specific role. They will receive an email invitation.",
     {
       appId: z.string().uuid().describe("UUID of the app"),
       email: z.string().email().describe("Email address of the user to invite"),
-      role: z.enum(["creator", "admin", "collaborator", "editor", "viewer"]).describe("Role to assign: creator, admin, collaborator, editor, or viewer"),
+      role: z.enum(["collaborator", "admin", "owner"]).describe("Role to assign: collaborator, admin, or owner"),
     },
     async ({ appId, email, role }) => {
       try {
@@ -1473,7 +1702,7 @@ Example:
     },
   );
 
-  server.tool(
+  tool(server,
     "remove-app-member",
     "Remove a member from an app.",
     {
@@ -1490,13 +1719,13 @@ Example:
     },
   );
 
-  server.tool(
+  tool(server,
     "update-app-member",
     "Update a member's role on an app.",
     {
       appId: z.string().uuid().describe("UUID of the app"),
       memberId: z.string().uuid().describe("UUID of the member to update"),
-      role: z.enum(["creator", "admin", "collaborator", "editor", "viewer"]).describe("New role: creator, admin, collaborator, editor, or viewer"),
+      role: z.enum(["collaborator", "admin", "owner"]).describe("New role: collaborator, admin, or owner"),
     },
     async ({ appId, memberId, role }) => {
       try {
@@ -1510,7 +1739,7 @@ Example:
 
   // ---- Sender Verification ----
 
-  server.tool(
+  tool(server,
     "get-sender-verification",
     "Get sender verification status for an app. Shows whether sending domain is verified via Postmark DKIM/Return-Path.",
     {
@@ -1526,7 +1755,7 @@ Example:
     },
   );
 
-  server.tool(
+  tool(server,
     "send-sender-verification",
     "Send a sender verification email to your sending domain. Complete verification by calling verify-sender-code with the 6-digit code from the email.",
     {
@@ -1542,7 +1771,7 @@ Example:
     },
   );
 
-  server.tool(
+  tool(server,
     "verify-sender-code",
     "Complete sender domain verification by providing the 6-digit code from the verification email.",
     {

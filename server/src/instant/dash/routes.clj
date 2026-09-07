@@ -76,7 +76,8 @@
             [instant.util.s3 :as s3-util]
             [instant.stripe :as stripe]
             [instant.superadmin.routes :refer [req->superadmin-app!
-                                               req->superadmin-user!]]
+                                               req->superadmin-user!
+                                               req->superadmin-user-and-app!]]
             [instant.util.async :as ua :refer [fut-bg]]
             [instant.util.crypt :as crypt-util]
             [instant.util.date :as date]
@@ -124,12 +125,13 @@
 
 (defn req->app-accepting-superadmin-or-ref-token! [least-privilege scope req]
   (try
-    {:app (req->superadmin-app! scope least-privilege req)}
+    (let [{:keys [app user]} (req->superadmin-user-and-app! scope least-privilege req)]
+      {:app app :user user})
     (catch Exception e
       (if (= :admin-token-mismatch (:reason (::ex/hint (ex-data e))))
         (throw e)
         (select-keys (req->app-and-user! least-privilege req)
-                     [:app])))))
+                     [:app :user])))))
 
 (defn with-team-app-fixtures [role f]
   (fixtures/with-team-app

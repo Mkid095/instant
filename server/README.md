@@ -1,145 +1,196 @@
-<p align="center">
-  <a href="#">
-    <img alt="Shows the Instant logo" src="https://instantdb.com/img/icon/android-chrome-512x512.png" width="10%">
-  </a>
-  <h1 align="center">instant-server</h1>
-</p>
+[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/golang-migrate/migrate/ci.yaml?branch=master)](https://github.com/golang-migrate/migrate/actions/workflows/ci.yaml?query=branch%3Amaster)
+[![GoDoc](https://pkg.go.dev/badge/github.com/golang-migrate/migrate)](https://pkg.go.dev/github.com/golang-migrate/migrate/v4)
+[![Coverage Status](https://img.shields.io/coveralls/github/golang-migrate/migrate/master.svg)](https://coveralls.io/github/golang-migrate/migrate?branch=master)
+[![packagecloud.io](https://img.shields.io/badge/deb-packagecloud.io-844fec.svg)](https://packagecloud.io/golang-migrate/migrate?filter=debs)
+[![Docker Pulls](https://img.shields.io/docker/pulls/migrate/migrate.svg)](https://hub.docker.com/r/migrate/migrate/)
+![Supported Go Versions](https://img.shields.io/badge/Go-1.20%2C%201.21-lightgrey.svg)
+[![GitHub Release](https://img.shields.io/github/release/golang-migrate/migrate.svg)](https://github.com/golang-migrate/migrate/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/golang-migrate/migrate/v4)](https://goreportcard.com/report/github.com/golang-migrate/migrate/v4)
 
-This houses Instant's backend. Let’s get you started!
+# migrate
 
-# Development
+__Database migrations written in Go. Use as [CLI](#cli-usage) or import as [library](#use-in-your-go-project).__
 
-## Docker Compose
+* Migrate reads migrations from [sources](#migration-sources)
+   and applies them in correct order to a [database](#databases).
+* Drivers are "dumb", migrate glues everything together and makes sure the logic is bulletproof.
+   (Keeps the drivers lightweight, too.)
+* Database drivers don't assume things or try to correct user input. When in doubt, fail.
 
-The easiest way to get started is to run `make docker-compose`. That command will use docker compose to set up a new postgres database and start the server. The instant server will be available at http://localhost:8888 and you can connect to nrepl on port `6005`.
+Forked from [mattes/migrate](https://github.com/mattes/migrate)
 
-## Without Docker Compose
+## Databases
 
-If you want to run Instant locally, first install dependencies:
+Database drivers run migrations. [Add a new database?](database/driver.go)
 
-1. Install Java 26 for [mac](https://docs.aws.amazon.com/corretto/latest/corretto-26-ug/macos-install.html), [linux](https://docs.aws.amazon.com/corretto/latest/corretto-26-ug/generic-linux-install.html), or [windows](https://docs.aws.amazon.com/corretto/latest/corretto-26-ug/windows-install.html).
+* [PostgreSQL](database/postgres)
+* [PGX v4](database/pgx)
+* [PGX v5](database/pgx/v5)
+* [Redshift](database/redshift)
+* [Ql](database/ql)
+* [Cassandra / ScyllaDB](database/cassandra)
+* [SQLite](database/sqlite)
+* [SQLite3](database/sqlite3) ([todo #165](https://github.com/mattes/migrate/issues/165))
+* [SQLCipher](database/sqlcipher)
+* [MySQL / MariaDB](database/mysql)
+* [Neo4j](database/neo4j)
+* [MongoDB](database/mongodb)
+* [CrateDB](database/crate) ([todo #170](https://github.com/mattes/migrate/issues/170))
+* [Shell](database/shell) ([todo #171](https://github.com/mattes/migrate/issues/171))
+* [Google Cloud Spanner](database/spanner)
+* [CockroachDB](database/cockroachdb)
+* [YugabyteDB](database/yugabytedb)
+* [ClickHouse](database/clickhouse)
+* [Firebird](database/firebird)
+* [MS SQL Server](database/sqlserver)
+* [RQLite](database/rqlite)
 
-2. Install Clojure [https://clojure.org/guides/install_clojure](https://clojure.org/guides/install_clojure).
+### Database URLs
 
-3. Install golang-migrate [https://github.com/golang-migrate/migrate/tree/master/cmd/migrate#installation](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate#installation).
+Database connection strings are specified via URLs. The URL format is driver dependent but generally has the form: `dbdriver://username:password@host:port/dbname?param1=true&param2=false`
 
-Create a new postgres database called `instant`:
+Any [reserved URL characters](https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters) need to be escaped. Note, the `%` character also [needs to be escaped](https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_the_percent_character)
 
-```sh
-createdb instant
+Explicitly, the following characters need to be escaped:
+`!`, `#`, `$`, `%`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `/`, `:`, `;`, `=`, `?`, `@`, `[`, `]`
+
+It's easiest to always run the URL parts of your DB connection URL (e.g. username, password, etc) through an URL encoder. See the example Python snippets below:
+
+```bash
+$ python3 -c 'import urllib.parse; print(urllib.parse.quote(input("String to encode: "), ""))'
+String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
+FAKEpassword%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D
+$ python2 -c 'import urllib; print urllib.quote(raw_input("String to encode: "), "")'
+String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
+FAKEpassword%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D
+$
 ```
 
-Ensure your `postgresql.conf` has logical replication enabled:
+## Migration Sources
 
-```conf
-wal_level = logical
+Source drivers read migrations from local or remote sources. [Add a new source?](source/driver.go)
+
+* [Filesystem](source/file) - read from filesystem
+* [io/fs](source/iofs) - read from a Go [io/fs](https://pkg.go.dev/io/fs#FS)
+* [Go-Bindata](source/go_bindata) - read from embedded binary data ([jteeuwen/go-bindata](https://github.com/jteeuwen/go-bindata))
+* [pkger](source/pkger) - read from embedded binary data ([markbates/pkger](https://github.com/markbates/pkger))
+* [GitHub](source/github) - read from remote GitHub repositories
+* [GitHub Enterprise](source/github_ee) - read from remote GitHub Enterprise repositories
+* [Bitbucket](source/bitbucket) - read from remote Bitbucket repositories
+* [Gitlab](source/gitlab) - read from remote Gitlab repositories
+* [AWS S3](source/aws_s3) - read from Amazon Web Services S3
+* [Google Cloud Storage](source/google_cloud_storage) - read from Google Cloud Platform Storage
+
+## CLI usage
+
+* Simple wrapper around this library.
+* Handles ctrl+c (SIGINT) gracefully.
+* No config search paths, no config files, no magic ENV var injections.
+
+__[CLI Documentation](cmd/migrate)__
+
+### Basic usage
+
+```bash
+$ migrate -source file://path/to/migrations -database postgres://localhost:5432/database up 2
 ```
 
-Install [`pg_hint_plan`](https://github.com/ossc-db/pg_hint_plan/blob/master/docs/installation.md)
+### Docker usage
 
-On a mac using postgres.app, it looks something like this:
-
-```sh
-# In a temporary directory
-git clone https://github.com/ossc-db/pg_hint_plan.git
-cd pg_hint_plan
-git checkout PG16
-make USE_PGXS=1 PG_CONFIG=/Applications/Postgres.app/Contents/Versions/16/bin/pg_config install DESTDIR=$HOME/postgres_extensions
-sudo cp $HOME/postgres_extensions/Applications/Postgres.app/Contents/Versions/16/lib/postgresql/pg_hint_plan.dylib /usr/local/lib/
+```bash
+$ docker run -v {{ migration dir }}:/migrations --network host migrate/migrate
+    -path=/migrations/ -database postgres://localhost:5432/database up 2
 ```
 
-Ensure your `postgresql.conf` can find pg_hint_plan and has pg_hint_plan enabled:
+## Use in your Go project
 
-```conf
-dynamic_library_path = '/usr/local/lib:$libdir'
-shared_preload_libraries = 'pg_stat_statements,pg_hint_plan'
+* API is stable and frozen for this release (v3 & v4).
+* Uses [Go modules](https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more) to manage dependencies.
+* To help prevent database corruptions, it supports graceful stops via `GracefulStop chan bool`.
+* Bring your own logger.
+* Uses `io.Reader` streams internally for low memory overhead.
+* Thread-safe and no goroutine leaks.
+
+__[Go Documentation](https://pkg.go.dev/github.com/golang-migrate/migrate/v4)__
+
+```go
+import (
+    "github.com/golang-migrate/migrate/v4"
+    _ "github.com/golang-migrate/migrate/v4/database/postgres"
+    _ "github.com/golang-migrate/migrate/v4/source/github"
+)
+
+func main() {
+    m, err := migrate.New(
+        "github://mattes:personal-access-token@mattes/migrate_test",
+        "postgres://localhost:5432/database?sslmode=enable")
+    m.Steps(2)
+}
 ```
 
-Run the migrations to initialize the database:
+Want to use an existing database client?
 
-```sh
-make dev-up
+```go
+import (
+    "database/sql"
+    _ "github.com/lib/pq"
+    "github.com/golang-migrate/migrate/v4"
+    "github.com/golang-migrate/migrate/v4/database/postgres"
+    _ "github.com/golang-migrate/migrate/v4/source/file"
+)
+
+func main() {
+    db, err := sql.Open("postgres", "postgres://localhost:5432/database?sslmode=enable")
+    driver, err := postgres.WithInstance(db, &postgres.Config{})
+    m, err := migrate.NewWithDatabaseInstance(
+        "file:///migrations",
+        "postgres", driver)
+    m.Up() // or m.Step(2) if you want to explicitly set the number of migrations to run
+}
 ```
 
-Bootstrap a config file (this creates a few dummy secrets for working locally):
+## Getting started
 
-```sh
-make bootstrap-oss
+Go to [getting started](GETTING_STARTED.md)
+
+## Tutorials
+
+* [CockroachDB](database/cockroachdb/TUTORIAL.md)
+* [PostgreSQL](database/postgres/TUTORIAL.md)
+
+(more tutorials to come)
+
+## Migration files
+
+Each migration has an up and down migration. [Why?](FAQ.md#why-two-separate-files-up-and-down-for-a-migration)
+
+```bash
+1481574547_create_users_table.up.sql
+1481574547_create_users_table.down.sql
 ```
 
-And start the server:
+[Best practices: How to write migrations.](MIGRATIONS.md)
 
-```sh
-make dev
-```
+## Coming from another db migration tool?
 
-The instant server will run at [localhost:8888](http://localhost:8888) and you can connect to nrepl on port 6005.
+Check out [migradaptor](https://github.com/musinit/migradaptor/).
+*Note: migradaptor is not affliated or supported by this project*
 
-To run tests:
+## Versions
 
-```sh
-make compile-java
-make test
-```
+Version | Supported? | Import | Notes
+--------|------------|--------|------
+**master** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | New features and bug fixes arrive here first |
+**v4** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | Used for stable releases |
+**v3** | :x: | `import "github.com/golang-migrate/migrate"` (with package manager) or `import "gopkg.in/golang-migrate/migrate.v3"` (not recommended) | **DO NOT USE** - No longer supported |
 
-# Setting up local https and SSE
+## Development and Contributing
 
-There are two options for local https.
+Yes, please! [`Makefile`](Makefile) is your friend,
+read the [development guide](CONTRIBUTING.md).
 
-Use undertow if you don't want any other dependencies and you're not testing SSE or multiple hazelcast instances.
+Also have a look at the [FAQ](FAQ.md).
 
-Use caddy if you want to test SSE locally (without hitting connection limits) or want to test with multiple local instant server instances.
+---
 
-## caddy
-
-Add to `/etc/hosts`:
-
-```
-127.0.0.1   dev.instantdb.com
-```
-
-Run `sudo caddy trust` to allow caddy to add its cert to your keychain.
-
-Run `caddy run --config Caddyfile.dev`
-
-In `src/instant/config.clj`, change `server-origin` to
-
-```
-https://dev.instantdb.com:9888
-```
-
-In `client/www/lib/config.ts`, change `localPort` to `'9888'`, `http://localhost` to `https://dev.instantdb.com`, and `ws://localhost` to `wss://dev.instantdb.com`;
-
-To run multiple instantdb instances, do `PORT=8887 NREPL_PORT=6004 make dev`. If you need another, do `PORT=8886 NREPL_PORT=6003 make dev`. If you need more, you'll have to modify the Caddyfile.dev.
-
-## undertow
-
-Add to `/etc/hosts`:
-
-```
-127.0.0.1   dev.instantdb.com
-```
-
-Run `./scripts/install_dev_certs.sh`
-
-- When asked for password, type `changeit` (couple of times)
-- If asked for override, type `yes`
-- Type your macOS password if asked in a popup
-
-After that, certs from `dev-resources/certs` will be picked up by server automatically.
-
-In `src/instant/config.clj`, change `server-origin` to
-
-```
-https://dev.instantdb.com:8889
-```
-
-Server https address is https://dev.instantdb.com:8889
-
-# Config
-
-If you want to make any changes to your configuration, update the `resources/config/override.edn` file that was created when you ran `make docker-compose` or `make bootstrap-oss`. `src/instant/config_edn.clj` has a spec that describes the data for the file, or you can look at `resources/config/dev.edn` for an example.
-
-# Questions?
-
-If you have any questions, feel free to drop us a line on our [Discord](https://discord.com/invite/VU53p7uQcE).
+Looking for alternatives? [https://awesome-go.com/#database](https://awesome-go.com/#database).
