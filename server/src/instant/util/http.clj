@@ -67,8 +67,7 @@
   [req]
   (let [token (req->bearer-token! req)]
     (if (token-util/is-personal-access-token? token)
-      (let [pat (token-util/->PersonalAccessToken (str token))]
-        (instant-user-model/get-by-personal-access-token! {:personal-access-token pat}))
+      (instant-user-model/get-by-personal-access-token! {:personal-access-token token})
       (instant-user-model/get-by-refresh-token! {:refresh-token token
                                                  :auth? true}))))
 
