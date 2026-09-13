@@ -317,22 +317,61 @@ async function getSchemaSuperadmin(
   return apiGet(apiURI, token, `/admin/schema`, undefined, appId);
 }
 
+// Transform client-side schema format to server-side format
+// Client format: { "todos": { "attrs": { "title": { "type": "string" } } } }
+// Server format: { entities: { "todos": { "attrs": { "title": { "type": "string" } } } }, links: {} }
+function transformSchemaToServerFormat(schema: any): { entities: any; links: any } {
+  const entities: any = {};
+  const links: any = {};
+
+  for (const [nsName, nsDef] of Object.entries(schema)) {
+    if (nsName.startsWith("$")) continue; // skip system namespaces
+
+    entities[nsName] = {};
+    if ((nsDef as any).attrs) {
+      entities[nsName].attrs = (nsDef as any).attrs;
+    }
+    if ((nsDef as any).links) {
+      // Convert links to server format
+      for (const [linkName, linkDef] of Object.entries((nsDef as any).links)) {
+        const linkDefObj = linkDef as any;
+        links[`[${nsName} ${linkName} ${linkDefObj.collection} ${linkName}]`] = {
+          forward: {
+            on: nsName,
+            has: linkDefObj.is_collection ? "many" : "one",
+            label: linkName,
+          },
+          reverse: {
+            on: linkDefObj.collection,
+            has: "one",
+            label: linkDefObj.is_collection ? `${nsName}s` : nsName,
+          },
+        };
+      }
+    }
+  }
+
+  return { entities, links };
+}
+
 async function pushSchema(
   apiURI: string,
   token: string,
   appId: string,
   schema: any,
 ): Promise<any> {
+  const serverSchema = transformSchemaToServerFormat(schema);
+
   // Step 1: plan
   const planData = await apiPost(apiURI, token, `/superadmin/apps/${appId}/schema/push/plan`, {
-    schema,
+    schema: serverSchema,
     check_types: true,
     supports_background_updates: true,
   });
 
   // Step 2: apply
   const applyData = await apiPost(apiURI, token, `/superadmin/apps/${appId}/schema/push/apply`, {
-    schema,
+    schema: serverSchema,
     check_types: true,
     supports_background_updates: true,
   });
@@ -346,8 +385,10 @@ async function pushSchemaDryRun(
   appId: string,
   schema: any,
 ): Promise<any> {
+  const serverSchema = transformSchemaToServerFormat(schema);
+
   return apiPost(apiURI, token, `/superadmin/apps/${appId}/schema/push/plan`, {
-    schema,
+    schema: serverSchema,
     check_types: true,
     supports_background_updates: true,
   });

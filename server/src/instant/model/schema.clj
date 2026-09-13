@@ -508,8 +508,8 @@
 (defn plan!
   [opts client-defs]
   (let [new-schema (-> client-defs
-                       remove-system-namespaces
-                       defs->schema)]
+                       defs->schema
+                       remove-system-namespaces)]
     (plan-with-schema! opts new-schema)))
 
 (comment
