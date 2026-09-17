@@ -1,58 +1,77 @@
 (ns instant.resend
   (:require
-    [clj-http.client :as clj-http]
-    [instant.config :as config]
-    [instant.util.json :refer [->json]]
-    [instant.util.tracer :as tracer]
-    [instant.util.exception :as ex]))
+   [clj-http.client :as clj-http]
+   [clojure.string :as string]
+   [instant.config :as config]
+   [instant.util.exception :as ex]
+   [instant.util.json :refer [->json <-json]]
+   [instant.util.tracer :as tracer]))
+
+(defn format-sender [from]
+  (cond
+    (string? from) from
+    (map? from) (if (:name from)
+                   (str (:name from) " <" (:email from) ">")
+                   (:email from))
+    :else (str from)))
+
+(defn format-recipients [to]
+  (cond
+    (nil? to) []
+    (string? to) [to]
+    (sequential? to) (mapv (fn [r] (if (map? r) (:email r) (str r))) to)
+    (map? to) [(:email to)]
+    :else [(str to)]))
+
+(defn error-detail
+  [e]
+  (try
+    (or (-> e ex-data :body (<-json true) :message)
+        (-> e ex-data :body (<-json true) :error :message))
+    (catch Exception _ nil)))
 
 (defn throw-send-error!
-  "Translates a failed Resend send into a typed instant-exception."
   [e to]
-  (let [status (-> e ex-data :status)
-        body (try
-               (-> e ex-data :body)
-               (catch Exception _ nil))]
-    (tracer/add-data! {:attributes {:resend-status status
-                                    :resend-error body}})
-    (ex/throw-email-send-failed!
-     "We weren't able to send the email."
-     {:recipient (if (coll? to) (-> to first :email) to)}
-     e)))
+  (tracer/add-data! {:attributes {:resend-status (-> e ex-data :status)
+                                  :resend-error (error-detail e)}})
+  (ex/throw-email-send-failed!
+   "We weren't able to send the email."
+   {:recipient (first (format-recipients to))}
+   e))
 
-(defn- extract-email [recipient]
-  (if (map? recipient)
-    (:email recipient)
-    recipient))
-
-(defn send! [{:keys [from to cc bcc subject html reply-to]}]
-  (let [recipients (if (coll? to)
-                     (mapv extract-email to)
-                     [to])
-        from-email (if (map? from)
-                     (:email from)
-                     from)
-        reply-to-email (or reply-to (config/email-reply-to))
-        body {:from from-email
-              :to recipients
-              :subject subject
-              :html html
-              :reply-to reply-to-email}]
+(defn send! [{:keys [from to cc bcc subject html text reply-to]}]
+  (let [to-emails (format-recipients to)
+        from-str (format-sender from)
+        reply-to-email (when-let [rt (or reply-to (config/email-reply-to))]
+                        (format-sender rt))
+        body (cond-> {:from from-str
+                      :to to-emails
+                      :subject subject
+                      :html html}
+               text (assoc :text text)
+               reply-to-email (assoc :reply_to reply-to-email)
+               cc (assoc :cc (format-recipients cc))
+               bcc (assoc :bcc (format-recipients bcc)))]
     (if-not (config/resend-send-enabled?)
       (tracer/with-span! {:name "resend/send-disabled"
-                          :attributes body}
+                          :attributes {:to-count (count to-emails)}}
         (tracer/record-info!
          {:name "resend-disabled"
           :attributes
           {:msg "Resend is disabled, add RESEND_API_KEY to config to enable"}}))
       (tracer/with-span!
         {:name "resend/send"
-         :attributes {:body body}}
+         :attributes {:to-count (count to-emails)}}
         (try
           (clj-http/post
            "https://api.resend.com/emails"
            {:headers {"Authorization" (str "Bearer " (config/resend-api-key))
                       "Content-Type" "application/json"}
-            :body (->json body)})
+            :body (->json body)
+            :redirect-strategy :none
+            :unexceptional-status #(<= 200 % 299)
+            :conn-timeout 10000
+            :socket-timeout 10000
+            :connection-request-timeout 10000})
           (catch Exception e
-            (throw-send-error! e recipients)))))))
+            (throw-send-error! e to)))))))
