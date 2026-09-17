@@ -335,7 +335,10 @@ function transformSchemaToServerFormat(schema: any): { entities: any; links: any
       // Convert links to server format
       for (const [linkName, linkDef] of Object.entries((nsDef as any).links)) {
         const linkDefObj = linkDef as any;
-        links[`[${linkDefObj.collection} ${linkName} ${nsName} ${linkDefObj.is_collection ? nsName + 's' : nsName}]`] = {
+        // Compute reverse label: for collection links, use the source namespace name (the namespace containing the link definition)
+        // For non-collection links, use the target namespace name
+        const reverseLabel = linkDefObj.is_collection ? nsName : linkDefObj.collection;
+        links[`[${linkDefObj.collection} ${linkName} ${nsName} ${linkDefObj.is_collection ? linkDefObj.collection : nsName}]`] = {
           forward: {
             on: linkDefObj.collection,
             has: linkDefObj.is_collection ? "many" : "one",
@@ -344,7 +347,7 @@ function transformSchemaToServerFormat(schema: any): { entities: any; links: any
           reverse: {
             on: nsName,
             has: linkDefObj.is_collection ? "one" : "many",
-            label: linkDefObj.is_collection ? `${nsName}s` : nsName,
+            label: reverseLabel,
           },
         };
       }
@@ -1087,10 +1090,13 @@ Examples:
 - Simple query: {"todos": {}}
 - With where: {"todos": {"$": {"where": {"done": false}}}}
 - With where+limit: {"todos": {"$": {"where": {"done": false}, "limit": 10}}}
+- With $or (wrapped in "and"): {"todos": {"$": {"where": {"and": [{"or": [{"status": "active"}, {"status": "pending"}]}]}}}}
 - Nested: {"authors": {"books": {"$": {"where": {"title": "The Count"}}}}}
 
 CRITICAL: The "where" clause MUST be nested inside "$". Correct: {"$": {"where": {"field": "value"}}}
 WRONG: {"$where": {"field": "value"}} -- this will fail!
+
+For $or queries, wrap in "and": {"$": {"where": {"and": [{"or": [{"field": "a"}, {"field": "b"}]}]}}}
 
 Full docs: https://instantdb.com/docs/instaql`,
     {

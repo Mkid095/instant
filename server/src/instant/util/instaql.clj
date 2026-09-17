@@ -5,6 +5,7 @@
             [instant.db.model.entity :as entity-model]
             [instant.util.uuid :as uuid-util]
             [instant.db.model.triple :as triple-model]
+            [instant.util.exception :as ex]
             [medley.core :refer [update-existing-in]]))
 
 (declare instaql-ref-nodes->object-tree)
@@ -27,9 +28,15 @@
 
 (defn obj-node [ctx etype node]
   (let [datalog-result (-> node :data :datalog-result)
-        blob-entries (entity-model/datalog-result->map (assoc ctx
-                                                              :include-server-created-at? true)
-                                                       datalog-result)
+        blob-entries (try
+                       (entity-model/datalog-result->map (assoc ctx
+                                                             :include-server-created-at? true)
+                                                      datalog-result)
+                       (catch Exception e
+                         (throw (ex-info "Failed to process blob entries"
+                                        {:etype etype
+                                         :datalog-result datalog-result
+                                         :error e}))))
         ref-entries (some->> node
                              :child-nodes
                              (map (partial enrich-node ctx etype))
@@ -86,13 +93,18 @@
 (defn instaql-ref-nodes->object-tree [ctx nodes]
   (reduce
    (fn [acc node]
-     (let [{:keys [child-nodes data]} node
-           {:keys [option-map]} data
-           _entries (map (partial obj-node ctx (-> data :etype)) child-nodes)
-           entries (sort-entries ctx (:etype data) option-map _entries)
-           singular? (and (:inference? ctx) (singular-entry? data))
-           entry-or-entries (if singular? (first entries) entries)]
-       (assoc acc (:k data) entry-or-entries)))
+     (try
+       (let [{:keys [child-nodes data]} node
+             {:keys [option-map]} data
+             _entries (map (partial obj-node ctx (-> data :etype)) child-nodes)
+             entries (sort-entries ctx (:etype data) option-map _entries)
+             singular? (and (:inference? ctx) (singular-entry? data))
+             entry-or-entries (if singular? (first entries) entries)]
+         (assoc acc (:k data) entry-or-entries))
+       (catch Exception e
+         (throw (ex-info "Failed to build object tree"
+                        {:node-data (:data node)
+                         :error e}))))
    {}
    nodes))
 

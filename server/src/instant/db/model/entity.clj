@@ -22,13 +22,15 @@
 (defn triples->map [{:keys [attrs include-server-created-at?] :as _ctx} triples]
   (->> triples
        (reduce (fn [acc [_e a v t]]
-                 (let [label (attr-model/fwd-label (attr-model/seek-by-id a attrs))]
-                   (cond-> acc
-                     true (assoc! label v)
+                 (if-let [attr (attr-model/seek-by-id a attrs)]
+                   (let [label (attr-model/fwd-label attr)]
+                     (cond-> acc
+                       true (assoc! label v)
 
-                     (and (= label "id")
-                          include-server-created-at?)
-                     (assoc! "$serverCreatedAt" (Date. (long t))))))
+                       (and (= label "id")
+                            include-server-created-at?)
+                       (assoc! "$serverCreatedAt" (Date. (long t)))))
+                   acc))
                (transient {}))
        (persistent!)
        (not-empty)))

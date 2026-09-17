@@ -353,8 +353,20 @@
                     :inference? inference?}
                    perms)
         _ (rate-limit! (:id app) "query")
-        nodes (iq/permissioned-query ctx query)
-        result (instaql-nodes->object-tree ctx nodes)]
+        nodes (try
+                (iq/permissioned-query ctx query)
+                (catch Exception e
+                  (throw (ex-info "Query execution failed"
+                                 {:app-id (:id app)
+                                  :query query
+                                  :error e}))))
+        result (try
+                 (instaql-nodes->object-tree ctx nodes)
+                 (catch Exception e
+                   (throw (ex-info "Result tree construction failed"
+                                  {:app-id (:id app)
+                                   :query query
+                                   :error e}))))]
     (response/ok result)))
 
 (defn superadmin-transact-post [req]
