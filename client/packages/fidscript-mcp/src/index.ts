@@ -196,7 +196,7 @@ async function apiPost(
       "Content-Type": "application/json",
       ...authHeaders(token, appId),
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -225,7 +225,7 @@ async function apiDelete(
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...authHeaders(token, appId),
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -335,15 +335,15 @@ function transformSchemaToServerFormat(schema: any): { entities: any; links: any
       // Convert links to server format
       for (const [linkName, linkDef] of Object.entries((nsDef as any).links)) {
         const linkDefObj = linkDef as any;
-        links[`[${nsName} ${linkName} ${linkDefObj.collection} ${linkName}]`] = {
+        links[`[${linkDefObj.collection} ${linkName} ${nsName} ${linkDefObj.is_collection ? nsName + 's' : nsName}]`] = {
           forward: {
-            on: nsName,
+            on: linkDefObj.collection,
             has: linkDefObj.is_collection ? "many" : "one",
             label: linkName,
           },
           reverse: {
-            on: linkDefObj.collection,
-            has: "one",
+            on: nsName,
+            has: linkDefObj.is_collection ? "one" : "many",
             label: linkDefObj.is_collection ? `${nsName}s` : nsName,
           },
         };
@@ -409,6 +409,139 @@ async function pushPerms(
   perms: any,
 ): Promise<any> {
   return apiPost(apiURI, token, `/superadmin/apps/${appId}/perms`, { code: perms });
+}
+
+// OAuth Provider management
+async function createOAuthProvider(
+  apiURI: string,
+  token: string,
+  appId: string,
+  providerName: string,
+): Promise<any> {
+  return apiPost(apiURI, token, `/dash/apps/${appId}/oauth_service_providers`, {
+    provider_name: providerName,
+  });
+}
+
+// OAuth Client management
+async function createOAuthClient(
+  apiURI: string,
+  token: string,
+  appId: string,
+  providerId: string,
+  clientName: string,
+  redirectTo: string,
+  options?: {
+    clientId?: string;
+    clientSecret?: string;
+    discoveryEndpoint?: string;
+    meta?: any;
+    useSharedCredentials?: boolean;
+  },
+): Promise<any> {
+  const body: any = {
+    provider_id: providerId,
+    client_name: clientName,
+    redirect_to: redirectTo,
+  };
+  if (options?.clientId) body.client_id = options.clientId;
+  if (options?.clientSecret) body.client_secret = options.clientSecret;
+  if (options?.discoveryEndpoint) body.discovery_endpoint = options.discoveryEndpoint;
+  if (options?.meta) body.meta = options.meta;
+  if (options?.useSharedCredentials) body.use_shared_credentials = true;
+
+  return apiPost(apiURI, token, `/dash/apps/${appId}/oauth_clients`, body);
+}
+
+async function updateOAuthClient(
+  apiURI: string,
+  token: string,
+  appId: string,
+  clientId: string,
+  updates: {
+    clientName?: string;
+    redirectTo?: string;
+    clientId?: string;
+    clientSecret?: string;
+    discoveryEndpoint?: string;
+    meta?: any;
+    useSharedCredentials?: boolean;
+  },
+): Promise<any> {
+  const body: any = {};
+  if (updates.clientName) body.client_name = updates.clientName;
+  if (updates.redirectTo) body.redirect_to = updates.redirectTo;
+  if (updates.clientId) body.client_id = updates.clientId;
+  if (updates.clientSecret) body.client_secret = updates.clientSecret;
+  if (updates.discoveryEndpoint) body.discovery_endpoint = updates.discoveryEndpoint;
+  if (updates.meta) body.meta = updates.meta;
+  if (updates.useSharedCredentials !== undefined) body.use_shared_credentials = updates.useSharedCredentials;
+
+  return apiPost(apiURI, token, `/dash/apps/${appId}/oauth_clients/${clientId}`, body);
+}
+
+async function deleteOAuthClient(
+  apiURI: string,
+  token: string,
+  appId: string,
+  clientId: string,
+): Promise<any> {
+  return apiDelete(apiURI, token, `/dash/apps/${appId}/oauth_clients/${clientId}`);
+}
+
+async function listOAuthProviders(
+  apiURI: string,
+  token: string,
+  appId: string,
+): Promise<any> {
+  return apiGet(apiURI, token, `/dash/apps/${appId}/oauth_service_providers`);
+}
+
+async function getOAuthClient(
+  apiURI: string,
+  token: string,
+  appId: string,
+  clientId: string,
+): Promise<any> {
+  return apiGet(apiURI, token, `/dash/apps/${appId}/oauth_clients/${clientId}`);
+}
+
+async function listOAuthClients(
+  apiURI: string,
+  token: string,
+  appId: string,
+): Promise<any> {
+  return apiGet(apiURI, token, `/dash/apps/${appId}/oauth_clients`);
+}
+
+async function listRedirectOrigins(
+  apiURI: string,
+  token: string,
+  appId: string,
+): Promise<any> {
+  return apiGet(apiURI, token, `/dash/apps/${appId}/authorized_redirect_origins`);
+}
+
+async function addRedirectOrigin(
+  apiURI: string,
+  token: string,
+  appId: string,
+  service: string,
+  params: string[],
+): Promise<any> {
+  return apiPost(apiURI, token, `/dash/apps/${appId}/authorized_redirect_origins`, {
+    service,
+    params,
+  });
+}
+
+async function deleteRedirectOrigin(
+  apiURI: string,
+  token: string,
+  appId: string,
+  originId: string,
+): Promise<any> {
+  return apiDelete(apiURI, token, `/dash/apps/${appId}/authorized_redirect_origins/${originId}`);
 }
 
 async function listApps(
@@ -1051,7 +1184,17 @@ This performs a plan-then-apply. Use push-schema-dry-run first to preview change
     async ({ appId, schema }) => {
       try {
         const data = await pushSchema(apiURI, token, appId, schema);
-        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        // Return a clean summary instead of the huge plan output
+        const result = data.result || {};
+        const stepCount = result['step-count'] || (result['steps'] ? result.steps.length : 0);
+        const summary = {
+          success: true,
+          appId,
+          stepsApplied: stepCount,
+          newNamespaces: Object.keys(data.plan?.['new-schema']?.blobs || {}).filter(k => !k.startsWith('$')),
+          message: `Schema pushed successfully with ${stepCount} steps`
+        };
+        return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
       } catch (e: any) {
         return { isError: true, content: [{ type: "text", text: `Failed to push schema to app ${appId}: ${e.message}` }] };
       }
@@ -1129,6 +1272,294 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (e: any) {
         return { isError: true, content: [{ type: "text", text: `Failed to push permissions to app ${appId}: ${e.message}` }] };
+      }
+    },
+  );
+
+  // ---- OAuth Provider Management ----
+
+  tool(server,
+    "create-oauth-provider",
+    `Create an OAuth service provider to enable social login for your app.
+
+Supported providers:
+- "google" - Google OAuth (use shared credentials for testing/development)
+- "github" - GitHub OAuth
+
+STEPS TO SET UP SOCIAL LOGIN:
+1. Create provider: create-oauth-provider with provider_name (e.g., "google")
+2. List providers: list-oauth-providers to get the provider_id
+3. Create OAuth client: create-oauth-client with provider_id
+4. Configure redirect: Add your app's callback URL to allowed origins
+5. Integrate: Use the OAuth flow in your frontend
+
+For Google OAuth, after creating the provider and client:
+- In Google Cloud Console, add your redirect URI to Authorized redirect URIs
+- The redirect must exactly match what you pass to create-oauth-client`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+      providerName: z.string().describe("Provider name (e.g., 'google' or 'github')"),
+    },
+    async ({ appId, providerName }) => {
+      try {
+        const data = await createOAuthProvider(apiURI, token, appId, providerName);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to create OAuth provider: ${e.message}` }] };
+      }
+    },
+  );
+
+  // ---- OAuth Client Management ----
+
+  tool(server,
+    "create-oauth-client",
+    `Create an OAuth client to enable social login (Google, GitHub, Apple, etc.) for your app.
+
+SOCIAL LOGIN FLOW:
+1. Create OAuth provider: use create-oauth-provider (e.g., "google" or "github")
+2. List providers: use list-oauth-providers to get the provider_id
+3. Create client: use create-oauth-client with provider_id and your redirect URL
+4. Configure redirect: Add your site's URL to allowed redirect origins
+5. Test: Initiate OAuth flow from your frontend
+
+SHARED CREDENTIALS: For testing/development, use useSharedCredentials:true to skip configuring your own OAuth app credentials. For production, provide your own clientId/clientSecret.
+
+REDIRECT URI: This must match exactly what you configure in your OAuth provider. For Google, add it in Google Cloud Console > APIs & Services > Credentials > Authorized redirect URIs.
+
+Example - Google OAuth (shared credentials for testing):
+{
+  "providerId": "uuid-of-google-provider",
+  "clientName": "Google Login",
+  "redirectTo": "https://yourapp.com/auth/callback",
+  "useSharedCredentials": true
+}
+
+Example - Google OAuth (your own credentials for production):
+{
+  "providerId": "uuid-of-google-provider",
+  "clientName": "Google Login",
+  "redirectTo": "https://yourapp.com/auth/callback",
+  "clientId": "your-google-client-id",
+  "clientSecret": "your-google-client-secret"
+}`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+      providerId: z.string().uuid().describe("UUID of the OAuth provider"),
+      clientName: z.string().describe("Name for this OAuth client (e.g., 'Google Login')"),
+      redirectTo: z.string().url().describe("URL where Google redirects after auth"),
+      clientId: z.string().optional().describe("Your OAuth client ID (if not using shared credentials)"),
+      clientSecret: z.string().optional().describe("Your OAuth client secret (if not using shared credentials)"),
+      discoveryEndpoint: z.string().optional().describe("OIDC discovery endpoint (for Google, etc.)"),
+      meta: z.record(z.string(), z.any()).optional().describe("Additional metadata"),
+      useSharedCredentials: z.boolean().optional().describe("Use InstantDB's shared OAuth credentials"),
+    },
+    async ({ appId, providerId, clientName, redirectTo, clientId, clientSecret, discoveryEndpoint, meta, useSharedCredentials }) => {
+      try {
+        const data = await createOAuthClient(apiURI, token, appId, providerId, clientName, redirectTo, {
+          clientId,
+          clientSecret,
+          discoveryEndpoint,
+          meta,
+          useSharedCredentials,
+        });
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to create OAuth client: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "update-oauth-client",
+    `Update an existing OAuth client's settings.
+
+Use this to:
+- Change the client name
+- Update the redirect URI (must match your OAuth provider config)
+- Switch between shared credentials and your own credentials
+- Update metadata
+
+IMPORTANT: When changing redirectTo, also update the redirect URI in your OAuth provider (Google Cloud Console, etc.) to match.`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+      clientId: z.string().uuid().describe("UUID of the OAuth client to update"),
+      clientName: z.string().optional().describe("Updated name"),
+      redirectTo: z.string().optional().describe("Updated redirect URL"),
+      oauthClientId: z.string().optional().describe("Updated OAuth client ID"),
+      clientSecret: z.string().optional().describe("Updated OAuth client secret"),
+      discoveryEndpoint: z.string().optional().describe("Updated OIDC discovery endpoint"),
+      meta: z.record(z.string(), z.any()).optional().describe("Updated metadata"),
+      useSharedCredentials: z.boolean().optional().describe("Toggle shared credentials"),
+    },
+    async ({ appId, clientId, clientName, redirectTo, oauthClientId, clientSecret, discoveryEndpoint, meta, useSharedCredentials }) => {
+      try {
+        const data = await updateOAuthClient(apiURI, token, appId, clientId, {
+          clientName,
+          redirectTo,
+          clientId: oauthClientId,
+          clientSecret,
+          discoveryEndpoint,
+          meta,
+          useSharedCredentials,
+        });
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to update OAuth client: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "delete-oauth-client",
+    "Delete an OAuth client from an app.",
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+      clientId: z.string().uuid().describe("UUID of the OAuth client to delete"),
+    },
+    async ({ appId, clientId }) => {
+      try {
+        const data = await deleteOAuthClient(apiURI, token, appId, clientId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to delete OAuth client: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "list-oauth-providers",
+    `List all OAuth service providers configured for an app.
+
+Use this to find provider IDs needed for creating OAuth clients.`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+    },
+    async ({ appId }) => {
+      try {
+        const data = await listOAuthProviders(apiURI, token, appId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to list OAuth providers: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "list-oauth-clients",
+    `List all OAuth clients configured for an app.
+
+Returns client IDs, names, redirect URIs, and provider info.`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+    },
+    async ({ appId }) => {
+      try {
+        const data = await listOAuthClients(apiURI, token, appId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to list OAuth clients: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "get-oauth-client",
+    `Get detailed information about a specific OAuth client including:
+- Client ID and secret (if configured)
+- Redirect URIs
+- Provider info
+- Creation and update timestamps
+- Meta data
+
+Use this to review your OAuth client configuration before going live.`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+      clientId: z.string().uuid().describe("UUID of the OAuth client"),
+    },
+    async ({ appId, clientId }) => {
+      try {
+        const data = await getOAuthClient(apiURI, token, appId, clientId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to get OAuth client: ${e.message}` }] };
+      }
+    },
+  );
+
+  // ---- Redirect Origin Management ----
+
+  tool(server,
+    "list-redirect-origins",
+    `List all authorized redirect origins for an app.
+
+Redirect origins are URLs allowed as OAuth callback targets. When using shared credentials, localhost URLs are automatically allowed. For production, you must add your domain.
+
+Service types:
+- "generic" - Exact host match (e.g., "yourapp.com")
+- "netlify" - Netlify sites (provide site name)
+- "vercel" - Vercel deployments (provide deployment suffix and project name)
+- "custom-scheme" - Mobile app schemes (e.g., "expo-app://")`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+    },
+    async ({ appId }) => {
+      try {
+        const data = await listRedirectOrigins(apiURI, token, appId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to list redirect origins: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "add-redirect-origin",
+    `Add an authorized redirect origin for OAuth callbacks.
+
+This is required for OAuth to work in production. When users authenticate with Google/GitHub/etc., the redirect URL must be authorized.
+
+Service types:
+- "generic" - Exact host match. Params: ["yourdomain.com"]
+- "netlify" - Netlify site. Params: ["site-name"]
+- "vercel" - Vercel deployment. Params: ["vercel.app", "project-name"]
+- "custom-scheme" - Mobile deep link. Params: ["expo-scheme"]
+
+Examples:
+- generic for localhost: service="generic", params=["localhost"]
+- generic for production: service="generic", params=["yourapp.com"]
+- netlify preview: service="netlify", params=["your-site"]
+- custom scheme (Expo): service="custom-scheme", params=["expo-app"]`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+      service: z.string().describe('Service type: "generic", "netlify", "vercel", or "custom-scheme"'),
+      params: z.array(z.string()).describe("Service parameters (see description for format)"),
+    },
+    async ({ appId, service, params }) => {
+      try {
+        const data = await addRedirectOrigin(apiURI, token, appId, service, params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to add redirect origin: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "delete-redirect-origin",
+    `Delete an authorized redirect origin.
+
+Use list-redirect-origins to get the ID of the origin to delete.`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+      originId: z.string().uuid().describe("UUID of the redirect origin to delete"),
+    },
+    async ({ appId, originId }) => {
+      try {
+        const data = await deleteRedirectOrigin(apiURI, token, appId, originId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to delete redirect origin: ${e.message}` }] };
       }
     },
   );
