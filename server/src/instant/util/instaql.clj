@@ -71,24 +71,26 @@
       identity)))
 
 (defn sort-entries [ctx etype option-map entries]
-  (let [{:keys [k direction]} (:order option-map)
-        k (if (= k "serverCreatedAt") "$serverCreatedAt" k)
-        sort-field (or k "$serverCreatedAt")
-        transform-sort-value (value-transformer-for-sort ctx etype sort-field)
-        ents-by-sort-keys (reduce (fn [acc ent]
-                                    (let [sort-key {:field (transform-sort-value
-                                                            (get ent sort-field))
-                                                    :id (or (get ent "id")
-                                                            ;; Sometimes tests don't
-                                                            ;; set id fields
-                                                            (random-uuid))}]
-                                      (assoc acc sort-key (dissoc ent "$serverCreatedAt"))))
-                                  {}
-                                  entries)
+  (if (empty? entries)
+    []
+    (let [{:keys [k direction]} (:order option-map)
+          k (if (= k "serverCreatedAt") "$serverCreatedAt" k)
+          sort-field (or k "$serverCreatedAt")
+          transform-sort-value (value-transformer-for-sort ctx etype sort-field)
+          ents-by-sort-keys (reduce (fn [acc ent]
+                                      (let [sort-key {:field (transform-sort-value
+                                                              (get ent sort-field))
+                                                      :id (or (get ent "id")
+                                                              ;; Sometimes tests don't
+                                                              ;; set id fields
+                                                              (random-uuid))}]
+                                        (assoc acc sort-key (dissoc ent "$serverCreatedAt"))))
+                                    {}
+                                    entries)
 
-        compare-fn (make-sort-key-compare direction)
-        sorted-keys (sort compare-fn (keys ents-by-sort-keys))]
-    (map #(get ents-by-sort-keys %) sorted-keys)))
+          compare-fn (make-sort-key-compare direction)
+          sorted-keys (sort compare-fn (keys ents-by-sort-keys))]
+      (map #(get ents-by-sort-keys %) sorted-keys))))
 
 (defn instaql-ref-nodes->object-tree [ctx nodes]
   (reduce
@@ -96,7 +98,7 @@
      (try
        (let [{:keys [child-nodes data]} node
              {:keys [option-map]} data
-             _entries (map (partial obj-node ctx (-> data :etype)) child-nodes)
+             _entries (mapv (partial obj-node ctx (-> data :etype)) child-nodes)
              entries (sort-entries ctx (:etype data) option-map _entries)
              singular? (and (:inference? ctx) (singular-entry? data))
              entry-or-entries (if singular? (first entries) entries)]

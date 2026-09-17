@@ -1087,35 +1087,47 @@
    Assumes the structure of the datalog result matches the structure of the forms."
   [ctx datalog-result forms]
   (mapv (fn [form child]
-          (let [children (:children child)
-                first-child (first children)]
-            (if-not first-child
-              (add-children
-               (make-node {:k (:k form)
-                           :etype (:etype form)
-                           :option-map (:option-map form)
-                           :datalog-query nil
-                           :datalog-result nil})
-               [])
-              (let [nodes (map (fn [child]
-                                 (add-children
-                                  (make-node {:etype (:etype form)
-                                              :datalog-query (:datalog-query child)
-                                              :datalog-result (let [result (:result child)]
-                                                                (if (= (:etype form) "$files")
-                                                                  (transform-$files-result ctx form result)
-                                                                  result))})
-
-                                  (collect-query-results ctx (first (:children child))
-                                                         (:child-forms form))))
-                               children)]
+          (try
+            (let [children (:children child)
+                  first-child (first children)]
+              (if-not first-child
                 (add-children
                  (make-node {:k (:k form)
                              :etype (:etype form)
                              :option-map (:option-map form)
-                             :datalog-query (:datalog-query child)
-                             :datalog-result (:result child)})
-                 nodes)))))
+                             :datalog-query nil
+                             :datalog-result nil})
+                 [])
+                (let [nodes (try
+                              (mapv (fn [child]
+                                      (add-children
+                                       (make-node {:etype (:etype form)
+                                                   :datalog-query (:datalog-query child)
+                                                   :datalog-result (let [result (:result child)]
+                                                                     (if (= (:etype form) "$files")
+                                                                       (transform-$files-result ctx form result)
+                                                                       result))})
+
+                                                (collect-query-results ctx (first (:children child))
+                                                                       (:child-forms form))))
+                              children)
+                              (catch Exception e
+                                (throw (ex-info "Failed to process child nodes"
+                                               {:etype (:etype form)
+                                                :form form
+                                                :error e}))))
+                  (add-children
+                   (make-node {:k (:k form)
+                               :etype (:etype form)
+                               :option-map (:option-map form)
+                               :datalog-query (:datalog-query first-child)
+                               :datalog-result (:result first-child)})
+                   nodes)))
+            (catch Exception e
+              (throw (ex-info "collect-query-results failed"
+                             {:form form
+                              :child child
+                              :error e}))))
         forms datalog-result))
 
 (defn- replace-sym-placeholders
