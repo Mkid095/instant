@@ -121,6 +121,16 @@
 (defn get-by-client-name! [params]
   (ex/assert-record! (get-by-client-name params) :app-oauth-client {:args [params]}))
 
+(defn get-all-for-app
+  ([params] (get-all-for-app (aurora/conn-pool :read) params))
+  ([conn {:keys [app-id]}]
+   (query-op conn
+             {:app-id app-id
+              :etype etype}
+             (fn [{:keys [admin-query]}]
+               (let [result (admin-query {:$oauthClients {}})]
+                 result)))))
+
 (defn delete-by-id!
   ([params] (delete-by-id! (aurora/conn-pool :write) params))
   ([conn {:keys [id app-id]}]

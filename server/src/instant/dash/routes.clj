@@ -763,6 +763,16 @@
                 {:id id :app-id app-id})]
     (response/ok {:origin (select-keys origin [:id :service :params :created_at])})))
 
+(defn authorized-redirect-origins-get [req]
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-ref-token! :collaborator :apps/write req)
+        origins (app-authorized-redirect-origin-model/get-all-for-app {:app-id app-id})]
+    (response/ok {:origins (map #(select-keys % [:id :service :params :created_at]) origins)})))
+
+(defn oauth-service-providers-get [req]
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-ref-token! :collaborator :apps/write req)
+        providers (app-oauth-service-provider-model/get-all-for-app {:app-id app-id})]
+    (response/ok {:providers providers})))
+
 (defn oauth-service-providers-post [req]
   (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-ref-token! :collaborator :apps/write req)
         provider-name (ex/get-param! req
@@ -819,6 +829,13 @@
     (response/ok {:client (select-keys client [:id :provider_id :client_name
                                                :client_id :created_at :meta :discovery_endpoint
                                                :use_shared_credentials])})))
+
+(defn oauth-clients-get [req]
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-ref-token! :collaborator :apps/write req)
+        clients (app-oauth-client-model/get-all-for-app {:app-id app-id})]
+    (response/ok {:clients (map #(select-keys % [:id :provider_id :client_name
+                                                  :client_id :created_at :meta :discovery_endpoint
+                                                  :use_shared_credentials]) clients)})))
 
 (defn update-oauth-client [req]
   (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-ref-token! :collaborator :apps/write req)
@@ -2860,8 +2877,15 @@
   (POST "/dash/apps/get_a_db" [] get-a-db/http-post-handler)
 
   (GET "/dash/apps/:app_id/auth" [] dash-apps-auth-get)
+  (GET "/dash/apps/:app_id/authorized_redirect_origins" [] authorized-redirect-origins-get)
   (POST "/dash/apps/:app_id/authorized_redirect_origins" [] authorized-redirect-origins-post)
   (DELETE "/dash/apps/:app_id/authorized_redirect_origins/:id" [] authorized-redirect-origins-delete)
+  (GET "/dash/apps/:app_id/oauth_service_providers" [] oauth-service-providers-get)
+  (POST "/dash/apps/:app_id/oauth_service_providers" [] oauth-service-providers-post)
+  (GET "/dash/apps/:app_id/oauth_clients" [] oauth-clients-get)
+  (POST "/dash/apps/:app_id/oauth_clients" [] oauth-clients-post)
+  (DELETE "/dash/apps/:app_id/oauth_clients/:id" [] oauth-clients-delete)
+  (POST "/dash/apps/:app_id/oauth_clients/:id" [] update-oauth-client)
 
   (POST "/dash/apps/:app_id/oauth_service_providers" [] oauth-service-providers-post)
 

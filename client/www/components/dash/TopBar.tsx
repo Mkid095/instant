@@ -1,4 +1,4 @@
-import { PlusIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { Button } from '../ui';
 import { ProfilePanel } from './ProfilePanel';
 import Link from 'next/link';
@@ -54,11 +54,18 @@ export const TopBar: React.FC<{}> = () => {
           </Link>
           <DarkModeToggle />
           {appCreationAllowed && (
-            <Link href={'/dash/new'}>
-              <Button size="mini" variant="primary">
-                <PlusIcon height={14} /> New app
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href={'/dash/new-from-backup'}>
+                <Button size="mini" variant="secondary">
+                  <ArrowUpTrayIcon height={14} /> New app with backup
+                </Button>
+              </Link>
+              <Link href={'/dash/new'}>
+                <Button size="mini" variant="primary">
+                  <PlusIcon height={14} /> New app
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
       </div>

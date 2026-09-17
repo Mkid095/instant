@@ -45,6 +45,16 @@
     (ex/assert-record! provider :oauth-service-provider {:provider-id id})
     provider))
 
+(defn get-all-for-app
+  ([params] (get-all-for-app (aurora/conn-pool :read) params))
+  ([conn {:keys [app-id]}]
+   (query-op conn
+             {:app-id app-id
+              :etype etype}
+             (fn [{:keys [admin-query]}]
+               (let [result (admin-query {:$oauthProviders {}})]
+                 result)))))
+
 (comment
   (def app (c/empty-app!))
   (create! {:app-id (:id app)

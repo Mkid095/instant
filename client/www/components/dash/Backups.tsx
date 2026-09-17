@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {
   ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
   CommandLineIcon,
   EllipsisVerticalIcon,
   PlusIcon,
@@ -77,6 +78,22 @@ function cancelBackupJob(token: string, appId: string, jobId: string) {
     `${config.apiURI}/dash/apps/${appId}/backup-jobs/${jobId}`,
     { token, method: 'DELETE' },
   );
+}
+
+async function restoreFromZip(token: string, appId: string, zipFile: File) {
+  const formData = new FormData();
+  formData.append('file', zipFile);
+  const headers = { authorization: `Bearer ${token}` };
+  // Don't set content-type for FormData - browser will set it with boundary
+  const res = await fetch(`${config.apiURI}/dash/restores/zip?app_id=${appId}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  const json = await res.json();
+  return res.status === 200
+    ? json
+    : Promise.reject({ status: res.status, body: json });
 }
 
 // Shared layout for both in-progress jobs and finished backups. Rendering them
@@ -416,9 +433,14 @@ function BackupRow({
 export function Backups({ app }: { app: InstantApp }) {
   const token = useContext(TokenContext);
   const createDialog = useDialog();
+  const restoreDialog = useDialog();
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const lastRestoreError = useRef('');
   // Retains the message while the error box fades out (createError is null
   // during the leave transition), so it doesn't blank before it's gone.
   const lastCreateError = useRef('');
@@ -426,6 +448,12 @@ export function Backups({ app }: { app: InstantApp }) {
   function openCreateDialog() {
     setCreateError(null);
     createDialog.onOpen();
+  }
+
+  function openRestoreDialog() {
+    setRestoreError(null);
+    setRestoreFile(null);
+    restoreDialog.onOpen();
   }
 
   const backupsRes = useAuthedFetch<{
@@ -526,6 +554,12 @@ export function Backups({ app }: { app: InstantApp }) {
     </Button>
   );
 
+  const restoreButton = (
+    <Button variant="secondary" size="mini" onClick={openRestoreDialog}>
+      <ArrowUpTrayIcon width={14} /> Upload backup
+    </Button>
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
       <div className="flex items-start justify-between gap-4">
@@ -535,18 +569,21 @@ export function Backups({ app }: { app: InstantApp }) {
             Point-in-time snapshots of your app's data.
           </Content>
         </div>
-        {hasActive ? (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <span className="inline-flex cursor-not-allowed">
-                {createButton}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>A backup is already in progress.</TooltipContent>
-          </Tooltip>
-        ) : (
-          createButton
-        )}
+        <div className="flex gap-2">
+          {restoreButton}
+          {hasActive ? (
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <span className="inline-flex cursor-not-allowed">
+                  {createButton}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>A backup is already in progress.</TooltipContent>
+            </Tooltip>
+          ) : (
+            createButton
+          )}
+        </div>
       </div>
 
       {jobs.length === 0 && backups.length === 0 ? (
@@ -611,6 +648,74 @@ export function Backups({ app }: { app: InstantApp }) {
               type="button"
               variant="secondary"
               onClick={createDialog.onClose}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog title="Upload backup" {...restoreDialog}>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!token || !restoreFile) return;
+            setRestoring(true);
+            setRestoreError(null);
+            try {
+              await restoreFromZip(token, app.id, restoreFile);
+              successToast('Restore started.');
+              restoreDialog.onClose();
+            } catch (e: any) {
+              const msg = e?.body?.message ?? 'Failed to start restore.';
+              lastRestoreError.current = msg;
+              setRestoreError(msg);
+            } finally {
+              setRestoring(false);
+            }
+          }}
+          className="flex flex-col gap-4"
+        >
+          <SubsectionHeading>Upload backup</SubsectionHeading>
+          <Content className="text-sm text-gray-500 dark:text-neutral-500">
+            Restore your app from a backup zip file. This will overwrite your
+            current app data.
+          </Content>
+          <div className="flex flex-col gap-1">
+            <Label>Backup zip file</Label>
+            <input
+              type="file"
+              accept=".zip"
+              onChange={(e) => setRestoreFile(e.target.files?.[0] ?? null)}
+              className="text-sm file:mr-3 file:rounded-sm file:border file:border-gray-300 file:bg-gray-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 dark:file:border-neutral-600 dark:file:bg-neutral-800 dark:file:text-gray-300"
+            />
+          </div>
+          <Transition
+            as="div"
+            show={!!restoreError}
+            className="overflow-hidden rounded-sm bg-red-100 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300"
+            enter="transition-all duration-300 ease-out"
+            enterFrom="opacity-0 -translate-y-1 max-h-0 p-0!"
+            enterTo="opacity-100 translate-y-0 max-h-40"
+            leave="transition-all duration-200 ease-in"
+            leaveFrom="opacity-100 translate-y-0 max-h-40"
+            leaveTo="opacity-0 -translate-y-1 max-h-0 p-0!"
+          >
+            {restoreError ?? lastRestoreError.current}
+          </Transition>
+          <div className="flex flex-row gap-2">
+            <Button
+              type="submit"
+              variant="primary"
+              loading={restoring}
+              disabled={!restoreFile}
+            >
+              Upload and restore
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={restoreDialog.onClose}
             >
               Cancel
             </Button>

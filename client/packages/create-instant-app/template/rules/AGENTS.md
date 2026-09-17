@@ -6,9 +6,27 @@ with excellent visual aesthetics using InstantDB as the backend.
 
 Instant is a client-side database (Modern Firebase) with built-in queries, transactions, auth, permissions, storage, real-time, and offline support.
 
-# FIDScript Self-Hosted InstantDB (Recommended)
+# Instant SDKs
 
-For **FIDScript self-hosted deployments**, use these packages instead:
+Instant provides client-side SDKs and server-side SDKs:
+
+- `@instantdb/core` --- vanilla JS
+- `@instantdb/react` --- React
+- `@instantdb/react-native` --- React Native / Expo
+- `@instantdb/solidjs` --- SolidJS
+- `@instantdb/svelte` --- Svelte
+- `@instantdb/vue` --- Vue
+- `@instantdb/admin` --- JS/TS backend SDK
+- `instantdb` --- Python backend SDK
+
+When installing, always check what package manager the project uses (npm, pnpm,
+bun) first and then install the latest version of the Instant SDK. If working in
+React use Next and Tailwind unless specified otherwise. If working in python be
+sure to fetch the python documentation listed below.
+
+# FIDScript Self-Hosted InstantDB
+
+FIDScript is the self-hosted deployment of InstantDB at `instant.fidscript.com`. If you are working with FIDScript self-hosted, use these packages instead:
 
 - `@fidscript/instant-sdk` --- vanilla JS (core SDK, defaults to FIDScript infrastructure)
 - `@fidscript/instant-admin` --- JS/TS backend SDK
@@ -21,115 +39,20 @@ import { init } from '@fidscript/instant-sdk';
 const db = init({ appId: 'your-app-id' }); // Uses https://apiinstant.fidscript.com by default
 ```
 
-CLI for FIDScript:
-```bash
-npx @fidscript/instant-cli init-without-files --title <APP_NAME>
-```
+For FIDScript self-hosted, use the FIDScript MCP server (`instant-self`) to manage InstantDB directly from Claude Code, Cursor, Windsurf, and other MCP-compatible editors.
 
-# Upstream InstantDB SDKs
+**Important:** FIDScript self-hosted server/API behavior can differ from Cloud InstantDB. The SDK/client schema representation and the server push schema representation are different layers — do not send client-side TypeScript schema directly to `push-schema`. Permissions DSL syntax also differs; use simple direct expressions (`auth.id == data.field`) rather than compound boolean operators.
 
-For **Instant Cloud** deployments, use these packages:
+For the complete FIDScript self-hosted compatibility guide, see the `instant-self` skill operating procedure. Key points:
 
-- `@instantdb/core` --- vanilla JS
-- `@instantdb/react` --- React
-- `@instantdb/react-native` --- React Native / Expo
-- `@instantdb/solidjs` --- SolidJS
-- `@instantdb/svelte` --- Svelte
-- `@instantdb/vue` --- Vue
-- `@instantdb/admin` --- JS/TS backend SDK
-- `instantdb` --- Python backend SDK
+- **Schema push:** `push-schema` expects server JSON format, not TypeScript SDK representation. Example: `{"entities":{"customers":{"attrs":{"name":{"type":"string","required":true}}}}}` not the `i.schema({...})` form.
+- **Permissions DSL:** Use simple direct expressions. Verified compatible: `auth.id == data.field`, `auth.uid != null`, `data.ref()`. Avoid: `bind`, `!=`, `&&`.
+- **Auth expression:** `auth.uid != null` (not `auth.id != null` which is Cloud InstantDB style).
+- **Always use `push-schema-dry-run`** before applying schema or permissions changes.
 
-When installing, always check what package manager the project uses (npm, pnpm,
-bun) first and then install the latest version of the SDK. If working in
-React use Next and Tailwind unless specified otherwise. If working in python be
-sure to fetch the python documentation listed below.
+### If transact or query returns "Bad request"
 
-# FIDScript MCP Server
-
-For **FIDScript self-hosted deployments**, use the FIDScript MCP server to manage InstantDB directly from Claude Code, Cursor, Windsurf, and other MCP-compatible editors.
-
-**Important:** FIDScript self-hosted server/API behavior can differ from Cloud InstantDB. The SDK/client schema representation and the server push schema representation are different layers — do not send client-side TypeScript schema directly to `push-schema`. Permissions DSL syntax also differs; use simple direct expressions (`auth.id == data.field`) rather than compound boolean operators. See `INSTANT_SELF_SKILL.md` for the full compatibility guide.
-
-## First-Time Setup
-
-If Claude Code does not have the FIDScript MCP configured, install it:
-
-```bash
-claude mcp add instant-self \
-  -e INSTANT_ACCESS_TOKEN=<YOUR_PAT> \
-  -e INSTANT_API_URI=https://apiinstant.fidscript.com \
-  -e INSTANT_APP_ID=<YOUR_APP_ID> \
-  -- npx -y @fidscript/instant-mcp@0.4.4
-```
-
-Verify the MCP is connected:
-
-```bash
-claude mcp list
-```
-
-## Operating Procedure
-
-**For the complete FIDScript self-hosted operating procedure, see `INSTANT_SELF_SKILL.md`.**
-
-When working with a FIDScript project, Claude should:
-1. Use `list-apps`, `get-app`, `get-schema`, `get-perms` to inspect before acting.
-2. Create new apps via `create-app` — never delete existing apps during initialization.
-3. Use `push-schema-dry-run` before `push-schema` to preview changes.
-4. Never expose secrets (PATs, admin tokens, API secrets) in output or source files.
-5. Never redirect the user to the dashboard when the MCP can perform the operation.
-
-## MCP Tool Selection
-
-```
-Need apps?          → list-apps
-Need app details?   → get-app (app-id required)
-Need a new app?     → create-app (returns app-id + admin-token)
-Need schema?        → get-schema (app-id required)
-Need permissions?   → get-perms (app-id required)
-Need schema change? → push-schema-dry-run / push-schema
-Need storage?       → list-files, get-upload-url
-Need webhooks?      → list-webhooks, create-webhook
-Need email config?  → get-email-template
-Need backups?       → list-backups, create-backup
-Need to verify MCP?  → learn (health check)
-```
-
-## Safety Rules
-
-```
-RULE 1: NEVER delete an application during initialization.
-RULE 2: "New project" = create NEW app. Never reuse an existing app from list-apps.
-RULE 3: Existing INSTANT_APP_ID = use that app. Do NOT create a new one.
-RULE 4: Never assume an app from list-apps belongs to this project.
-RULE 5: Verify App ID before destructive operations.
-RULE 6: Never expose secrets in output or source files.
-RULE 7: Inspect before modifying.
-RULE 8: Use push-schema-dry-run before push-schema.
-RULE 9: Never redirect to dashboard when MCP can perform the operation.
-RULE 10: Never destroy unrelated projects.
-```
-
-## Project Identity
-
-After creating or identifying a FIDScript app, persist the project identity:
-
-**Option A — `.env`** (if already used):
-```
-INSTANT_APP_ID=<APP_ID>
-INSTANT_API_URI=https://apiinstant.fidscript.com
-```
-
-**Option B — `.fidscript/project.json`** (if no .env convention):
-```json
-{
-  "provider": "fidscript",
-  "apiUri": "https://apiinstant.fidscript.com",
-  "appId": "<APP_ID>"
-}
-```
-
-Detect existing projects by checking for `INSTANT_APP_ID` in `.env` or `appId` in `.fidscript/project.json`.
+If `transact` or `query` fails but `push-schema` works, the PAT may lack data-read/data-write scope. Verify the PAT has data access permissions in User Settings → Personal Access Tokens. Also check that new namespaces added via `push-schema` have explicit allow rules in permissions — new namespaces default to `false` (no access).
 
 # Managing Instant Apps
 
@@ -143,21 +66,21 @@ If schema/perm files exist but the app id/admin token are missing, ask the user 
 To create a new app:
 
 ```bash
-npx @fidscript/instant-cli init-without-files --title <APP_NAME>
+npx instant-cli init-without-files --title <APP_NAME>
 ```
 
 This outputs an app id and admin token. Store them in an env file.
 
 If you get an error related to not being logged in tell the user to:
 
-- Sign up for free or log in at https://instant.fidscript.com
-- Then run `npx @fidscript/instant-cli login` to authenticate the CLI
+- Sign up for free or log in at https://instantdb.com
+- Then run `npx instant-cli login` to authenticate the CLI
 - Then re-run the init command
 
 If you have an app id/admin token but no schema/perm files, pull them:
 
 ```bash
-npx @fidscript/instant-cli pull --yes
+npx instant-cli pull --yes
 ```
 
 ## Schema changes
@@ -165,7 +88,7 @@ npx @fidscript/instant-cli pull --yes
 Edit `instant.schema.ts`, then push:
 
 ```bash
-npx @fidscript/instant-cli push schema --yes
+npx instant-cli push schema --yes
 ```
 
 New fields = additions; missing fields = deletions.
@@ -173,7 +96,7 @@ New fields = additions; missing fields = deletions.
 To rename fields:
 
 ```bash
-npx @fidscript/instant-cli push schema --rename 'posts.author:posts.creator stores.owner:stores.manager' --yes
+npx instant-cli push schema --rename 'posts.author:posts.creator stores.owner:stores.manager' --yes
 ```
 
 ## Permission changes
@@ -181,7 +104,7 @@ npx @fidscript/instant-cli push schema --rename 'posts.author:posts.creator stor
 Edit `instant.perms.ts`, then push:
 
 ```bash
-npx @fidscript/instant-cli push perms --yes
+npx instant-cli push perms --yes
 ```
 
 # CRITICAL Query Guidelines
@@ -506,7 +429,7 @@ if (created) {
 
 # Ad-hoc queries from the CLI
 
-Run `npx @fidscript/instant-cli query '{ posts: {} }' --admin` to query your app. A context flag is required: `--admin`, `--as-email <email>`, or `--as-guest`. Also supports `--app <id>`.
+Run `npx instant-cli query '{ posts: {} }' --admin` to query your app. A context flag is required: `--admin`, `--as-email <email>`, or `--as-guest`. Also supports `--app <id>`.
 
 # Instant Documentation
 

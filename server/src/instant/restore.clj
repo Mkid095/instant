@@ -394,16 +394,7 @@
   (when creator-id
     (instant-user-model/get-by-id! {:id creator-id}))
   (when org-id
-    (org-model/get-by-id! {:id org-id}))
-  (when (and app-id (app-model/get-by-id {:id app-id}))
-    (ex/throw-validation-err!
-     :restore
-     {:app-id app-id}
-     [{:message (format (str "An app already exists with this id, so the restore can't create it. "
-                             "If you want to overwrite the existing app, first delete it by connecting to your Postgres database and running:\n\n"
-                             "  DELETE FROM apps WHERE id = '%s'::uuid;\n\n"
-                             "This permanently deletes the existing app and all of its data. After the DELETE succeeds, run the restore again.")
-                        app-id)}])))
+    (org-model/get-by-id! {:id org-id})))
 
 (def delete-app-triples-q
   (uhsql/preformat
@@ -457,6 +448,9 @@
         triples-queue (LinkedBlockingQueue. 5000)
         files-queue (LinkedBlockingQueue. 1024)
         files-check-queue (LinkedBlockingQueue. 10000)]
+    ;; If app already exists, clear its data first before restoring
+    (when (app-model/get-by-id {:id app-id})
+      (delete-app-triples! app-id))
     (try
       (with-open [zin (ZipFile. zip-file-path)]
         (let [start (promise)
@@ -508,7 +502,6 @@
         ;; the original error (the ephemeral-app sweeper is a backstop).
         (try
           (delete-app-triples! app-id)
-          (app-model/delete-immediately-by-id! {:id app-id})
           (catch Throwable cleanup-err
             (tracer/record-exception-span! cleanup-err
                                            {:name "restore/cleanup-failed"

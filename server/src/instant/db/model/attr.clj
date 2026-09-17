@@ -318,7 +318,7 @@
           :let [fwd (fwd-ident-name attr)
                 rev (rev-ident-name attr)]
           [etype label :as ident-name] [fwd rev]
-          :when ident-name]
+          :when (and ident-name etype label)]
     (when (system-catalog/reserved-ident-name? ident-name)
       (ex/throw-validation-err!
        :attributes
