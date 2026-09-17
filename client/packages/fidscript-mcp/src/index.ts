@@ -1081,10 +1081,16 @@ DOCUMENTATION: https://www.instantdb.com/docs`,
     "query",
     `Execute an InstaQL query against an app. Returns query results as JSON.
 
-Example:
-{"goals": {"todos": {}}}
-{"goals": {"$": {"where": {"status": "active"}}, "todos": {}}}
-{"users": {"$": {"where": {"email": {"$includes": "@example.com"}}}}}
+Query structure: {"namespace": {"$": {"where": {...}, "limit": N}}}
+
+Examples:
+- Simple query: {"todos": {}}
+- With where: {"todos": {"$": {"where": {"done": false}}}}
+- With where+limit: {"todos": {"$": {"where": {"done": false}, "limit": 10}}}
+- Nested: {"authors": {"books": {"$": {"where": {"title": "The Count"}}}}}
+
+CRITICAL: The "where" clause MUST be nested inside "$". Correct: {"$": {"where": {"field": "value"}}}
+WRONG: {"$where": {"field": "value"}} -- this will fail!
 
 Full docs: https://instantdb.com/docs/instaql`,
     {
