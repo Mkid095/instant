@@ -215,7 +215,7 @@ export function StorageSettings({
             <label className="block text-sm font-medium text-gray-700">Cloud Name *</label>
             <TextInput
               value={cloudName}
-              onChange={(e) => setCloudName(e.target.value)}
+              onChange={setCloudName}
               placeholder="e.g., my-cloud"
               required
             />
@@ -225,7 +225,7 @@ export function StorageSettings({
             <label className="block text-sm font-medium text-gray-700">Unsigned Upload Preset *</label>
             <TextInput
               value={uploadPreset}
-              onChange={(e) => setUploadPreset(e.target.value)}
+              onChange={setUploadPreset}
               placeholder="e.g., my_unsigned_preset"
               required
             />
@@ -238,7 +238,7 @@ export function StorageSettings({
             <label className="block text-sm font-medium text-gray-700">API Key (optional)</label>
             <TextInput
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              onChange={setApiKey}
               placeholder="For server-side operations"
             />
           </div>
@@ -248,7 +248,7 @@ export function StorageSettings({
             <TextInput
               type="password"
               value={apiSecret}
-              onChange={(e) => setApiSecret(e.target.value)}
+              onChange={setApiSecret}
               placeholder="For server-side operations"
             />
           </div>
