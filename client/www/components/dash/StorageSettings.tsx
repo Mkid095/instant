@@ -6,7 +6,6 @@ import { jsonFetch } from '@/lib/fetch';
 import { errorToast, successToast } from '@/lib/toast';
 import {
   Button,
-  Label,
   SectionHeading,
   SubsectionHeading,
   TextInput,
@@ -213,7 +212,7 @@ export function StorageSettings({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="cloudName">Cloud Name *</Label>
+            <label htmlFor="cloudName">Cloud Name *</label>
             <TextInput
               id="cloudName"
               value={cloudName}
@@ -224,7 +223,7 @@ export function StorageSettings({
           </div>
 
           <div>
-            <Label htmlFor="uploadPreset">Unsigned Upload Preset *</Label>
+            <label htmlFor="uploadPreset">Unsigned Upload Preset *</label>
             <TextInput
               id="uploadPreset"
               value={uploadPreset}
@@ -238,7 +237,7 @@ export function StorageSettings({
           </div>
 
           <div>
-            <Label htmlFor="apiKey">API Key (optional)</Label>
+            <label htmlFor="apiKey">API Key (optional)</label>
             <TextInput
               id="apiKey"
               value={apiKey}
@@ -248,7 +247,7 @@ export function StorageSettings({
           </div>
 
           <div>
-            <Label htmlFor="apiSecret">API Secret (optional)</Label>
+            <label htmlFor="apiSecret">API Secret (optional)</label>
             <TextInput
               id="apiSecret"
               type="password"
