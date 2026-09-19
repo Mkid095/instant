@@ -212,9 +212,8 @@ export function StorageSettings({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="cloudName">Cloud Name *</label>
+            <label className="block text-sm font-medium text-gray-700">Cloud Name *</label>
             <TextInput
-              id="cloudName"
               value={cloudName}
               onChange={(e) => setCloudName(e.target.value)}
               placeholder="e.g., my-cloud"
@@ -223,9 +222,8 @@ export function StorageSettings({
           </div>
 
           <div>
-            <label htmlFor="uploadPreset">Unsigned Upload Preset *</label>
+            <label className="block text-sm font-medium text-gray-700">Unsigned Upload Preset *</label>
             <TextInput
-              id="uploadPreset"
               value={uploadPreset}
               onChange={(e) => setUploadPreset(e.target.value)}
               placeholder="e.g., my_unsigned_preset"
@@ -237,9 +235,8 @@ export function StorageSettings({
           </div>
 
           <div>
-            <label htmlFor="apiKey">API Key (optional)</label>
+            <label className="block text-sm font-medium text-gray-700">API Key (optional)</label>
             <TextInput
-              id="apiKey"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="For server-side operations"
@@ -247,9 +244,8 @@ export function StorageSettings({
           </div>
 
           <div>
-            <label htmlFor="apiSecret">API Secret (optional)</label>
+            <label className="block text-sm font-medium text-gray-700">API Secret (optional)</label>
             <TextInput
-              id="apiSecret"
               type="password"
               value={apiSecret}
               onChange={(e) => setApiSecret(e.target.value)}
