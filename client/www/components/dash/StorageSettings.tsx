@@ -10,7 +10,6 @@ import {
   SectionHeading,
   SubsectionHeading,
   TextInput,
-  Alert,
 } from '@/components/ui';
 
 type StorageConfig = {
@@ -197,12 +196,12 @@ export function StorageSettings({
           token={token}
         />
       ) : (
-        <Alert variant="info">
-          <p className="text-sm">
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm text-blue-800">
             This app is using the default storage configuration. To use your own
             Cloudinary account, enter your credentials below.
           </p>
-        </Alert>
+        </div>
       )}
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
