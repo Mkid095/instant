@@ -30,6 +30,10 @@
   (let [params (w/keywordize-keys (:headers req))
         ctx (req->app-file! req params)
         file (ex/get-param! req [:body] identity)
+        ;; Ensure file is an InputStream, not a String
+        file (if (string? file)
+               (java.io.ByteArrayInputStream. (.getBytes ^String file "UTF-8"))
+               file)
         data (storage-coordinator/upload-file! ctx file)]
     (response/ok {:data data})))
 
@@ -54,6 +58,10 @@
 (defn consume-upload-url-put [req]
   (let [upload-id (ex/get-param! req [:params :upload-id] uuid-util/coerce)
         file (ex/get-param! req [:body] identity)
+        ;; Ensure file is an InputStream, not a String
+        file (if (string? file)
+               (java.io.ByteArrayInputStream. (.getBytes ^String file "UTF-8"))
+               file)
         content-type (or (ex/get-optional-param! req [:headers "content-type"] string-util/coerce-non-blank-str)
                          "application/octet-stream")
         content-length (req->content-length! req)

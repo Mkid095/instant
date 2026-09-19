@@ -39,6 +39,18 @@ export const FIDScriptConfig = {
     typeof process !== 'undefined' && process.env?.INSTANT_DASH_URI
       ? process.env.INSTANT_DASH_URI
       : 'https://instant.fidscript.com',
+
+  // Cloudinary config for unsigned uploads
+  // These should be set via environment variables or dashboard config
+  cloudinaryCloudName:
+    typeof process !== 'undefined' && process.env?.INSTANT_CLOUDINARY_CLOUD_NAME
+      ? process.env.INSTANT_CLOUDINARY_CLOUD_NAME
+      : '',
+
+  cloudinaryUploadPreset:
+    typeof process !== 'undefined' && process.env?.INSTANT_CLOUDINARY_UPLOAD_PRESET
+      ? process.env.INSTANT_CLOUDINARY_UPLOAD_PRESET
+      : '',
 } as const;
 
 // Derived URLs (computed from base URIs)

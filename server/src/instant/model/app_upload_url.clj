@@ -3,7 +3,10 @@
   (:require
    [instant.jdbc.aurora :as aurora]
    [instant.jdbc.sql :as sql]
-   [honey.sql :as hsql]))
+   [honey.sql :as hsql])
+  (:import
+   (java.time Instant)
+   (java.time.temporal ChronoUnit)))
 
 (defn create!
   ([params] (create! (aurora/conn-pool :write) params))
@@ -13,7 +16,9 @@
                       {:insert-into :app_upload_urls
                        :values [{:id (random-uuid)
                                  :app-id app-id
-                                 :path path}]
+                                 :path path
+                                 :expired_at (-> (Instant/now)
+                                                 (.plus 1 ChronoUnit/HOURS))}]
                        :returning [:id]}))))
 
 (defn consume!

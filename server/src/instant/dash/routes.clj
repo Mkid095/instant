@@ -36,6 +36,7 @@
             [instant.model.app-email-verification :as app-email-verification]
             [instant.model.app-email-verification-code :as app-email-verification-code]
             [instant.model.app-file :as app-file-model]
+            [instant.model.app-storage-config :as app-storage-config-model]
             [instant.model.app-members :as instant-app-members]
             [instant.model.app-oauth-client :as app-oauth-client-model]
             [instant.model.app-oauth-service-provider :as app-oauth-service-provider-model]
@@ -1895,6 +1896,70 @@
     (response/ok {:data data})))
 
 ;; ---
+;; Storage Config
+
+(defn storage-config-get [req]
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-member! :admin req)
+        config (app-storage-config-model/get-by-app-id {:app-id app-id})]
+    (if config
+      (response/ok {:config {:id (str (:id config))
+                            :providerType (:provider_type config)
+                            :cloudName (:cloud_name config)
+                            :uploadPreset (:upload_preset config)
+                            :isActive (:is_active config)
+                            :createdAt (:created_at config)
+                            :updatedAt (:updated_at config)
+                            ;; Don't expose secrets
+                            :hasApiKey (boolean (seq (:api_key config)))
+                            :hasApiSecret (boolean (seq (:api_secret config)))}})
+      (response/ok {:config nil}))))
+
+(defn storage-config-put [req]
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-member! :admin req)
+        body (:body req)
+        provider-type (ex/get-optional-param! req [:body :providerType] keyword)
+        cloud-name (ex/get-optional-param! req [:body :cloudName] string-util/coerce-non-blank-str)
+        api-key (ex/get-optional-param! req [:body :apiKey] string-util/coerce-non-blank-str)
+        api-secret (ex/get-optional-param! req [:body :apiSecret] string-util/coerce-non-blank-str)
+        upload-preset (ex/get-optional-param! req [:body :uploadPreset] string-util/coerce-non-blank-str)
+        ;; Validate required fields for cloudinary
+        _ (when (and (or (= provider-type :cloudinary) (nil? provider-type))
+                     (or (nil? cloud-name) (string/blank? cloud-name)))
+             (ex/throw-validation-err! :storage-config "cloudName" [{:message "Cloud name is required for Cloudinary"}]))
+        config (if (app-storage-config-model/get-by-app-id {:app-id app-id})
+                 ;; Update existing
+                 (app-storage-config-model/update! {:app-id app-id
+                                                   :provider_type (some-> provider-type name)
+                                                   :cloud_name cloud-name
+                                                   :api_key api-key
+                                                   :api_secret api-secret
+                                                   :upload_preset upload-preset})
+                 ;; Create new
+                 (app-storage-config-model/create! {:app-id app-id
+                                                   :provider-type (some-> provider-type name)
+                                                   :cloud-name cloud-name
+                                                   :api-key api-key
+                                                   :api-secret api-secret
+                                                   :upload-preset upload-preset}))]
+    (response/ok {:config {:id (str (:id config))
+                           :providerType (:provider_type config)
+                           :cloudName (:cloud_name config)
+                           :uploadPreset (:upload_preset config)
+                           :isActive (:is_active config)
+                           :createdAt (:created_at config)
+                           :updatedAt (:updated_at config)
+                           :hasApiKey (boolean (seq (:api_key config)))
+                           :hasApiSecret (boolean (seq (:api_secret config)))}})))
+
+(defn storage-config-delete [req]
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-member! :admin req)
+        _ (req->app-accepting-superadmin-or-member! :admin req)
+        configs (app-storage-config-model/list-by-app-id {:app-id app-id})]
+    (doseq [config configs]
+      (app-storage-config-model/delete! {:id (:id config)}))
+    (response/ok {:success true})))
+
+;; ---
 ;; CLI
 
 (defn schema-push-plan-post [req]
@@ -2892,6 +2957,10 @@
   (POST "/dash/apps/:app_id/oauth_clients" [] oauth-clients-post)
   (DELETE "/dash/apps/:app_id/oauth_clients/:id" [] oauth-clients-delete)
   (POST "/dash/apps/:app_id/oauth_clients/:id" [] update-oauth-client)
+
+  (GET "/dash/apps/:app_id/storage_config" [] storage-config-get)
+  (PUT "/dash/apps/:app_id/storage_config" [] storage-config-put)
+  (DELETE "/dash/apps/:app_id/storage_config" [] storage-config-delete)
 
   (GET "/dash/oauth/start" [] (wrap-cookies oauth-start))
 

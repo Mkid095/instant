@@ -4,6 +4,7 @@
             [instant.storage.cloudinary :as instant-cloudinary]
             [instant.storage.provider :as storage-provider]
             [instant.model.app-file :as app-file-model]
+            [instant.model.app-storage-config :as app-storage-config]
             [instant.model.rule :as rule-model]
             [instant.storage.beta :as storage-beta]
             [instant.util.exception :as ex]
@@ -39,6 +40,25 @@
                          :datalog-query-fn d/query)]
          (cel/eval-program! ctx* program {:data {"path" path}}))))))
 
+(defn get-storage-config [app-id]
+  "Get storage config for an app, returns nil if none configured (uses global defaults)"
+  (when-let [config (app-storage-config/get-by-app-id {:app-id app-id})]
+    (when (= true (:is_active config))
+      config)))
+
+(defn upload-with-config
+  "Upload file using per-app storage config if available, otherwise global config"
+  [{:keys [app-id location-id content-type] :as ctx} file]
+  (if-let [app-config (get-storage-config app-id)]
+    (let [ctx-with-config (assoc ctx
+                                 :cloud-name (:cloud_name app-config)
+                                 :api-key (:api_key app-config)
+                                 :api-secret (:api_secret app-config)
+                                 :upload-preset (:upload_preset app-config)
+                                 :location-id location-id)]
+      (storage-provider/upload-file! ctx-with-config file))
+    (storage-provider/upload-file! (assoc ctx :location-id location-id) file)))
+
 ;; TODO(dww): open up create/update capability for the client sdks,
 ;;            but need to clean up if the create fails
 (defn upload-file!
@@ -51,7 +71,8 @@
                                            :path path
                                            :current-user current-user}))
   (let [location-id (str (random-uuid))
-        upload-result (storage-provider/upload-file! (assoc ctx :location-id location-id) file)
+        ctx-with-location (assoc ctx :location-id location-id)
+        upload-result (upload-with-config ctx-with-location file)
         _ (when-let [copy-bucket (flags/copy-file-bucket app-id)]
             (try
               (instant-s3/copy-file {:destination-bucket copy-bucket
@@ -71,8 +92,8 @@
         ;; For S3, we fetch metadata separately.
         metadata (if (and upload-result (map? upload-result))
                    {:content-type (or (:content-type upload-result)
-                                      (:content-type ctx))
-                    :content-length (:bytes upload-result)
+                                      (:content-type ctx-with-location))
+                    :size (:bytes upload-result)
                     :content-disposition nil}
                    (storage-provider/get-object-metadata app-id location-id))]
     (try
@@ -151,8 +172,13 @@
     (assert-storage-permission! "view" {:app-id app-id
                                         :path path
                                         :current-user current-user}))
-  (let [{:keys [location-id]} (app-file-model/get-by-path {:app-id app-id :path path})]
-    (storage-provider/location-id-url app-id location-id)))
+  (let [{:keys [location-id]} (app-file-model/get-by-path {:app-id app-id :path path})
+        app-config (get-storage-config app-id)]
+    (if app-config
+      (let [cloud-name (:cloud_name app-config)
+            public-id (instant-cloudinary/->public-id app-id location-id)]
+        (str "https://res.cloudinary.com/" cloud-name "/image/upload/" public-id))
+      (storage-provider/location-id-url app-id location-id))))
 
 (defn coerce-content-type [s]
   (let [coerced (string-util/coerce-non-blank-str s)]

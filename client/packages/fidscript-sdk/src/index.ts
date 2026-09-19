@@ -118,7 +118,7 @@ import type {
   RuleParams,
 } from './schemaTypes.ts';
 import type { InstantRules } from './rulesTypes.ts';
-import type { UploadFileResponse, DeleteFileResponse } from './StorageAPI.ts';
+import { uploadToCloudinary, fetchStorageConfig, type UploadFileResponse, type DeleteFileResponse, type StorageConfig } from './StorageAPI.ts';
 import { FrameworkClient, type FrameworkConfig } from './framework.ts';
 
 import type {
@@ -527,6 +527,46 @@ class Storage {
     opts: FileOpts = {},
   ): Promise<UploadFileResponse> => {
     return this.db.uploadFile(path, file, opts);
+  };
+
+  /**
+   * Gets the current storage configuration for this app.
+   * Returns null if using default/global storage.
+   *
+   * @example
+   *   const config = await db.storage.getConfig();
+   *   if (config) {
+   *     console.log('Using custom Cloudinary:', config.cloudName);
+   *   }
+   */
+  getConfig = async (): Promise<StorageConfig | null> => {
+    const appId = this.db.appId;
+    const token = this.db.getCachedAuthInfo()?.token;
+    if (!appId || !token) {
+      throw new Error('Not authenticated');
+    }
+    return fetchStorageConfig(this.db.config.apiURI, appId, token);
+  };
+
+  /**
+   * Uploads file directly to Cloudinary using unsigned upload.
+   * Returns the permanent CDN URL from Cloudinary.
+   *
+   * Uses per-app Cloudinary config if configured, otherwise falls back to
+   * environment variables:
+   * - INSTANT_CLOUDINARY_CLOUD_NAME
+   * - INSTANT_CLOUDINARY_UPLOAD_PRESET
+   *
+   * @example
+   *   const [file] = e.target.files;
+   *   const { secure_url } = await db.storage.uploadToCloudinary(file, { resourceType: 'video' });
+   *   // Store secure_url in InstantDB via transact
+   */
+  uploadToCloudinary = (
+    file: File | Blob,
+    opts: { resourceType?: 'image' | 'video' | 'raw'; cloudName?: string; uploadPreset?: string } = {},
+  ): Promise<{ secure_url: string; public_id: string }> => {
+    return uploadToCloudinary(file, opts);
   };
 
   /**

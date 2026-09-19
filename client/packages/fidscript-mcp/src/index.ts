@@ -307,6 +307,61 @@ async function getStorageDownloadUrl(
   return apiGet(apiURI, token, `/admin/storage/signed-download-url?filename=${encodeURIComponent(filename)}`, undefined, appId);
 }
 
+// Storage Config API helpers
+async function getStorageConfig(
+  apiURI: string,
+  token: string,
+  appId: string,
+): Promise<any> {
+  return apiGet(apiURI, token, `/dash/apps/${appId}/storage_config`);
+}
+
+async function updateStorageConfig(
+  apiURI: string,
+  token: string,
+  appId: string,
+  config: {
+    providerType?: string;
+    cloudName?: string;
+    apiKey?: string;
+    apiSecret?: string;
+    uploadPreset?: string;
+  },
+): Promise<any> {
+  return apiPut(apiURI, token, `/dash/apps/${appId}/storage_config`, config);
+}
+
+async function apiPut(
+  apiURI: string,
+  token: string,
+  path: string,
+  body?: unknown,
+  appId?: string,
+): Promise<any> {
+  const res = await fetchWithTimeout(`${apiURI}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token, appId),
+    },
+    body: body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = classifyHttpError(res.status, res.statusText, JSON.stringify(data));
+    throw new Error(msg);
+  }
+  return data;
+}
+
+async function deleteStorageConfig(
+  apiURI: string,
+  token: string,
+  appId: string,
+): Promise<any> {
+  return apiDelete(apiURI, token, `/dash/apps/${appId}/storage_config`);
+}
+
 // Superadmin API helpers
 // -----------
 async function getSchemaSuperadmin(
@@ -1709,6 +1764,79 @@ Use list-redirect-origins to get the ID of the origin to delete.`,
     },
   );
 
+  // ---- Storage Config ----
+
+  tool(server,
+    "get-storage-config",
+    "Get the current storage configuration for an app (Cloudinary or S3). Returns the provider type, cloud name, and whether secrets are configured.",
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+    },
+    async ({ appId }) => {
+      try {
+        const data = await getStorageConfig(apiURI, token, appId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to get storage config for app ${appId}: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "update-storage-config",
+    `Update the storage configuration for an app to use custom Cloudinary credentials.
+
+Required for Cloudinary:
+- cloudName: Your Cloudinary cloud name
+- uploadPreset: The unsigned upload preset name
+
+Optional:
+- apiKey: Cloudinary API key (for server-side operations)
+- apiSecret: Cloudinary API secret (for server-side operations)
+
+Example - configure custom Cloudinary:
+{
+  "cloudName": "my-cloud",
+  "uploadPreset": "my_unsigned_preset"
+}`,
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+      cloudName: z.string().optional().describe("Cloudinary cloud name"),
+      apiKey: z.string().optional().describe("Cloudinary API key"),
+      apiSecret: z.string().optional().describe("Cloudinary API secret"),
+      uploadPreset: z.string().optional().describe("Cloudinary unsigned upload preset"),
+    },
+    async ({ appId, cloudName, apiKey, apiSecret, uploadPreset }) => {
+      try {
+        const data = await updateStorageConfig(apiURI, token, appId, {
+          cloudName,
+          apiKey,
+          apiSecret,
+          uploadPreset,
+        });
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to update storage config for app ${appId}: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "delete-storage-config",
+    "Remove custom storage configuration and revert to using the default storage provider.",
+    {
+      appId: z.string().uuid().describe("UUID of the app"),
+    },
+    async ({ appId }) => {
+      try {
+        const data = await deleteStorageConfig(apiURI, token, appId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to delete storage config for app ${appId}: ${e.message}` }] };
+      }
+    },
+  );
+
   // ---- Webhooks ----
 
   tool(server,
@@ -2311,7 +2439,8 @@ DATA TOOLS:        learn, query, transact
 SCHEMA TOOLS:      get-schema, push-schema, push-schema-dry-run
 PERMS TOOLS:      get-perms, push-perms
 APP TOOLS:        list-apps, get-app, create-app, delete-app
-STORAGE TOOLS:    list-files, delete-file, get-upload-url, get-download-url
+STORAGE TOOLS:    list-files, delete-file, get-upload-url, get-download-url,
+                  get-storage-config, update-storage-config, delete-storage-config
 WEBHOOK TOOLS:    list-webhooks, create-webhook, update-webhook, delete-webhook,
                   enable-webhook, disable-webhook, get-webhook-events, resend-webhook-event
 BACKUP TOOLS:     list-backups, create-backup, delete-backup, list-backup-jobs,

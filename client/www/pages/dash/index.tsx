@@ -9,6 +9,7 @@ import {
   ArchiveBoxIcon,
   ArrowTopRightOnSquareIcon,
   BeakerIcon,
+  CloudArrowUpIcon,
   CodeBracketIcon,
   CreditCardIcon,
   CubeIcon,
@@ -67,6 +68,7 @@ import OAuthApps from '@/components/dash/OAuthApps';
 import { Backups } from '@/components/dash/Backups';
 import { Sandbox } from '@/components/dash/Sandbox';
 import { Webhooks } from '@/components/dash/Webhooks';
+import { StorageSettings } from '@/components/dash/StorageSettings';
 import Clients from '@/components/dash/Clients';
 import { CLISetup } from '@/components/dash/CLISetup';
 import WebhookIcon from '@/components/icons/WebhookIcon';
@@ -147,7 +149,8 @@ type MainTabId =
   | 'admin'
   | 'billing'
   | 'oauth-apps'
-  | 'cli-setup';
+  | 'cli-setup'
+  | 'storage';
 
 type UserSettingsTabId = 'pat' | 'oauth-apps';
 
@@ -191,6 +194,7 @@ const mainTabs: Tab<MainTabId>[] = [
   { id: 'oauth-apps', title: 'OAuth Apps', icon: makeIcon(CubeIcon) },
   { id: 'team', title: 'Clients', icon: makeIcon(UsersIcon) },
   { id: 'cli-setup', title: 'CLI & MCP', icon: makeIcon(CommandLineIcon) },
+  { id: 'storage', title: 'Storage', minRole: 'admin', icon: makeIcon(CloudArrowUpIcon) },
 ];
 
 const userTabs: Tab<UserSettingsTabId>[] = [
@@ -1057,6 +1061,8 @@ function DashboardContent({
         <Clients />
       ) : tab === 'cli-setup' ? (
         <CLISetup appId={appId} />
+      ) : tab === 'storage' ? (
+        <StorageSettings appId={appId} />
       ) : null}
     </>
   );

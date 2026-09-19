@@ -43,14 +43,17 @@
 
 (defn pg-compare
   "Compares two uuids, returning the same order that postgres would return"
-  [^UUID a ^UUID b]
+  [a b]
   (let [s-a (str a)
         s-b (str b)]
     (reduce (fn [_ i]
               ;; It's probably more efficient to do some bit twiddling instead
               ;; of converting to a string, but I couldn't figure it out
-              (let [m (compare (Integer/parseInt (subs s-a i (+ i 2)) 16)
-                               (Integer/parseInt (subs s-b i (+ i 2)) 16))]
+              (let [m (try
+                        (compare (Integer/parseInt (subs s-a i (+ i 2)) 16)
+                                 (Integer/parseInt (subs s-b i (+ i 2)) 16))
+                        (catch Exception _
+                          (compare s-a s-b)))]
                 (if (zero? m)
                   0
                   (reduced m))))
