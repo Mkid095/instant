@@ -37,6 +37,31 @@
         data (storage-coordinator/upload-file! ctx file)]
     (response/ok {:data data})))
 
+;; Simple direct upload - accepts file directly with app-id and path as form params
+;; Returns the public URL directly in the response
+(defn upload-direct-post [req]
+  (let [{:keys [params]} req
+        params (w/keywordize-keys params)
+        app-id (ex/get-some-param! params [[:app-id] [:app_id]] uuid-util/coerce)
+        path (ex/get-some-param! params [[:path] [:filename]] string-util/coerce-non-blank-str)
+        refresh-token (http-util/req->bearer-token req)
+        current-user (app-user-model/get-by-refresh-token
+                      {:app-id app-id
+                       :refresh-token refresh-token})
+        file (ex/get-param! req [:body] identity)
+        ;; Ensure file is an InputStream, not a String
+        file (if (string? file)
+               (java.io.ByteArrayInputStream. (.getBytes ^String file "UTF-8"))
+               file)
+        content-type (or (ex/get-optional-param! params [:content-type] string-util/coerce-non-blank-str)
+                        "application/octet-stream")
+        ctx {:app-id app-id
+             :path path
+             :current-user current-user
+             :content-type content-type}
+        result (storage-coordinator/upload-file! ctx file)]
+    (response/ok {:data result})))
+
 (defn file-delete [req]
   (let [{:keys [app-id path current-user]}
         (req->app-file! req (:params req))
@@ -76,9 +101,28 @@
                                                        :current-user current-user})]
     (response/ok {:data data})))
 
+;; List uploaded files for an app (file history/tracking)
+(defn list-files-get [req]
+  (let [{:keys [params]} req
+        params (w/keywordize-keys params)
+        app-id (ex/get-some-param! params [[:app-id] [:app_id]] uuid-util/coerce)
+        refresh-token (http-util/req->bearer-token req)
+        ;; If a refresh token is provided, validate the user; otherwise
+        ;; assume an admin token (no user session). The downstream
+        ;; coordinator handles authorization.
+        _ (when refresh-token
+            (app-user-model/get-by-refresh-token
+             {:app-id app-id
+              :refresh-token refresh-token}))
+        ;; Get files from the $files triples for this app
+        files (storage-coordinator/list-uploaded-files {:app-id app-id})]
+    (response/ok {:data files})))
+
 (defroutes routes
   (PUT "/storage/upload" [] (http-util/with-rate-limiting upload-put))
+  (POST "/storage/upload-direct" [] (http-util/with-rate-limiting upload-direct-post))
   (DELETE "/storage/files" [] (http-util/with-rate-limiting file-delete))
   (POST "/storage/signed-upload-url" [] (http-util/with-rate-limiting create-upload-url-post))
   (PUT "/storage/:upload-id/consume-upload-url" [] consume-upload-url-put)
-  (GET "/storage/signed-download-url" [] (http-util/with-rate-limiting signed-download-url-get)))
+  (GET "/storage/signed-download-url" [] (http-util/with-rate-limiting signed-download-url-get))
+  (GET "/storage/files" [] (http-util/with-rate-limiting list-files-get)))

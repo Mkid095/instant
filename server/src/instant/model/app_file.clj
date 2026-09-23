@@ -229,6 +229,21 @@
    {:app-id #uuid "2d960014-0690-4dc5-b13f-a3c202663241"
     :paths ["circle_blue.jpg" "circle_red.jpg"]}))
 
+(defn get-all-for-app
+  "Get all $files entities for a specific app, returning path, size, content-type, and location-id.
+   Returns the path-attribute triples (one per file entity)."
+  ([app-id] (get-all-for-app (aurora/conn-pool :read) app-id))
+  ([conn app-id]
+   (let [path-attr-id (-> (attr-model/get-by-app-id app-id)
+                          (attr-model/resolve-attr-id "$files" "path"))]
+     (sql/select
+      conn
+      ["SELECT entity_id, value#>>'{}' AS path
+        FROM triples
+        WHERE app_id = ?::uuid AND attr_id = ?::uuid
+        ORDER BY created_at DESC"
+       app-id (str path-attr-id)]))))
+
 (defn get-all-apps-usage
   ([] (get-all-apps-usage (aurora/conn-pool :read)))
   ([conn]

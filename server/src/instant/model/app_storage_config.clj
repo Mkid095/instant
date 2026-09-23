@@ -30,7 +30,9 @@
 (defn create!
   ([params]
    (create! (aurora/conn-pool :write) params))
-  ([conn {:keys [app-id provider-type cloud-name api-key api-secret upload-preset]}]
+  ([conn {:keys [app-id provider-type cloud-name api-key api-secret upload-preset
+                 bucket-name region access-key-id secret-access-key
+                 endpoint public-base-url account-id]}]
    ;; First, deactivate any existing configs for this app
    (sql/execute-one! conn
                      ["UPDATE app_storage_configs
@@ -47,6 +49,13 @@
                                  :api_key api-key
                                  :api_secret api-secret
                                  :upload_preset upload-preset
+                                 :bucket_name bucket-name
+                                 :region region
+                                 :access_key_id access-key-id
+                                 :secret_access_key secret-access-key
+                                 :endpoint endpoint
+                                 :public_base_url public-base-url
+                                 :account_id account-id
                                  :is_active true}]
                        :returning [:*]}))))
 
@@ -54,7 +63,10 @@
   ([params]
    (update! (aurora/conn-pool :write) params))
   ([conn {:keys [id app-id] :as params}]
-   (let [update-fields (->> (select-keys params [:provider_type :cloud_name :api_key :api_secret :upload_preset :bucket_name :region :access_key_id :secret_access_key :is_active])
+   (let [update-fields (->> (select-keys params
+                                          [:provider_type :cloud_name :api_key :api_secret :upload_preset
+                                           :bucket_name :region :access_key_id :secret_access_key
+                                           :endpoint :public_base_url :account_id :is_active])
                             (filter (fn [[k v]] (some? v)))
                             (into {}))]
      (when (seq update-fields)
