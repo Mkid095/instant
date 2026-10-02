@@ -2376,8 +2376,19 @@ Available vars: {code}, {app_title}, {user_email}, {expiration}.`,
     },
     async ({ version }) => {
       const v = version || "0.8.0-phase10";
-      const snippet = `dependencies {\n` +
+      const snippet = `// settings.gradle.kts\n` +
+        `dependencyResolutionManagement {\n` +
+        `    repositories {\n` +
+        `        maven { url = uri("https://instant.fidscript.com/maven") }\n` +
+        `        google()\n` +
+        `        mavenCentral()\n` +
+        `    }\n` +
+        `}\n` +
+        `\n` +
+        `// app/build.gradle.kts\n` +
+        `dependencies {\n` +
         `    implementation("com.instantdb:instantdb-android:${v}")\n` +
+        `    implementation("com.instantdb:instantdb-kotlin:${v}")\n` +
         `}`;
       return {
         content: [{

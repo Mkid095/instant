@@ -1,0 +1,12 @@
+-- Phase 9 — schema v2 migration.
+--
+-- Adds an `app_metadata` table for SDK diagnostics.
+-- The existing triples / attrs / pending_mutations / query_cache
+-- tables are unchanged — the migration is non-destructive and
+-- backward-compatible.
+
+CREATE TABLE app_metadata (
+  key   TEXT NOT NULL,
+  value TEXT NOT NULL,
+  PRIMARY KEY (key)
+);

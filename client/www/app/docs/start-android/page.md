@@ -18,17 +18,19 @@ You can use InstantDB in your Android apps too! Below is a guide for integrating
 Add the InstantDB Android SDK to your `build.gradle.kts`:
 
 ```kotlin {% showCopy=true %}
-dependencies {
-    implementation("com.instantdb:instantdb-android:0.8.0")
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        maven { url = uri("https://instant.fidscript.com/maven") }
+        google()
+        mavenCentral()
+    }
 }
-```
 
-Add the Maven Local repository if it's not already configured:
-
-```kotlin {% showCopy=true %}
-repositories {
-    mavenLocal()
-    // Or publish to Maven Central for production
+// app/build.gradle.kts
+dependencies {
+    implementation("com.instantdb:instantdb-android:0.8.0-phase10")
+    implementation("com.instantdb:instantdb-kotlin:0.8.0-phase10")
 }
 ```
 
