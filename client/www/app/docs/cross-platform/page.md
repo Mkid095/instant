@@ -2,30 +2,30 @@
 nextjs:
   metadata:
     title: 'Cross-platform data sharing'
-    description: 'Share data between Android, web, iOS, and any other InstantDB client.'
+    description: 'Share data between Android, web, iOS, React Native, and more.'
 ---
 
-InstantDB is built for cross-platform data sharing. The same `appId` works across **Android, web, iOS, React Native, SolidJS, Svelte, Vue, Python, and Kotlin/JVM** — they all read and write to the same database.
+InstantDB is built for cross-platform data sharing. The same `appId` works across **Android, web, iOS, React Native, SolidJS, Svelte, Vue, Python, and Kotlin/JVM** — every client reads and writes to the same database, in real-time.
 
-## How it works
-
-Every InstantDB client (Android, web, iOS, etc.) connects to your InstantDB backend using the same `appId`. The backend routes reads, writes, and real-time updates to every connected client.
+## How It Works
 
 ```
 ┌─────────────┐         ┌──────────────────┐         ┌─────────────┐
 │ Android App │ ──────> │  InstantDB VPS   │ <────── │  Web App    │
-│ (Kotlin)    │ <─────  │  (your appId)    │  ─────> │  (JS)       │
+│ (Kotlin)    │ <─────  │  (your appId)    │  ─────> │  (JS/TS)    │
 └─────────────┘         └──────────────────┘         └─────────────┘
        │                          │                          │
        └───── same appId ─────────┴───── same appId ────────┘
                 same database, real-time sync
 ```
 
-## Example: Shared todo list
+Every client connects to the same backend using the same `appId`. The backend routes reads, writes, and real-time updates to every connected client.
+
+## Example: Shared Todo List
 
 ### Android (Kotlin)
 
-```kotlin
+```kotlin {% showCopy=true %}
 // app/build.gradle.kts
 dependencies {
     implementation("com.instantdb:instantdb-android:0.8.0-phase10")
@@ -48,7 +48,7 @@ db.transact(listOf(listOf(
 
 ### Web (JavaScript / TypeScript)
 
-```javascript
+```javascript {% showCopy=true %}
 // Same appId
 import { init, id } from '@fidscript/instant-sdk';
 
@@ -65,21 +65,34 @@ db.transact(
 // The Android app will receive this in real-time
 ```
 
+## What is shared
+
+| Feature | Cross-platform? | Notes |
+|---------|----------------|-------|
+| **Data** | ✅ Yes | Same `appId` = same database |
+| **Auth** | ✅ Yes | Users created on any platform are visible everywhere |
+| **Permissions** | ✅ Yes | `perms` are server-side and apply to all clients |
+| **Schema** | ✅ Yes | Defined once on the server, used by all clients |
+| **Storage** | ✅ Yes | Files uploaded from any client are downloadable by any client |
+| **Real-time** | ✅ Yes | All clients see each other's changes within milliseconds |
+
 ## Verify it works
 
-Run the verification:
-1. Open the web app in one browser tab
-2. Open the Android app on a connected device
-3. Add a todo in either — it appears in the other within milliseconds
+1. Open the web app in one browser tab.
+2. Open the Android app on a connected device or emulator.
+3. Add a todo in either — it appears in the other within milliseconds.
 
-## Authentication
+## Auth is also shared
 
-Users created on one platform are visible on all platforms because auth is also keyed by `appId`. A user who signs in via magic code on the web app can be queried from the Android app.
+A user who signs in via magic code on the web app can be queried from the Android app — the same auth, the same database. Storage tokens issued to one client are valid on all clients.
 
-## Cross-platform storage
+## Storage is also shared
 
-Files uploaded from any client (web, Android, iOS) all live in the same storage provider (Cloudinary, R2, S3) and are served from the same URLs. A photo uploaded from the Android app is downloadable by the web app.
+Files uploaded from any client (web, Android, iOS) all live in the same storage provider (Cloudinary, R2, S3) and are served from the same URLs. A photo uploaded from the Android app is downloadable from the web app with the same URL.
 
-## Live verification
+## Next Steps
 
-This feature is verified in the live deployment at https://instantdb.com. Use the demo apps to see it in action.
+- [Getting started with Android](/docs/start-android)
+- [Getting started with React Native](/docs/start-rn)
+- [Storage](/docs/storage)
+- [Auth](/docs/auth)
