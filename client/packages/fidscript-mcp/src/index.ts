@@ -307,6 +307,32 @@ async function getStorageDownloadUrl(
   return apiGet(apiURI, token, `/admin/storage/signed-download-url?filename=${encodeURIComponent(filename)}`, undefined, appId);
 }
 
+// Upload file directly - returns public URL
+async function uploadFileDirect(
+  apiURI: string,
+  token: string,
+  appId: string,
+  filename: string,
+  base64Content: string,
+  contentType: string,
+): Promise<any> {
+  return apiPost(apiURI, token, "/storage/upload-direct", {
+    "app-id": appId,
+    path: filename,
+    "content-type": contentType,
+    body: base64Content,
+  }, appId);
+}
+
+// List uploaded files with their public URLs
+async function listUploadedFiles(
+  apiURI: string,
+  token: string,
+  appId: string,
+): Promise<any> {
+  return apiGet(apiURI, token, "/storage/files", undefined, appId);
+}
+
 // Storage Config API helpers
 async function getStorageConfig(
   apiURI: string,
@@ -989,7 +1015,10 @@ async function deletePersonalAccessToken(
 
 // Tools
 // -----------
-// Registers a tool with both hyphenated and underscore names
+// Registers a tool with its canonical (hyphenated) name only.
+// Phase 1 of the MCP context-reduction work removes the previous
+// underscore-alias double registration so each tool appears exactly
+// once in `tools/list`.
 function tool(
   server: McpServer,
   name: string,
@@ -997,12 +1026,7 @@ function tool(
   inputSchema: Record<string, any>,
   handler: (params: any) => Promise<any>,
 ) {
-  const hyphen = name;
-  const underscore = name.replace(/-/g, "_");
-  server.tool(hyphen, description, inputSchema, handler);
-  if (underscore !== hyphen) {
-    server.tool(underscore, description, inputSchema, handler);
-  }
+  server.tool(name, description, inputSchema, handler);
 }
 
 function registerTools(
@@ -1137,25 +1161,12 @@ DOCUMENTATION: https://www.instantdb.com/docs`,
 
   tool(server,
     "query",
-    `Execute an InstaQL query against an app. Returns query results as JSON.
-
-Query structure: {"namespace": {"$": {"where": {...}, "limit": N}}}
-
-Examples:
-- Simple query: {"todos": {}}
-- With where: {"todos": {"$": {"where": {"done": false}}}}
-- With where+limit: {"todos": {"$": {"where": {"done": false}, "limit": 10}}}
-- With $or (wrapped in "and"): {"todos": {"$": {"where": {"and": [{"or": [{"status": "active"}, {"status": "pending"}]}]}}}}
-- Nested: {"authors": {"books": {"$": {"where": {"title": "The Count"}}}}}
-
-CRITICAL: The "where" clause MUST be nested inside "$". Correct: {"$": {"where": {"field": "value"}}}
-WRONG: {"$where": {"field": "value"}} -- this will fail!
-
-For $or queries, wrap in "and": {"$": {"where": {"and": [{"or": [{"field": "a"}, {"field": "b"}]}]}}}
-
-Full docs: https://instantdb.com/docs/instaql`,
+    `Execute an InstaQL query. Schema: {"namespace": {"$": {"where": {...}, "limit": N}}}.
+The "where" clause MUST be nested inside "$" (use {"$":{"where":{...}}}, NOT {"$where":{...}}).
+For $or, wrap in "and": {"$":{"where":{"and":[{"or":[...]}]}}}.
+Full query syntax: instant_learn with topic="query".`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       query: z.record(z.string(), z.any()).describe("InstaQL query object"),
     },
     async ({ appId, query }) => {
@@ -1170,26 +1181,12 @@ Full docs: https://instantdb.com/docs/instaql`,
 
   tool(server,
     "transact",
-    `Execute a transaction to create, update, link, or delete data.
-
-Steps:
-  ["create", "namespace", {"field": "value"}] — create a new entity. ID is auto-generated UUID (do NOT provide an ID manually).
-  ["update", "namespace", "entity-id", {"field": "value"}] — update an existing entity. entity-id must be a UUID.
-  ["link", "namespace", "entity-id", {"linkAttr": "target-id"}] — link entity to another. Both IDs must be UUIDs.
-  ["unlink", "namespace", "entity-id", {"linkAttr": "target-id"}] — remove a link
-  ["delete", "namespace", "entity-id"] — delete an entity. entity-id must be a UUID.
-
-IMPORTANT — entity IDs in update/link/delete must be UUIDs. Do NOT use string literals like "AUTO_GENERATED_ID" or "USER_ID" — in a multi-step transaction, use the actual UUID returned by a preceding create step.
-
-Example — create a todo (no ID in create step):
-[["create", "todos", {"title": "Hello", "done": false}]]
-
-Example — create a product:
-[["create", "products", {"name": "New Product"}]]
-
-Full docs: https://instantdb.com/docs/instaml`,
+    `Execute a transaction to create/update/link/unlink/delete entities.
+Step format: ["op", "namespace", ...args]. Ops: create/update/link/unlink/delete.
+IMPORTANT: entity IDs in update/link/delete MUST be real UUIDs (use IDs returned from preceding create steps; do NOT use placeholders).
+Full step syntax: instant_learn with topic="transact".`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       steps: z.array(z.array(z.any())).describe("Transaction steps"),
     },
     async ({ appId, steps }) => {
@@ -1208,7 +1205,7 @@ Full docs: https://instantdb.com/docs/instaml`,
     "get-schema",
     "Fetch the current schema (attribute definitions) for an app. Returns all namespaces, their attrs, refs, and blob fields.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1222,30 +1219,11 @@ Full docs: https://instantdb.com/docs/instaml`,
 
   tool(server,
     "push-schema",
-    `Push a schema definition to an app. The schema is a map of namespace names to namespace definitions.
-
-Example schema:
-{
-  "todos": {
-    "attrs": {
-      "title": { "type": "string" },
-      "done": { "type": "boolean" }
-    }
-  },
-  "users": {
-    "attrs": {
-      "name": { "type": "string" },
-      "email": { "type": "string" }
-    },
-    "links": {
-      "todos": { "collection": "todos", "is_collection": true }
-    }
-  }
-}
-
-This performs a plan-then-apply. Use push-schema-dry-run first to preview changes.`,
+    `Push a schema definition. Schema is a map of namespace names to {attrs:{name:{type}}, links:{...}}.
+Performs plan-then-apply. Use push-schema-dry-run first to preview.
+Full syntax: instant_learn with topic="schema".`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       schema: z.record(z.string(), z.any()).describe("InstantDB schema definition object"),
     },
     async ({ appId, schema }) => {
@@ -1272,7 +1250,7 @@ This performs a plan-then-apply. Use push-schema-dry-run first to preview change
     "push-schema-dry-run",
     "Preview what a schema push would do without applying it. Shows the diff between current and proposed schema.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       schema: z.record(z.string(), z.any()).describe("InstantDB schema definition object"),
     },
     async ({ appId, schema }) => {
@@ -1291,7 +1269,7 @@ This performs a plan-then-apply. Use push-schema-dry-run first to preview change
     "get-perms",
     "Fetch the current permissions rules for an app. Returns the allow/deny rule definitions.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1305,32 +1283,11 @@ This performs a plan-then-apply. Use push-schema-dry-run first to preview change
 
   tool(server,
     "push-perms",
-    `Push new permissions rules to an app. Permissions use CEL expressions.
-
-Example:
-{
-  "todos": {
-    "allow": {
-      "view": "true",
-      "create": "auth.uid != null",
-      "update": "auth.uid != null && auth.uid = data.user",
-      "delete": "auth.uid = data.user"
-    }
-  },
-  "$default": {
-    "allow": {
-      "view": "true",
-      "create": "false",
-      "update": "false",
-      "delete": "false"
-    }
-  }
-}
-
-Special values: "true" (allow all), "false" (deny all), "auth.uid != null" (require login).
-Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
+    `Push permission rules. CEL expressions. Schema: {"namespace":{"allow":{"view":"...","create":"...","update":"...","delete":"..."}}}.
+Special values: "true" / "false" / "auth.uid != null". Data checks: "auth.uid = data.field_name".
+Full CEL syntax: instant_learn with topic="permissions".`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       perms: z.record(z.string(), z.any()).describe("InstantDB permissions definition object"),
     },
     async ({ appId, perms }) => {
@@ -1347,24 +1304,10 @@ Data checks: "auth.uid = data.field_name", "auth.email = data.email", etc.`,
 
   tool(server,
     "create-oauth-provider",
-    `Create an OAuth service provider to enable social login for your app.
-
-Supported providers:
-- "google" - Google OAuth (use shared credentials for testing/development)
-- "github" - GitHub OAuth
-
-STEPS TO SET UP SOCIAL LOGIN:
-1. Create provider: create-oauth-provider with provider_name (e.g., "google")
-2. List providers: list-oauth-providers to get the provider_id
-3. Create OAuth client: create-oauth-client with provider_id
-4. Configure redirect: Add your app's callback URL to allowed origins
-5. Integrate: Use the OAuth flow in your frontend
-
-For Google OAuth, after creating the provider and client:
-- In Google Cloud Console, add your redirect URI to Authorized redirect URIs
-- The redirect must exactly match what you pass to create-oauth-client`,
+    `Create an OAuth provider for social login. Supported: "google", "github".
+Use list-oauth-providers first to see existing providers. Full setup: instant_learn with topic="oauth".`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       providerName: z.string().describe("Provider name (e.g., 'google' or 'github')"),
     },
     async ({ appId, providerName }) => {
@@ -1381,37 +1324,12 @@ For Google OAuth, after creating the provider and client:
 
   tool(server,
     "create-oauth-client",
-    `Create an OAuth client to enable social login (Google, GitHub, Apple, etc.) for your app.
-
-SOCIAL LOGIN FLOW:
-1. Create OAuth provider: use create-oauth-provider (e.g., "google" or "github")
-2. List providers: use list-oauth-providers to get the provider_id
-3. Create client: use create-oauth-client with provider_id and your redirect URL
-4. Configure redirect: Add your site's URL to allowed redirect origins
-5. Test: Initiate OAuth flow from your frontend
-
-SHARED CREDENTIALS: For testing/development, use useSharedCredentials:true to skip configuring your own OAuth app credentials. For production, provide your own clientId/clientSecret.
-
-REDIRECT URI: This must match exactly what you configure in your OAuth provider. For Google, add it in Google Cloud Console > APIs & Services > Credentials > Authorized redirect URIs.
-
-Example - Google OAuth (shared credentials for testing):
-{
-  "providerId": "uuid-of-google-provider",
-  "clientName": "Google Login",
-  "redirectTo": "https://yourapp.com/auth/callback",
-  "useSharedCredentials": true
-}
-
-Example - Google OAuth (your own credentials for production):
-{
-  "providerId": "uuid-of-google-provider",
-  "clientName": "Google Login",
-  "redirectTo": "https://yourapp.com/auth/callback",
-  "clientId": "your-google-client-id",
-  "clientSecret": "your-google-client-secret"
-}`,
+    `Create an OAuth client for social login (Google/GitHub/Apple).
+Use useSharedCredentials:true for development; provide clientId/clientSecret for production.
+redirectTo must match exactly what you configure in your OAuth provider's authorized redirect URIs.
+Full setup: instant_learn with topic="oauth".`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       providerId: z.string().uuid().describe("UUID of the OAuth provider"),
       clientName: z.string().describe("Name for this OAuth client (e.g., 'Google Login')"),
       redirectTo: z.string().url().describe("URL where Google redirects after auth"),
@@ -1439,17 +1357,10 @@ Example - Google OAuth (your own credentials for production):
 
   tool(server,
     "update-oauth-client",
-    `Update an existing OAuth client's settings.
-
-Use this to:
-- Change the client name
-- Update the redirect URI (must match your OAuth provider config)
-- Switch between shared credentials and your own credentials
-- Update metadata
-
-IMPORTANT: When changing redirectTo, also update the redirect URI in your OAuth provider (Google Cloud Console, etc.) to match.`,
+    `Update an existing OAuth client's settings (name, redirectTo, credentials, metadata).
+IMPORTANT: When changing redirectTo, also update the redirect URI in your OAuth provider to match.`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       clientId: z.string().uuid().describe("UUID of the OAuth client to update"),
       clientName: z.string().optional().describe("Updated name"),
       redirectTo: z.string().optional().describe("Updated redirect URL"),
@@ -1481,7 +1392,7 @@ IMPORTANT: When changing redirectTo, also update the redirect URI in your OAuth 
     "delete-oauth-client",
     "Delete an OAuth client from an app.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       clientId: z.string().uuid().describe("UUID of the OAuth client to delete"),
     },
     async ({ appId, clientId }) => {
@@ -1500,7 +1411,7 @@ IMPORTANT: When changing redirectTo, also update the redirect URI in your OAuth 
 
 Use this to find provider IDs needed for creating OAuth clients.`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1518,7 +1429,7 @@ Use this to find provider IDs needed for creating OAuth clients.`,
 
 Returns client IDs, names, redirect URIs, and provider info.`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1541,7 +1452,7 @@ Returns client IDs, names, redirect URIs, and provider info.`,
 
 Use this to review your OAuth client configuration before going live.`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       clientId: z.string().uuid().describe("UUID of the OAuth client"),
     },
     async ({ appId, clientId }) => {
@@ -1558,17 +1469,9 @@ Use this to review your OAuth client configuration before going live.`,
 
   tool(server,
     "list-redirect-origins",
-    `List all authorized redirect origins for an app.
-
-Redirect origins are URLs allowed as OAuth callback targets. When using shared credentials, localhost URLs are automatically allowed. For production, you must add your domain.
-
-Service types:
-- "generic" - Exact host match (e.g., "yourapp.com")
-- "netlify" - Netlify sites (provide site name)
-- "vercel" - Vercel deployments (provide deployment suffix and project name)
-- "custom-scheme" - Mobile app schemes (e.g., "expo-app://")`,
+    `List OAuth redirect origins. Service types: "generic" (exact host), "netlify" (site name), "vercel" (deployment + project), "custom-scheme" (mobile).`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1582,23 +1485,10 @@ Service types:
 
   tool(server,
     "add-redirect-origin",
-    `Add an authorized redirect origin for OAuth callbacks.
-
-This is required for OAuth to work in production. When users authenticate with Google/GitHub/etc., the redirect URL must be authorized.
-
-Service types:
-- "generic" - Exact host match. Params: ["yourdomain.com"]
-- "netlify" - Netlify site. Params: ["site-name"]
-- "vercel" - Vercel deployment. Params: ["vercel.app", "project-name"]
-- "custom-scheme" - Mobile deep link. Params: ["expo-scheme"]
-
-Examples:
-- generic for localhost: service="generic", params=["localhost"]
-- generic for production: service="generic", params=["yourapp.com"]
-- netlify preview: service="netlify", params=["your-site"]
-- custom scheme (Expo): service="custom-scheme", params=["expo-app"]`,
+    `Add OAuth redirect origin. service="generic" for exact host (params=["host"]),
+"netlify" for site name, "vercel" for deployment+project, "custom-scheme" for mobile.`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       service: z.string().describe('Service type: "generic", "netlify", "vercel", or "custom-scheme"'),
       params: z.array(z.string()).describe("Service parameters (see description for format)"),
     },
@@ -1618,7 +1508,7 @@ Examples:
 
 Use list-redirect-origins to get the ID of the origin to delete.`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       originId: z.string().uuid().describe("UUID of the redirect origin to delete"),
     },
     async ({ appId, originId }) => {
@@ -1651,7 +1541,7 @@ Use list-redirect-origins to get the ID of the origin to delete.`,
     "get-app",
     "Get detailed information about a specific app including title, created date, and storage stats.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1701,7 +1591,7 @@ Use list-redirect-origins to get the ID of the origin to delete.`,
     "list-files",
     "List all files uploaded to the app's storage. Returns filenames, sizes, and metadata.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1717,7 +1607,7 @@ Use list-redirect-origins to get the ID of the origin to delete.`,
     "delete-file",
     "Delete a file from the app's storage by its filename.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       filename: z.string().min(1).describe("Name/path of the file to delete"),
     },
     async ({ appId, filename }) => {
@@ -1734,7 +1624,7 @@ Use list-redirect-origins to get the ID of the origin to delete.`,
     "get-upload-url",
     "Get a pre-signed URL for uploading a file directly to storage. Upload the file to the returned URL using HTTP PUT.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       filename: z.string().min(1).describe("Desired filename/path for the upload (e.g. 'images/photo.jpg')"),
     },
     async ({ appId, filename }) => {
@@ -1751,7 +1641,7 @@ Use list-redirect-origins to get the ID of the origin to delete.`,
     "get-download-url",
     "Get a time-limited pre-signed URL for downloading a file from storage.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       filename: z.string().min(1).describe("Filename/path of the file to download"),
     },
     async ({ appId, filename }) => {
@@ -1764,13 +1654,61 @@ Use list-redirect-origins to get the ID of the origin to delete.`,
     },
   );
 
+  tool(server,
+    "upload-file",
+    `Upload a file directly to cloud storage and get back the public URL.
+This is the simplest way to upload files - the file is uploaded to Cloudinary and you receive the direct public URL in response.
+Use this to upload images, videos, documents, or any file type.
+
+Response includes:
+- url: The direct public Cloudinary URL you can use immediately
+- id: File ID for reference
+- path: The filename/path you provided
+- size: File size in bytes
+- contentType: The MIME type
+
+After receiving the URL, save it to your database as a reference.`,
+    {
+      appId: z.string().uuid(),
+      filename: z.string().min(1).describe("Path/name for the file (e.g. 'images/photo.jpg' or 'videos/intro.mp4')"),
+      content: z.string().describe("Base64-encoded file content"),
+      contentType: z.string().describe("MIME type (e.g. 'image/jpeg', 'video/mp4', 'application/pdf')"),
+    },
+    async ({ appId, filename, content, contentType }) => {
+      try {
+        const data = await uploadFileDirect(apiURI, token, appId, filename, content, contentType);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to upload file '${filename}' to app ${appId}: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "list-uploaded-files",
+    `List all files that have been uploaded to the app's storage.
+Returns the public URL, filename, size, and upload timestamp for each file.
+Use this to see the history of uploaded files and their public URLs for referencing in your database.`,
+    {
+      appId: z.string().uuid(),
+    },
+    async ({ appId }) => {
+      try {
+        const data = await listUploadedFiles(apiURI, token, appId);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to list uploaded files for app ${appId}: ${e.message}` }] };
+      }
+    },
+  );
+
   // ---- Storage Config ----
 
   tool(server,
     "get-storage-config",
     "Get the current storage configuration for an app (Cloudinary or S3). Returns the provider type, cloud name, and whether secrets are configured.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1800,7 +1738,7 @@ Example - configure custom Cloudinary:
   "uploadPreset": "my_unsigned_preset"
 }`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       cloudName: z.string().optional().describe("Cloudinary cloud name"),
       apiKey: z.string().optional().describe("Cloudinary API key"),
       apiSecret: z.string().optional().describe("Cloudinary API secret"),
@@ -1825,7 +1763,7 @@ Example - configure custom Cloudinary:
     "delete-storage-config",
     "Remove custom storage configuration and revert to using the default storage provider.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1843,7 +1781,7 @@ Example - configure custom Cloudinary:
     "list-webhooks",
     "List all webhooks configured for an app. Returns webhook IDs, URLs, namespaces, actions, and status.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -1863,7 +1801,7 @@ namespaces: which entity types to watch (e.g. ["todos", "posts"])
 actions: which operations to notify on (e.g. ["create", "update", "delete"])
 url: the HTTPS endpoint to send webhook payloads to`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       url: z.string().url().describe("HTTPS URL to receive webhook payloads"),
       namespaces: z.array(z.string()).describe("List of namespace names to watch (e.g. ['todos', 'posts'])"),
       actions: z.array(z.string()).describe("List of actions to trigger on (e.g. ['create', 'update', 'delete'])"),
@@ -1882,7 +1820,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "update-webhook",
     "Update an existing webhook's URL, watched namespaces, or actions.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       webhookId: z.string().uuid().describe("UUID of the webhook to update"),
       url: z.string().url().optional().describe("New HTTPS URL for the webhook"),
       namespaces: z.array(z.string()).optional().describe("Updated list of namespaces to watch"),
@@ -1902,7 +1840,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "delete-webhook",
     "Delete a webhook. The endpoint will no longer receive notifications.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       webhookId: z.string().uuid().describe("UUID of the webhook to delete"),
     },
     async ({ appId, webhookId }) => {
@@ -1919,7 +1857,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "enable-webhook",
     "Re-enable a previously disabled webhook.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       webhookId: z.string().uuid().describe("UUID of the webhook to enable"),
     },
     async ({ appId, webhookId }) => {
@@ -1936,7 +1874,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "disable-webhook",
     "Temporarily disable a webhook. It can be re-enabled later.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       webhookId: z.string().uuid().describe("UUID of the webhook to disable"),
       reason: z.string().optional().describe("Optional reason for disabling"),
     },
@@ -1954,7 +1892,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "get-webhook-events",
     "Get recent webhook delivery events (successes and failures) with attempt history.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       webhookId: z.string().uuid().describe("UUID of the webhook"),
       after: z.string().optional().describe("Pagination cursor from previous response"),
     },
@@ -1972,7 +1910,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "resend-webhook-event",
     "Re-trigger delivery of a specific webhook event (for retrying failed deliveries).",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       webhookId: z.string().uuid().describe("UUID of the webhook"),
       eventId: z.string().describe("The event ISN identifier from get-webhook-events"),
     },
@@ -1992,7 +1930,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "list-backups",
     "List all backups for an app. Returns backup IDs, creation dates, descriptions, and status.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -2008,7 +1946,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "create-backup",
     "Create an on-demand backup of the app. Returns a job object you can poll with get-backup-job.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       description: z.string().optional().describe("Optional description for the backup"),
     },
     async ({ appId, description }) => {
@@ -2025,7 +1963,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "delete-backup",
     "Delete a backup. The backup's storage is freed (S3 objects expire automatically).",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       backupId: z.string().uuid().describe("UUID of the backup to delete"),
     },
     async ({ appId, backupId }) => {
@@ -2042,7 +1980,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "list-backup-jobs",
     "List in-progress backup jobs for an app. Use this to check status of recently started backups.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -2058,7 +1996,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "get-backup-job",
     "Get the status of a specific backup job including progress percentage.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       jobId: z.string().uuid().describe("UUID of the backup job"),
     },
     async ({ appId, jobId }) => {
@@ -2075,7 +2013,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "cancel-backup-job",
     "Cancel an in-progress backup job. A processing job will abort at its next checkpoint.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       jobId: z.string().uuid().describe("UUID of the backup job to cancel"),
     },
     async ({ appId, jobId }) => {
@@ -2092,7 +2030,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "list-backup-files",
     "List the data files included in a specific backup (for inspection before restore).",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       backupId: z.string().uuid().describe("UUID of the backup"),
     },
     async ({ appId, backupId }) => {
@@ -2109,7 +2047,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "get-backup-file-url",
     "Get a pre-signed URL to download a specific file from a backup (for inspection).",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       backupId: z.string().uuid().describe("UUID of the backup"),
       filename: z.string().min(1).describe("Name of the file to download (from list-backup-files)"),
     },
@@ -2129,7 +2067,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
     "list-test-users",
     "List all test users for an app. Test users are guest accounts for development testing.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -2147,7 +2085,7 @@ url: the HTTPS endpoint to send webhook payloads to`,
 
 The 6-digit code is the magic code the test user enters to sign in. You can share this code with your team for testing.`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       email: z.string().email().describe("Email address for the test user"),
       code: z.string().regex(/^\d{6}$/, "Must be exactly 6 digits").describe("6-digit sign-in code (e.g. '123456')"),
     },
@@ -2165,7 +2103,7 @@ The 6-digit code is the magic code the test user enters to sign in. You can shar
     "delete-test-user",
     "Delete a test user from an app.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       testUserId: z.string().uuid().describe("UUID of the test user to delete"),
     },
     async ({ appId, testUserId }) => {
@@ -2196,19 +2134,10 @@ The 6-digit code is the magic code the test user enters to sign in. You can shar
 
   tool(server,
     "update-email-template",
-    `Update the magic code email template. The template must include {code} in both subject and body.
-
-Available template variables:
-  {code} — the 6-digit verification code
-  {app_title} — the app's title
-  {user_email} — the recipient's email
-  {expiration} — code expiration time (e.g. "10 minutes")
-
-Example:
-  subject: "{code} is your verification code for {app_title}"
-  body: "<p>Your code is: {code}</p>"`,
+    `Update email template. Both subject and body MUST include {code}.
+Available vars: {code}, {app_title}, {user_email}, {expiration}.`,
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       subject: z.string().describe("Email subject line (must include {code})"),
       body: z.string().describe("Email body HTML (must include {code})"),
       senderEmail: z.string().email().optional().describe("Custom sender email address"),
@@ -2228,7 +2157,7 @@ Example:
     "send-test-email",
     "Send a test email to verify your email template configuration. The recipient must be an authorized app member.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       to: z.string().email().describe("Recipient email address (must be an app member)"),
       subject: z.string().describe("Email subject"),
       body: z.string().describe("Email body HTML"),
@@ -2300,7 +2229,7 @@ Example:
     "invite-app-member",
     "Invite a user to an app with a specific role. They will receive an email invitation.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       email: z.string().email().describe("Email address of the user to invite"),
       role: z.enum(["collaborator", "admin", "owner"]).describe("Role to assign: collaborator, admin, or owner"),
     },
@@ -2318,7 +2247,7 @@ Example:
     "remove-app-member",
     "Remove a member from an app.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       memberId: z.string().uuid().describe("UUID of the member to remove"),
     },
     async ({ appId, memberId }) => {
@@ -2335,7 +2264,7 @@ Example:
     "update-app-member",
     "Update a member's role on an app.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       memberId: z.string().uuid().describe("UUID of the member to update"),
       role: z.enum(["collaborator", "admin", "owner"]).describe("New role: collaborator, admin, or owner"),
     },
@@ -2355,7 +2284,7 @@ Example:
     "get-sender-verification",
     "Get sender verification status for an app. Shows whether sending domain is verified via Postmark DKIM/Return-Path.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -2371,7 +2300,7 @@ Example:
     "send-sender-verification",
     "Send a sender verification email to your sending domain. Complete verification by calling verify-sender-code with the 6-digit code from the email.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
     },
     async ({ appId }) => {
       try {
@@ -2387,7 +2316,7 @@ Example:
     "verify-sender-code",
     "Complete sender domain verification by providing the 6-digit code from the verification email.",
     {
-      appId: z.string().uuid().describe("UUID of the app"),
+      appId: z.string().uuid(),
       code: z.string().regex(/^\d{6}$/, "Must be exactly 6 digits").describe("6-digit verification code from the email"),
     },
     async ({ appId, code }) => {
@@ -2397,6 +2326,221 @@ Example:
       } catch (e: any) {
         return { isError: true, content: [{ type: "text", text: `Error verifying sender: ${e.message}` }] };
       }
+    },
+  );
+
+  // ---- Android / Kotlin SDK ----
+  //
+  // Safe, read-only tools for the native Android SDK. These do NOT
+  // expose credentials. They provide version information, configuration
+  // templates, schema introspection, and documentation pointers.
+  //
+  // Per security policy:
+  //   - no admin tokens are read or returned
+  //   - no refresh tokens are read or returned
+  //   - no private database credentials are exposed
+  //   - schema data is limited to non-sensitive attribute metadata
+
+  tool(server,
+    "android-sdk-version",
+    "Return the current Android / Kotlin SDK version and artifact coordinates. " +
+      "Safe; returns only public version metadata. No credentials.",
+    {},
+    async () => {
+      const info = {
+        sdk: "instantdb-android",
+        version: "0.8.0-phase10",
+        artifacts: {
+          android: "com.instantdb:instantdb-android:0.8.0-phase10",
+          kotlin: "com.instantdb:instantdb-kotlin:0.8.0-phase10",
+        },
+        supports: ["Kotlin 2.0+", "JVM", "Android (AndroidSqliteDriver)"],
+        transports: ["websocket", "sse"],
+        min_android_sdk: 24,
+        target_android_sdk: 34,
+        transport_polymorphism: true,
+      };
+      return { content: [{ type: "text", text: JSON.stringify(info, null, 2) }] };
+    },
+  );
+
+  tool(server,
+    "android-installation",
+    "Return the Gradle dependency snippet for the Android / Kotlin SDK. " +
+      "No credentials are returned.",
+    {
+      version: z.string().optional().describe(
+        "Optional SDK version (default: 0.8.0-phase10). " +
+        "Must be a published Maven artifact."
+      ),
+    },
+    async ({ version }) => {
+      const v = version || "0.8.0-phase10";
+      const snippet = `dependencies {\n` +
+        `    implementation("com.instantdb:instantdb-android:${v}")\n` +
+        `}`;
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ version: v, gradle_snippet: snippet }, null, 2),
+        }],
+      };
+    },
+  );
+
+  tool(server,
+    "android-configuration",
+    "Return the SDK initialization snippet for Android. " +
+      "Use this to bootstrap an Android application with the Kotlin SDK. " +
+      "No credentials are embedded in the snippet.",
+    {},
+    async () => {
+      // Corrected to match com.instantdb.android.InstantDbConfig
+      const snippet = `// Android application
+val instant = InstantDb(
+    context = applicationContext,
+    config = InstantDbConfig(
+        appId = "YOUR_APP_ID",       // From InstantDB dashboard
+        host = "https://api.example.com",  // Your server origin
+        useSse = false,            // true = SSE, false = WebSocket (default)
+    )
+)
+
+// Connect (uses secure credential storage on Android)
+instant.connect()
+
+// Query reactive data
+instant.queryFlow("{ todos: { $: { $: {} } } }")
+
+// Execute transactions
+instant.transact(listOf(listOf("add", "todos", mapOf("title" to "Hello"))))
+
+// Connection state
+instant.connectionState.value  // ConnectionState.Connected / Disconnected / Error
+
+// Clean shutdown
+instant.close()`;
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ kotlin_snippet: snippet }, null, 2),
+        }],
+      };
+    },
+  );
+
+  tool(server,
+    "android-documentation",
+    "Return pointers to the SDK documentation.",
+    {},
+    async () => {
+      const docs = {
+        overview: "https://www.instantdb.com/docs/overview",
+        android_sdk: "https://www.instantdb.com/docs/android",
+        auth: "https://www.instantdb.com/docs/auth",
+        schema: "https://www.instantdb.com/docs/schema",
+        permissions: "https://www.instantdb.com/docs/permissions",
+        query: "https://www.instantdb.com/docs/query",
+        react_native: "https://www.instantdb.com/docs/react-native",
+        storage: "https://www.instantdb.com/docs/storage",
+      };
+      return { content: [{ type: "text", text: JSON.stringify(docs, null, 2) }] };
+    },
+  );
+
+  tool(server,
+    "android-schema",
+    "Return non-credential schema metadata for the configured app: " +
+      "namespace names, attribute forward IDs, forward etypes, and forward " +
+      "labels. Does NOT return values or auth tokens.",
+    {
+      appId: z.string().optional().describe(
+        "Optional app id. Defaults to the configured default app id."
+      ),
+    },
+    async ({ appId }: { appId?: string }) => {
+      try {
+        const target = appId || _appId;
+        const data = await getSchema(apiURI, token, target);
+        // Reduce to a safe, non-credential subset.
+        const safe = (data as any).attrs?.map((a: any) => ({
+          id: a.id,
+          forward_etype: a["forward-identity"]?.[1],
+          forward_label: a["forward-identity"]?.[2],
+          is_unique: a["unique?"],
+          is_indexed: a["index?"],
+          is_required: a["required?"],
+        })) ?? [];
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({ app_id: target, attrs: safe }, null, 2),
+          }],
+        };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Error: ${e.message}` }] };
+      }
+    },
+  );
+
+  tool(server,
+    "android-capabilities",
+    "Return a list of supported Android / Kotlin SDK capabilities. " +
+      "Read-only; no credentials.",
+    {},
+    async () => {
+      const capabilities = {
+        persistence: {
+          store: "SQLite (SQLDelight)",
+          driver: "AndroidSqliteDriver",
+          schema_version: 2,
+        },
+        transport: {
+          websocket: "InstantTransport",
+          sse: "SseTransport",
+          polymorphism: true,
+        },
+        android_specific: {
+          credential_storage: "EncryptedSharedPreferences (Android Keystore)",
+          connectivity_monitoring: "ConnectivityManager + NetworkCallback",
+          compose_integration: "rememberInstantQuery() composable",
+        },
+        reactive: {
+          api: "instant.queryFlow(q) returns Flow<JsonObject>",
+          subscription: "lifecycle-aware via rememberInstantQuery()",
+        },
+        mutations: {
+          api: "instant.transact(steps)",
+          optimistic: true,
+          persistent_queue: true,
+        },
+        security: {
+          credential_redaction: true,
+          secure_storage: "Android Keystore AES-256-GCM",
+        },
+      };
+      return { content: [{ type: "text", text: JSON.stringify(capabilities, null, 2) }] };
+    },
+  );
+
+  tool(server,
+    "android-sync-status",
+    "Return safe, non-credential sync state for the configured app. " +
+      "Does NOT expose credentials or auth tokens. " +
+      "Note: real-time per-client state lives inside the SDK; this is " +
+      "informational only.",
+    {},
+    async () => {
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            note: "Real-time sync state lives inside the client SDK. " +
+                  "Read it at runtime via the SDK diagnostics API; " +
+                  "MCP cannot expose per-client state.",
+          }, null, 2),
+        }],
+      };
     },
   );
 }
