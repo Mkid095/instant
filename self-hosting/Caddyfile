@@ -22,6 +22,13 @@
 		reverse_proxy server:8888
 	}
 
+	# Maven repository at /maven/* — path-stripped reverse proxy
+	@maven path /maven/*
+	handle @maven {
+		uri strip_prefix /maven
+		reverse_proxy maven-repository:8081
+	}
+
 	reverse_proxy self-hosting-www-1:3000
 }
 
@@ -55,4 +62,12 @@ whatsapp.nextmavens.com {
 	}
 
 	reverse_proxy viventure-web:3000
+}
+
+maven.instant.fidscript.com {
+	encode gzip
+	header {
+		Access-Control-Allow-Origin *
+	}
+	reverse_proxy maven-repository:8081
 }

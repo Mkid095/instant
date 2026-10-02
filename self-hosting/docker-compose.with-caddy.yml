@@ -118,11 +118,21 @@ services:
     networks:
       - self-hosting_default
 
+  maven-repository:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile.maven:/etc/caddy/Caddyfile:ro
+      - maven-repo:/srv/maven
+    networks:
+      - self-hosting_default
+
 volumes:
   backend-db:
   caddy_data:
   caddy_config:
   server_config:
+  maven-repo:
 
 networks:
   self-hosting_default:
