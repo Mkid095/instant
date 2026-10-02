@@ -170,4 +170,10 @@ module.exports = [
       },
     ],
   },
+  {
+    title: 'Cross-platform',
+    links: [
+      { title: 'Data sharing', href: '/docs/cross-platform' },
+    ],
+  },
 ];

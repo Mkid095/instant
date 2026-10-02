@@ -2554,6 +2554,250 @@ instant.close()`;
       };
     },
   );
+
+  tool(server,
+    "android-setup-guide",
+    "Step-by-step setup guide for an Android app with the InstantDB SDK. " +
+      "Returns a complete walkthrough: Gradle config, manifest permissions, " +
+      "Application class, Compose UI, queries, transacts, and how to " +
+      "share the same data with web. No credentials.",
+    {
+      app_id: z.string().optional().describe(
+        "Your InstantDB app id (UUID). Returned in snippets if provided."
+      ),
+      host: z.string().optional().describe(
+        "API host. Defaults to https://apiinstant.fidscript.com."
+      ),
+      transport: z.enum(["websocket", "sse"]).optional().describe(
+        "Transport to use. Default: websocket."
+      ),
+    },
+    async ({ app_id, host, transport }) => {
+      const aid = app_id || "YOUR_APP_ID";
+      const h = host || "https://apiinstant.fidscript.com";
+      const t = transport || "websocket";
+      const useSse = t === "sse";
+
+      const guide = {
+        overview: "Five steps to add InstantDB to a native Android app. " +
+                  "Same app_id shares data with web/iOS/etc.",
+        step_1_dependencies: {
+          file: "settings.gradle.kts",
+          snippet:
+`dependencyResolutionManagement {
+    repositories {
+        maven { url = uri("https://instant.fidscript.com/maven") }
+        google()
+        mavenCentral()
+    }
+}`,
+        },
+        step_1b_app_gradle: {
+          file: "app/build.gradle.kts",
+          snippet:
+`dependencies {
+    implementation("com.instantdb:instantdb-android:0.8.0-phase10")
+    implementation("com.instantdb:instantdb-kotlin:0.8.0-phase10")
+}`,
+        },
+        step_2_manifest: {
+          file: "app/src/main/AndroidManifest.xml",
+          snippet:
+`<!-- Required for real-time sync -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />`,
+        },
+        step_3_application: {
+          file: "app/src/main/kotlin/.../MyApplication.kt",
+          snippet:
+`import android.app.Application
+import com.instantdb.android.InstantDb
+import com.instantdb.android.InstantDbConfig
+
+class MyApplication : Application() {
+    // One InstantDb instance per app. Use the same appId across
+    // platforms (web/iOS/Android) to share data.
+    val db: InstantDb by lazy {
+        InstantDb(
+            context = this,
+            config = InstantDbConfig(
+                appId = "${aid}",
+                host = "${h}",
+                useSse = ${useSse},
+            )
+        )
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        // connect() is suspend; launch in a coroutine scope
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            db.connect()
+        }
+    }
+}`,
+        },
+        step_4_compose_query: {
+          file: "app/src/main/kotlin/.../MainActivity.kt",
+          snippet:
+`import androidx.compose.runtime.*
+import com.instantdb.android.rememberInstantQuery
+
+@Composable
+fun TodoList() {
+    val state = rememberInstantQuery("{ todos: { \\$: { where: { done: false } } } }")
+    when (state) {
+        is com.instantdb.android.InstantQueryState.Loading -> Text("Loading...")
+        is com.instantdb.android.InstantQueryState.Error -> Text("Error: ${'$'}{state.message}")
+        is com.instantdb.android.InstantQueryState.Data -> {
+            val todos = state.data["todos"] as? List<Map<String, Any>> ?: emptyList()
+            LazyColumn {
+                items(todos) { todo ->
+                    Text(todo["text"]?.toString() ?: "")
+                }
+            }
+        }
+        else -> {}
+    }
+}`,
+        },
+        step_5_transact: {
+          file: "app/src/main/kotlin/.../AddTodo.kt",
+          snippet:
+`import kotlinx.serialization.json.*
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+
+@Composable
+fun AddTodoButton() {
+    val scope = rememberCoroutineScope()
+    Button(onClick = {
+        scope.launch {
+            (applicationContext as MyApplication).db.transact(
+                listOf(listOf(
+                    JsonPrimitive("add"),
+                    JsonPrimitive("todos"),
+                    JsonObject(mapOf(
+                        "text" to JsonPrimitive("Buy milk"),
+                        "done" to JsonPrimitive(false)
+                    ))
+                ))
+            )
+        }
+    }) { Text("Add") }
+}`,
+        },
+        cross_platform_note: {
+          summary: "Same appId across all clients shares the same database.",
+          details: "Use the same appId in your web app's @fidscript/instant-sdk " +
+                   "init() call. Todos created on Android appear in the web app " +
+                   "in real-time, and vice versa. No extra config needed — the " +
+                   "VPS routes by appId.",
+        },
+        verify_local: {
+          step_1: "Run a Kotlin test against the public Maven repo: " +
+                  "https://instant.fidscript.com/maven/com/instantdb/instantdb-kotlin/0.8.0-phase10/",
+          step_2: "Use the docker sample: /home/ken/projects/kotlin-poc/sample-android",
+          step_3: "Public docs: https://instant.fidscript.com/docs/start-android",
+        },
+      };
+
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify(guide, null, 2),
+        }],
+      };
+    },
+  );
+
+  tool(server,
+    "android-cross-platform",
+    "Explain how to share data between the Android app and other InstantDB " +
+      "clients (web, iOS, React Native, etc.). Returns a working code sample " +
+      "for both sides and the URL to the public docs.",
+    {
+      app_id: z.string().optional().describe(
+        "Your InstantDB app id (UUID). Returned in snippets if provided."
+      ),
+    },
+    async ({ app_id }) => {
+      const aid = app_id || "YOUR_APP_ID";
+
+      const guide = {
+        overview: "InstantDB shares data across all clients with the same " +
+                  "appId. The same `appId` works in Android, web, iOS, React " +
+                  "Native, SolidJS, Svelte, Vue, Python, and Kotlin/JVM.",
+        architecture: {
+          description: "All clients connect to the same backend and read/write " +
+                       "to the same database, keyed by appId.",
+          diagram: "Android --\\\n" +
+                   "         \\\n" +
+                   "          > [ InstantDB VPS ] -- same DB\n" +
+                   "         /\n" +
+                   "  Web --/",
+        },
+        android_side: {
+          description: "Run InstantDb with the same appId as the web app.",
+          snippet:
+`val db = InstantDb(
+    context = this,
+    config = InstantDbConfig(
+        appId = "${aid}",
+        host = "https://apiinstant.fidscript.com",
+        useSse = false,
+    )
+)
+db.connect()
+
+// Add a todo from Android
+db.transact(listOf(listOf(
+    "add", "todos",
+    mapOf("text" to "Hello from Android", "done" to false)
+)))`,
+        },
+        web_side: {
+          description: "Use the same appId in the JS SDK.",
+          snippet:
+`import { init, id } from "@fidscript/instant-sdk";
+
+const db = init({ appId: "${aid}" });
+
+// Subscribe — the Android-side todo will appear here in real-time
+db.subscribeQuery({ todos: {} }, (resp) => {
+    console.log("Todos:", resp.data.todos);
+});
+
+// Add a todo from web — Android will receive it
+db.transact(
+    db.tx.todos[id()].update({ text: "Hello from web", done: false })
+);`,
+        },
+        verification: {
+          step_1: "Open the web app in a browser tab.",
+          step_2: "Open the Android app on a connected device.",
+          step_3: "Add a todo in either — it appears in the other within " +
+                  "milliseconds (real-time sync over SSE or WebSocket).",
+          step_4: "Same applies to iOS, React Native, SolidJS, Svelte, " +
+                  "Vue, Python, and Kotlin/JVM.",
+        },
+        auth: "Users created on any platform are visible on all platforms. " +
+              "Sign in via magic code on web, then query that user from " +
+              "the Android app — same auth, same database.",
+        storage: "Files uploaded from any client (web, Android, iOS) live in " +
+                 "the same storage provider. A photo uploaded from Android is " +
+                 "downloadable from web with the same URL.",
+        public_docs: "https://instant.fidscript.com/docs/cross-platform",
+      };
+
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify(guide, null, 2),
+        }],
+      };
+    },
+  );
 }
 
 // CLI
