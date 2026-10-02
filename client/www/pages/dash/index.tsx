@@ -71,6 +71,7 @@ import { Webhooks } from '@/components/dash/Webhooks';
 import { StorageSettings } from '@/components/dash/StorageSettings';
 import Clients from '@/components/dash/Clients';
 import { CLISetup } from '@/components/dash/CLISetup';
+import { AndroidKotlinSdk } from '@/components/dash/AndroidKotlinSdk';
 import WebhookIcon from '@/components/icons/WebhookIcon';
 import {
   Badge,
@@ -150,7 +151,8 @@ type MainTabId =
   | 'billing'
   | 'oauth-apps'
   | 'cli-setup'
-  | 'storage';
+  | 'storage'
+  | 'android-kotlin';
 
 type UserSettingsTabId = 'pat' | 'oauth-apps';
 
@@ -194,6 +196,7 @@ const mainTabs: Tab<MainTabId>[] = [
   { id: 'oauth-apps', title: 'OAuth Apps', icon: makeIcon(CubeIcon) },
   { id: 'team', title: 'Clients', icon: makeIcon(UsersIcon) },
   { id: 'cli-setup', title: 'CLI & MCP', icon: makeIcon(CommandLineIcon) },
+  { id: 'android-kotlin', title: 'Android / Kotlin', icon: makeIcon(CubeIcon) },
   { id: 'storage', title: 'Storage', minRole: 'admin', icon: makeIcon(CloudArrowUpIcon) },
 ];
 
@@ -1061,6 +1064,8 @@ function DashboardContent({
         <Clients />
       ) : tab === 'cli-setup' ? (
         <CLISetup appId={appId} />
+      ) : tab === 'android-kotlin' ? (
+        <AndroidKotlinSdk appId={appId} />
       ) : tab === 'storage' ? (
         <StorageSettings appId={appId} />
       ) : null}

@@ -2,13 +2,33 @@
 nextjs:
   metadata:
     title: 'Storage'
-    description: 'How to upload and serve files with Instant.'
+    description: 'How to upload and serve files with Instant using Cloudinary.'
 ---
 
-Instant Storage makes it simple to upload and serve files for your app.
-You can store images, videos, documents, and any other file type.
+Instant Storage powered by Cloudinary makes it simple to upload and serve files for your app.
+You can store images, videos, documents, and any other file type, with direct public URLs returned after every upload.
 
-## Storage quick start
+## How Storage Works
+
+When you upload a file through Instant:
+
+1. **File is uploaded to Cloudinary** - Your file is securely stored in Cloudinary's CDN
+2. **You receive a direct public URL** - The response includes a ready-to-use Cloudinary URL
+3. **Save the URL to your database** - Store the URL in any string field for later use
+
+This makes integration simple - you get a standard Cloudinary URL that works everywhere and renders fast via CDN.
+
+## Storage Providers
+
+Instant supports multiple storage providers:
+
+| Provider | Use Case | Setup Required |
+|----------|----------|----------------|
+| **Cloudinary** | Images, videos, any file type | Cloud name, API key, API secret |
+| **R2 (Cloudflare)** | S3-compatible, large files | Account ID, access key, bucket |
+| **S3** | AWS S3 integration | Bucket, region, credentials |
+
+## Storage Quick Start
 
 Let's build a full example of how to upload and display a grid of images:
 
@@ -31,6 +51,12 @@ import { i } from "@fidscript/instant-react";
 
 const _schema = i.schema({
   entities: {
+    products: i.entity({
+      name: i.string(),
+      // Store the Cloudinary URL in a string field
+      imageUrl: i.string(),
+      videoUrl: i.string().optional(),
+    }),
     $files: i.entity({
       path: i.string().unique().indexed(),
       url: i.string(),
@@ -93,27 +119,28 @@ const APP_ID = process.env.NEXT_PUBLIC_INSTANT_APP_ID;
 
 const db = init({ appId: APP_ID, schema });
 
-// `uploadFile` is what we use to do the actual upload!
-// The `$files` query will automatically update once the upload is complete
+// `uploadFile` uploads to Cloudinary and returns a direct URL
 async function uploadImage(file: File) {
   try {
-    // Optional metadata you can set for uploads
     const opts = {
       // See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
       // Default: 'application/octet-stream'
       contentType: file.type,
-      // See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
-      // Default: 'inline'
-      contentDisposition: 'attachment',
     };
-    await db.storage.uploadFile(file.name, file, opts);
+    // The response includes the Cloudinary URL
+    const { data } = await db.storage.uploadFile(file.name, file, opts);
+    console.log('Uploaded! Cloudinary URL:', data.url);
+
+    // Save the URL to your database
+    await db.transact(
+      db.tx.products[data.productId].update({ imageUrl: data.url })
+    );
   } catch (error) {
     console.error('Error uploading image:', error);
   }
 }
 
 function App() {
-  // $files is the special namespace for querying storage data
   const { isLoading, error, data } = db.useQuery({
     $files: {
       $: {
@@ -130,8 +157,6 @@ function App() {
     return <div>Error fetching data: {error.message}</div>;
   }
 
-  // The result of a $files query will contain objects with
-  // metadata and a download URL you can use for serving files!
   const { $files: images } = data
   return (
     <div className="box-border bg-gray-50 font-mono min-h-screen p-5 flex items-center flex-col">
@@ -139,51 +164,37 @@ function App() {
         Image Feed
       </div>
       <ImageUpload />
-      <div className="text-xs text-center py-4">
-        Upload some images and they will appear below! Open another tab and see
-        the changes in real-time!
-      </div>
       <ImageGrid images={images} />
     </div>
   );
 }
 
-interface SelectedFile {
-  file: File;
-  previewURL: string;
-}
-
 function ImageUpload() {
-  const [selectedFile, setSelectedFile] = React.useState<SelectedFile | null>(null);
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const { previewURL } = selectedFile || {};
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const previewURL = URL.createObjectURL(file);
-      setSelectedFile({ file, previewURL });
+      setSelectedFile(file);
     }
   };
 
   const handleUpload = async () => {
     if (selectedFile) {
       setIsUploading(true);
-
-      await uploadImage(selectedFile.file);
-
-      URL.revokeObjectURL(selectedFile.previewURL);
-      setSelectedFile(null);
-      fileInputRef.current?.value && (fileInputRef.current.value = '');
-      setIsUploading(false);
+      try {
+        await db.storage.uploadFile(selectedFile.name, selectedFile);
+      } finally {
+        setSelectedFile(null);
+        setIsUploading(false);
+      }
     }
   };
 
   return (
     <div className="mb-8 p-5 border-2 border-dashed border-gray-300 rounded-lg">
       <input
-        ref={fileInputRef}
         type="file"
         accept="image/*"
         onChange={handleFileSelect}
@@ -192,11 +203,11 @@ function ImageUpload() {
       {isUploading ? (
         <div className="mt-5 flex flex-col items-center">
           <div className="w-8 h-8 border-2 border-t-2 border-gray-200 border-t-green-500 rounded-full animate-spin"></div>
-          <p className="mt-2 text-sm text-gray-600">Uploading...</p>
+          <p className="mt-2 text-sm text-gray-600">Uploading to Cloudinary...</p>
         </div>
-      ) : previewURL && (
+      ) : selectedFile && (
         <div className="mt-5 flex flex-col items-center gap-3">
-          <img src={previewURL} alt="Preview" className="max-w-xs max-h-xs object-contain" />
+          <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="max-w-xs max-h-xs object-contain" />
           <button onClick={handleUpload} className="py-2 px-4 bg-green-500 text-white border-none rounded-sm cursor-pointer font-mono">
             Upload Image
           </button>
@@ -207,7 +218,6 @@ function ImageUpload() {
 }
 
 function ImageGrid({ images }: { images: InstantFile[] }) {
-  // Use `db.transact` to delete files
   const handleDelete = async (image: InstantFile) => {
     db.transact(db.tx.$files[image.id].delete());
   }
@@ -218,10 +228,9 @@ function ImageGrid({ images }: { images: InstantFile[] }) {
         return (
           <div key={image.id} className="border border-gray-300 rounded-lg overflow-hidden">
             <div className="relative">
-              {/* $files entities come with a `url` property */}
+              {/* image.url is the direct Cloudinary URL */}
               <img src={image.url} alt={image.path} className="w-full h-64 object-cover" />
             </div>
-
             <div className="p-3 flex justify-between items-center bg-white">
               <span>{image.path}</span>
               <span onClick={() => handleDelete(image)} className="cursor-pointer text-gray-300 px-1">
@@ -247,10 +256,58 @@ npm run dev
 Go to `localhost:3000`, and you should see a simple image feed where you can
 upload and delete images!
 
-## Storage client SDK
+## Setting Up Cloudinary
 
-Below you'll find a more detailed guide on how to use the Storage API from
-React.
+### 1. Create a Cloudinary Account
+
+Sign up at [cloudinary.com](https://cloudinary.com) and copy your:
+- **Cloud Name**
+- **API Key**
+- **API Secret**
+
+### 2. Configure Storage in Your App
+
+#### Via Dashboard
+Go to your app settings at `https://instant.fidscript.com` → **Storage** → Enter your Cloudinary credentials.
+
+#### Via MCP/CLI
+```bash
+update-storage-config \
+  --app-id <YOUR_APP_ID> \
+  --cloud-name your-cloud-name \
+  --api-key your-api-key \
+  --api-secret your-api-secret
+```
+
+### 3. Create an Upload Preset (Optional)
+
+In Cloudinary dashboard → **Settings** → **Upload** → Create an unsigned upload preset.
+Use this for client-side uploads without exposing credentials.
+
+## Upload API Response
+
+When you upload a file, the response includes:
+
+```json
+{
+  "data": {
+    "id": "file-uuid",
+    "locationId": "cloudinary-location-id",
+    "path": "products/image.jpg",
+    "size": 123456,
+    "contentType": "image/jpeg",
+    "url": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/products/image.jpg"
+  }
+}
+```
+
+The `url` field contains the **direct Cloudinary URL** you can:
+- Store in any string field
+- Use directly in `<img src="...">` tags
+- Embed in videos with `<video src="...">`
+- Share publicly without authentication
+
+## Storage Client SDK
 
 ### Upload files
 
@@ -261,200 +318,165 @@ Use `db.storage.uploadFile(path, file, opts?)` to upload a file.
 - `opts` can be used to set additional metadata like `contentType` and `contentDisposition`
 
 ```javascript
-// use the file's current name as the path
+// Use the file's current name as the path
 await db.storage.uploadFile(file.name, file);
 
-// or, give the file a custom name
-const path = `${user.id}/avatar.png`;
+// Give the file a custom path
+const path = `products/${productId}/main-image.jpg`;
 await db.storage.uploadFile(path, file);
 
-// or, set the content type and content disposition
-const path = `${user.id}/orders/${orderId}.pdf`;
+// Set content type for proper rendering
+const path = `documents/invoice-${orderId}.pdf`;
 await db.storage.uploadFile(path, file, {
   contentType: 'application/pdf',
-  contentDisposition: `attachment; filename="${orderId}-confirmation.pdf"`,
 });
+```
+
+### Upload Response
+
+After successful upload, you'll receive:
+
+```javascript
+const { data } = await db.storage.uploadFile(path, file);
+
+console.log(data);
+// {
+//   id: "file-id",
+//   path: "products/image.jpg",
+//   url: "https://res.cloudinary.com/cloud/image/upload/v123/products/image.jpg",
+//   size: 123456,
+//   contentType: "image/jpeg"
+// }
+
+// Save URL to your database
+await db.transact(
+  db.tx.products[productId].update({ imageUrl: data.url })
+);
 ```
 
 ### Overwrite files
 
-If the `path` already exists in your storage directory, it will be overwritten!
+If the `path` already exists, it will be overwritten!
 
 ```javascript
-// Uploads a file to 'demo.png'
+// Uploads to 'demo.png'
 await db.storage.uploadFile('demo.png', file);
 
 // Overwrites the file at 'demo.png'
 await db.storage.uploadFile('demo.png', file);
 ```
 
-If you don't want to overwrite files, you'll need to ensure that each file has a unique path.
-
 ### View files
 
-You can retrieve files by querying the `$files` namespace.
+Query the `$files` namespace to get files with their URLs:
 
 ```javascript
-// Fetch all files from earliest to latest upload
-const query = {
+// Fetch all files
+const { data } = db.useQuery({
   $files: {
     $: {
       order: { serverCreatedAt: 'asc' },
     },
   },
 });
-const { isLoading, error, data } = db.useQuery(query);
-```
 
-```javascript
-console.log(data)
-{
-  "$files": [
-    {
-      "id": fileId,
-      "path": "demo.png"
-      // You can use this URL to serve the file
-      "url": "https://instant-storage.s3.amazonaws.com/...",
-      "content-type": "image/png",
-      "content-disposition": "attachment; filename=\"demo.png\"",
-    },
-    // ...
-  ]
-}
-```
-
-You can use query filters and associations as you would with any other namespace
-to filter and sort your files.
-
-```javascript {% showCopy=true %}
-// instant.schema.ts
-// ---------------
-import { i } from '@fidscript/instant-sdk';
-const _schema = i.schema({
-  entities: {
-    $files: i.entity({
-      path: i.string().unique().indexed(),
-      url: i.string(),
-    }),
-    $users: i.entity({
-      email: i.string().unique().indexed(),
-    }),
-    profiles: i.entity({
-      nickname: i.string(),
-      createdAt: i.date(),
-    }),
-  },
-  links: {
-    profileUser: {
-      forward: { on: 'profiles', has: 'one', label: '$user' },
-      reverse: { on: '$users', has: 'one', label: 'profile' },
-    },
-    profileUploads: {
-      forward: { on: 'profiles', has: 'many', label: '$files' },
-      reverse: { on: '$files', has: 'one', label: 'profile' },
-    },
-  },
-});
-```
-
-```javascript {% showCopy=true %}
-// app/page.tsx
-// ---------------
-// Find files associated with a profile
-const { user } = db.useAuth();
-const query = {
-  profiles: {
-    $: {
-      where: {"$user.id": user.id}
-    },
-    $files: {},
-  },
-});
-// Defer until we've fetched the user and then query associated files
-const { isLoading, error, data } = db.useQuery(user ? query : null);
+console.log(data.$files[0].url);
+// "https://res.cloudinary.com/cloud/image/upload/v123/products/image.jpg"
 ```
 
 ### Delete files
-
-Use `db.transact` to delete files.
 
 ```javascript
 // Delete by id
 db.transact(db.tx.$files[fileId].delete());
 
 // Delete by path
-db.transact(db.tx.$files[lookup('path', 'photos/demo.png')].delete());
-
-// Delete multiple files
-db.transact(fileIds.map((id) => db.tx.$files[id].delete()));
+db.transact(
+  db.tx.$files[lookup('path', 'photos/demo.png')].delete()
+);
 ```
 
-### Update files
+## Complete Product Example
 
-You can use `db.transact` to update file paths, as well as any custom columns you've added to files.
+Here's how to build a product catalog with images and videos:
 
-So if your schema looked like this:
+### 1. Define Schema
 
 ```javascript
-import { i } from "@fidscript/instant-react";
-
 const _schema = i.schema({
   entities: {
-    $files: i.entity({
-      path: i.string().unique().indexed(),
-      isFavorite: i.boolean().optional()
-      url: i.string(),
+    products: i.entity({
+      name: i.string(),
+      description: i.string(),
+      price: i.number(),
+      imageUrl: i.string(),    // Cloudinary URL for main image
+      videoUrl: i.string(),    // Cloudinary URL for product video
     }),
+    categories: i.entity({
+      name: i.string(),
+    }),
+  },
+  links: {
+    productCategory: {
+      forward: { on: 'products', has: 'one', label: 'category' },
+      reverse: { on: 'categories', has: 'many', label: 'products' },
+    },
   },
 });
 ```
 
-You could run a transaction like this:
+### 2. Upload and Save URLs
 
 ```javascript
-// Move all files under 'documents/my-video-project/' to 'videos/my-video-project/' and make them favorites
+async function createProductWithMedia(formData: FormData) {
+  const { name, price, categoryId, image, video } = formData;
 
-const { data } = await db.query({
-  $files: { $: { where: { path: { $like: 'documents/my-video-project/%' } } } },
-});
+  // Upload image to Cloudinary
+  const imageResult = await db.storage.uploadFile(
+    `products/${name}/main.jpg`,
+    image,
+    { contentType: image.type }
+  );
 
-await db.transact(
-  data.$files.map((file) =>
-    db.tx.$files[file.id].update({
-      path: file.path.replace(
-        'documents/my-video-project/',
-        'videos/my-video-project/',
-      ),
-      isFavorite: true,
-    }),
-  ),
-);
-```
-
-`path` is a unique attribute, so if another file exists with that path, then the transaction
-will fail.
-
-At the moment we only allow updating the `path` attribute of `$files`, as well as any custom columns you've created. If you
-try to update another attribute like `content-type` the transaction will fail.
-
-### Link files
-
-When the upload succeeds, `uploadFile` returns a `data` object containing a file ID associated with the uploaded file. You can use this ID to link the file to other namespaces.
-
-```javascript
-async function uploadImage(file: File) {
-  try {
-    const path = `${user.id}/avatar`;
-    const { data } = await db.storage.uploadFile(path, file);
-    await db.transact(db.tx.profiles[profileId].link({ avatar: data.id }));
-  } catch (error) {
-    console.error('Error uploading image:', error);
+  // Upload video if provided
+  let videoUrl = null;
+  if (video) {
+    const videoResult = await db.storage.uploadFile(
+      `products/${name}/demo.mp4`,
+      video,
+      { contentType: video.type }
+    );
+    videoUrl = videoResult.data.url;
   }
+
+  // Create product with URLs stored in database
+  await db.transact([
+    db.tx.categories[id(categoryId)].link({ products: 'hello' }),
+    ['create', 'products', {
+      id: randomId(),
+      name,
+      price,
+      imageUrl: imageResult.data.url,
+      videoUrl,
+    }],
+  ]);
 }
 ```
 
-[Check out this repo](https://github.com/jsventures/instant-storage-avatar-example)
-for a more detailed example showing how you may leverage links to implement an avatar upload feature.
+### 3. Render in Your App
+
+```jsx
+function ProductCard({ product }) {
+  return (
+    <div>
+      <img src={product.imageUrl} alt={product.name} />
+      {product.videoUrl && (
+        <video src={product.videoUrl} controls />
+      )}
+    </div>
+  );
+}
+```
 
 ## Using Storage with React Native
 
@@ -530,13 +552,11 @@ const query = {
       order: { serverCreatedAt: 'asc' },
     },
   },
-});
+};
 const data = db.query(query);
 ```
 
 ### Delete files
-
-Use `db.transact` to delete files.
 
 ```ts
 // Delete by id
@@ -544,21 +564,24 @@ await db.transact(db.tx.$files[fileId].delete());
 
 // Delete by path
 await db.transact(db.tx.$files[lookup('path', 'photos/demo.png')].delete());
-
-// Delete multiple files
-await db.transact(fileIds.map((id) => db.tx.$files[id].delete()));
 ```
 
-### Link files
+## R2 / Cloudflare Storage
 
-As with the client SDK, you can use the response after uploading a file to link
-the upload to other entities.
+For R2 storage (S3-compatible), configure:
 
-```typescript
-// Assume we have a user ID and a buffer for the file
-const { data } = await db.storage.uploadFile('images/demo.png', buffer);
-db.transact([db.tx.$users[userId].link({ avatar: data.id })]);
+```bash
+update-storage-config \
+  --app-id <YOUR_APP_ID> \
+  --provider-type r2 \
+  --account-id <CLOUDFLARE_ACCOUNT_ID> \
+  --access-key-id <R2_ACCESS_KEY_ID> \
+  --secret-access-key <R2_SECRET_ACCESS_KEY> \
+  --bucket <BUCKET_NAME> \
+  --endpoint https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 ```
+
+R2 URLs are in format: `https://pub.<your-domain.com>/<path>` or use the R2.dev subdomain.
 
 ## Permissions
 

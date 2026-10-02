@@ -6,8 +6,9 @@
  *
  * Canonical FIDScript Production Endpoints:
  *   API:      https://apiinstant.fidscript.com
- *   Storage:   https://filesinstant.fidscript.com
- *   Runtime:   wss://apiinstant.fidscript.com/runtime/session
+ *   Storage:  https://apiinstant.fidscript.com  (same host as API; /storage/* routes
+ *             are served by the same backend server)
+ *   Runtime:  wss://apiinstant.fidscript.com/runtime/session
  *   Dashboard: https://instant.fidscript.com
  */
 
@@ -33,7 +34,7 @@ export const FIDScriptConfig = {
   storageURI:
     typeof process !== 'undefined' && process.env?.INSTANT_STORAGE_URI
       ? process.env.INSTANT_STORAGE_URI
-      : 'https://filesinstant.fidscript.com',
+      : 'https://apiinstant.fidscript.com',
 
   dashURI:
     typeof process !== 'undefined' && process.env?.INSTANT_DASH_URI

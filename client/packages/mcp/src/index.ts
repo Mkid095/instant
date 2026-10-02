@@ -282,6 +282,241 @@ function registerTools(server: McpServer, api: PlatformApi) {
       return handleTransact(api, appId, steps);
     },
   );
+
+  // --- Android / Kotlin SDK guidance tools ---
+  // Phase 9: 7 read-only tools pointing at the native Kotlin/Android
+  // SDK. None of these return credentials, auth tokens, or secrets.
+
+  server.tool(
+    'android-sdk-version',
+    'Return the current Android / Kotlin SDK version and artifact coordinates. Safe; returns only public version metadata. No credentials.',
+    {},
+    async () => {
+      const info = {
+        sdk: 'instantdb-android',
+        version: '0.8.0-phase10',
+        artifacts: {
+          android: 'com.instantdb:instantdb-android:0.8.0-phase10',
+          kotlin: 'com.instantdb:instantdb-kotlin:0.8.0-phase10',
+        },
+        supports: ['Kotlin 2.0+', 'JVM', 'Android (AndroidSqliteDriver)'],
+        transports: ['websocket', 'sse'],
+        min_android_sdk: 24,
+        target_android_sdk: 34,
+        transport_polymorphism: true,
+      };
+      return {
+        content: [{ type: 'text', text: JSON.stringify(info, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'android-installation',
+    'Return the Gradle dependency snippet for the Android / Kotlin SDK. No credentials are returned.',
+    {
+      version: z
+        .string()
+        .optional()
+        .describe(
+          'Optional SDK version (default: 0.8.0-phase10). Must be a published Maven artifact.',
+        ),
+    },
+    async ({ version }) => {
+      const v = version || '0.8.0-phase10';
+      const snippet =
+        `dependencies {
+    implementation("com.instantdb:instantdb-android:${v}")
+}`;
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ version: v, gradle_snippet: snippet }, null, 2),
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    'android-configuration',
+    'Return the SDK initialization snippet for Android. Use this to bootstrap an Android application with the Kotlin SDK. No credentials are embedded.',
+    {},
+    async () => {
+      const snippet =
+        `// Android application
+val instant = InstantDb(
+    context = applicationContext,
+    config = InstantDbConfig(
+        appId = "YOUR_APP_ID",       // From InstantDB dashboard
+        host = "https://api.example.com",  // Your server origin
+        useSse = false,            // true = SSE, false = WebSocket (default)
+    )
+)
+
+// Connect (uses secure credential storage on Android)
+instant.connect()
+
+// Query reactive data
+instant.queryFlow("{ todos: { \$: { \$: {} } } }")
+
+// Execute transactions
+instant.transact(listOf(listOf("add", "todos", mapOf("title" to "Hello"))))
+
+// Connection state
+instant.connectionState.value  // ConnectionState.Connected / Disconnected / Error
+
+// Clean shutdown
+instant.close()`;
+      return {
+        content: [
+          { type: 'text', text: JSON.stringify({ kotlin_snippet: snippet }, null, 2) },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    'android-documentation',
+    'Return pointers to the SDK documentation.',
+    {},
+    async () => {
+      const docs = {
+        overview: 'https://www.instantdb.com/docs/overview',
+        android_sdk: 'https://www.instantdb.com/docs/android',
+        auth: 'https://www.instantdb.com/docs/auth',
+        schema: 'https://www.instantdb.com/docs/schema',
+        permissions: 'https://www.instantdb.com/docs/permissions',
+        query: 'https://www.instantdb.com/docs/query',
+        react_native: 'https://www.instantdb.com/docs/react-native',
+        storage: 'https://www.instantdb.com/docs/storage',
+      };
+      return {
+        content: [{ type: 'text', text: JSON.stringify(docs, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'android-schema',
+    'Return non-credential schema metadata for the configured app: namespace names, attribute forward IDs, forward etypes, and forward labels. Does NOT return values or auth tokens.',
+    {
+      appId: z
+        .string()
+        .uuid()
+        .optional()
+        .describe(
+          'Optional app id. Defaults to the configured default app id.',
+        ),
+    },
+    async ({ appId }: { appId?: string }) => {
+      try {
+        const target = appId;
+        if (!target) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text',
+                text: 'Error: appId is required. Pass a UUID via the appId argument.',
+              },
+            ],
+          };
+        }
+        const data = await api.getSchema(target);
+        // Reduce to a safe, non-credential subset.
+        const attrs = (data as any).schema?.attrs ?? (data as any).attrs ?? [];
+        const safe = attrs.map((a: any) => ({
+          id: a.id,
+          forward_etype: a['forward-identity']?.[1],
+          forward_label: a['forward-identity']?.[2],
+          is_unique: a['unique?'],
+          is_indexed: a['index?'],
+          is_required: a['required?'],
+        }));
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ app_id: target, attrs: safe }, null, 2),
+            },
+          ],
+        };
+      } catch (e: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Error: ${e.message ?? e}` }],
+        };
+      }
+    },
+  );
+
+  server.tool(
+    'android-capabilities',
+    'Return a list of supported Android / Kotlin SDK capabilities. Read-only; no credentials.',
+    {},
+    async () => {
+      const capabilities = {
+        persistence: {
+          store: 'SQLite (SQLDelight)',
+          driver: 'AndroidSqliteDriver',
+          schema_version: 2,
+        },
+        transport: {
+          websocket: 'InstantTransport',
+          sse: 'SseTransport',
+          polymorphism: true,
+        },
+        android_specific: {
+          credential_storage: 'EncryptedSharedPreferences (Android Keystore)',
+          connectivity_monitoring: 'ConnectivityManager + NetworkCallback',
+          compose_integration: 'rememberInstantQuery() composable',
+        },
+        reactive: {
+          api: 'instant.queryFlow(q) returns Flow<JsonObject>',
+          subscription: 'lifecycle-aware via rememberInstantQuery()',
+        },
+        mutations: {
+          api: 'instant.transact(steps)',
+          optimistic: true,
+          persistent_queue: true,
+        },
+        security: {
+          credential_redaction: true,
+          secure_storage: 'Android Keystore AES-256-GCM',
+        },
+      };
+      return {
+        content: [
+          { type: 'text', text: JSON.stringify(capabilities, null, 2) },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    'android-sync-status',
+    'Return safe, non-credential sync state for the configured app. Does NOT expose credentials or auth tokens. Note: real-time per-client state lives inside the SDK; this is informational only.',
+    {},
+    async () => {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                note:
+                  'Real-time sync state lives inside the client SDK. Read it at runtime via the SDK diagnostics API; MCP cannot expose per-client state.',
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
 }
 
 async function startStdio() {

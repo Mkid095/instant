@@ -11,6 +11,13 @@ module.exports = [
         title: 'Getting started w/ React Native',
         href: '/docs/start-rn',
         prevHref: null,
+        nextHref: '/docs/start-android',
+        optionalLLM: true,
+      },
+      {
+        title: 'Getting started w/ Android',
+        href: '/docs/start-android',
+        prevHref: '/docs/start-rn',
         nextHref: '/docs/create-instant-app',
         optionalLLM: true,
       },
