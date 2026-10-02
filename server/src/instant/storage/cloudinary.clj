@@ -182,10 +182,19 @@
               (->normalized-upload-result parsed public-id))))))))
 
 (defn- resource-type [content-type]
-  "Determine Cloudinary resource type from content-type. Images use 'image', everything else uses 'raw'."
-  (if (and content-type (string/starts-with? content-type "image/"))
-    "image"
-    "raw"))
+  "Determine Cloudinary resource type from content-type.
+   Accepts either a MIME type ('image/png', 'video/mp4', 'application/pdf')
+   OR a Cloudinary resource_type ('image', 'video', 'raw') directly.
+   - images: 'image'
+   - videos: 'video'
+   - everything else (audio, docs, arbitrary binaries): 'raw'"
+  (cond
+    (nil? content-type) "raw"
+    (or (= content-type "image")
+        (string/starts-with? content-type "image/")) "image"
+    (or (= content-type "video")
+        (string/starts-with? content-type "video/")) "video"
+    :else "raw"))
 
 (defn delete-file! [app-id location-id & [opts]]
   (when location-id

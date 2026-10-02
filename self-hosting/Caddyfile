@@ -22,7 +22,7 @@
 		reverse_proxy server:8888
 	}
 
-	reverse_proxy www:3000
+	reverse_proxy self-hosting-www-1:3000
 }
 
 {$BACKEND_DOMAIN:api.localhost} {

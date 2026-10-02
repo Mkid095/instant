@@ -544,12 +544,36 @@
 ;; ---
 
 (defn storage-provider []
-  "Returns the configured storage provider keyword: :s3 (default) or :cloudinary."
+  "Returns the configured storage provider keyword: :s3 (default), :cloudinary, or :r2."
   (some-> (System/getenv "STORAGE_PROVIDER")
           string/trim
           string/lower-case
           not-empty
           keyword))
+
+;; ---
+;; R2 (Cloudflare R2)
+;; ---
+
+(defn r2-account-id []
+  (or (System/getenv "R2_ACCOUNT_ID") ""))
+
+(defn r2-access-key-id []
+  (or (System/getenv "R2_ACCESS_KEY_ID") ""))
+
+(defn r2-secret-access-key []
+  (or (System/getenv "R2_SECRET_ACCESS_KEY") ""))
+
+(defn r2-bucket-name []
+  (or (System/getenv "R2_BUCKET") ""))
+
+(defn r2-endpoint []
+  (or (System/getenv "R2_ENDPOINT")
+      (when (not (string/blank? (r2-account-id)))
+        (str "https://" (r2-account-id) ".r2.cloudflarestorage.com"))))
+
+(defn r2-public-base-url []
+  (or (System/getenv "R2_PUBLIC_BASE_URL") ""))
 
 (defn cloudinary-cloud-name []
   (or (System/getenv "CLOUDINARY_CLOUD_NAME")

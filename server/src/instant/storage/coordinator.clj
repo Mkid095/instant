@@ -143,8 +143,16 @@
                           :location-id location-id
                           :metadata metadata
                           :mode mode})
-            ;; Generate the public URL for the uploaded file
-            public-url (storage-provider/location-id-url ctx-with-location app-id location-id)]
+            ;; Generate the public URL for the uploaded file. Pass the
+            ;; content-type so the provider can build the correct
+            ;; resource-type (image/video/raw) segment in the URL.
+            ;; Without this, Cloudinary defaults to "raw" which 404s for
+            ;; videos and renders wrong thumbnails for images.
+            public-url (storage-provider/location-id-url
+                        ctx-with-location
+                        app-id
+                        location-id
+                        (:content-type metadata))]
         ;; Return complete file info including the public URL
         {:id (:id file-record)
          :location-id location-id

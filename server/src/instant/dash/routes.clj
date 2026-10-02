@@ -1899,7 +1899,7 @@
 ;; Storage Config
 
 (defn storage-config-get [req]
-  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-member! :admin req)
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-ref-token! :admin :storage/read req)
         config (app-storage-config-model/get-by-app-id {:app-id app-id})]
     (if config
       (response/ok {:config {:id (str (:id config))
@@ -1915,7 +1915,7 @@
       (response/ok {:config nil}))))
 
 (defn storage-config-put [req]
-  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-member! :admin req)
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-ref-token! :admin :storage/write req)
         body (:body req)
         provider-type (ex/get-optional-param! req [:body :providerType] keyword)
         cloud-name (ex/get-optional-param! req [:body :cloudName] string-util/coerce-non-blank-str)
@@ -1952,8 +1952,7 @@
                            :hasApiSecret (boolean (seq (:api_secret config)))}})))
 
 (defn storage-config-delete [req]
-  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-member! :admin req)
-        _ (req->app-accepting-superadmin-or-member! :admin req)
+  (let [{{app-id :id} :app} (req->app-accepting-superadmin-or-ref-token! :admin :storage/write req)
         configs (app-storage-config-model/list-by-app-id {:app-id app-id})]
     (doseq [config configs]
       (app-storage-config-model/delete! {:id (:id config)}))

@@ -28,3 +28,14 @@
                      (hsql/format
                       {:delete-from :app_upload_urls
                        :where [:= :id upload-id]}))))
+
+(defn list-by-app-id
+  "List all upload records for an app, ordered by creation date descending"
+  ([params] (list-by-app-id (aurora/conn-pool :read) params))
+  ([conn {:keys [app-id]}]
+   (sql/execute! conn
+                 (hsql/format
+                  {:select [:id :path :created_at :expired_at]
+                   :from :app_upload_urls
+                   :where [:= :app_id app-id]
+                   :order-by [[:created_at :desc]]}))))

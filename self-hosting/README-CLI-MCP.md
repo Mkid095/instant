@@ -221,6 +221,11 @@ Alternatively, add to `~/.claude/settings.json` manually:
 | `delete-file` | Delete a storage file |
 | `get-upload-url` | Get pre-signed upload URL |
 | `get-download-url` | Get pre-signed download URL |
+| `upload-file` | Upload file directly and get public URL |
+| `list-uploaded-files` | List all uploaded files with public URLs |
+| `get-storage-config` | Get current storage configuration |
+| `update-storage-config` | Update storage configuration |
+| `delete-storage-config` | Remove custom storage config |
 | `list-webhooks` | List all webhooks |
 | `create-webhook` | Create a webhook |
 | `update-webhook` | Update a webhook |
@@ -252,6 +257,129 @@ Alternatively, add to `~/.claude/settings.json` manually:
 | `invite-app-member` | Invite user to an app |
 | `remove-app-member` | Remove app member |
 | `update-app-member` | Update member role |
+
+---
+
+## Storage Integration Guide
+
+### Overview
+
+InstantDB's storage system integrates with **Cloudinary** for file storage. When you upload a file:
+1. The file is uploaded to Cloudinary
+2. You receive a **direct public URL** back
+3. You save that URL to your database as a reference
+
+This makes it easy to store images, videos, documents, or any file type.
+
+### Setting Up Cloudinary
+
+1. Create a Cloudinary account at [cloudinary.com](https://cloudinary.com)
+2. Copy your cloud name, API key, and API secret
+3. Update your storage configuration:
+
+```bash
+# Using MCP tool
+update-storage-config --app-id <YOUR_APP_ID> \
+  --cloud-name your-cloud-name \
+  --api-key your-api-key \
+  --api-secret your-api-secret \
+  --upload-preset your-unsigned-preset
+```
+
+Or via the dashboard at `https://instant.fidscript.com` → App Settings → Storage.
+
+### Uploading Files
+
+#### Option 1: Direct Upload (Recommended)
+
+Use `upload-file` to upload a file and get the public URL directly:
+
+```bash
+upload-file --app-id <APP_ID> \
+  --filename "products/image.jpg" \
+  --content-type "image/jpeg" \
+  --content "<BASE64_ENCODED_FILE>"
+```
+
+Response:
+```json
+{
+  "data": {
+    "id": "file-uuid",
+    "locationId": "cloudinary-location-id",
+    "path": "products/image.jpg",
+    "size": 12345,
+    "contentType": "image/jpeg",
+    "url": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/products/image.jpg"
+  }
+}
+```
+
+**Save the `url` to your database!**
+
+#### Option 2: Get Pre-signed URL
+
+Use `get-upload-url` to get a pre-signed URL, then upload directly:
+
+```bash
+get-upload-url --app-id <APP_ID> --filename "videos/intro.mp4"
+```
+
+Response contains a URL where you PUT your file directly.
+
+### Using Uploaded Files
+
+After uploading, save the public URL to your InstantDB entity:
+
+```javascript
+// Example: Save video URL to a product
+transact --app-id <APP_ID> --steps '[
+  ["create", "products", "<PRODUCT_ID>", {
+    "name": "My Product",
+    "videoUrl": "https://res.cloudinary.com/your-cloud/video/upload/v123/video.mp4"
+  }]
+]'
+```
+
+### Listing Uploaded Files
+
+```bash
+# Get all uploaded files for an app
+list-uploaded-files --app-id <APP_ID>
+```
+
+This returns all files with their public URLs, sizes, and upload timestamps.
+
+### Example: Complete Product Media Flow
+
+1. **Create schema** with media fields:
+```javascript
+push-schema --app-id <APP_ID> --schema '{
+  "products": {
+    "attrs": {
+      "name": {"type": "string"},
+      "imageUrl": {"type": "string"},
+      "videoUrl": {"type": "string"}
+    }
+  }
+}'
+```
+
+2. **Upload images and videos** using `upload-file`
+
+3. **Save URLs to database** using `transact`
+
+4. **Query and render** the URLs in your app
+
+### Storage Configuration
+
+By default, InstantDB uses **Cloudinary** for storage. You can configure:
+
+| Provider | Setting |
+|----------|---------|
+| Cloudinary | `cloud_name`, `api_key`, `api_secret`, `upload_preset` |
+| R2 (Cloudflare) | `account_id`, `access_key_id`, `secret_access_key`, `bucket`, `endpoint` |
+| S3 | `bucket`, `region`, `access_key_id`, `secret_access_key` |
 
 ---
 

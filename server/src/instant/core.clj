@@ -126,10 +126,11 @@
   (case (:uri req)
     ("/platform/oauth/start"
      "/platform/oauth/grant") false
-    "/platform/oauth/claim" (= (req-origin req)
-                               (config/dashboard-origin))
+    "/platform/oauth/claim" (when (= (req-origin req)
+                                    (config/dashboard-origin))
+                              (req-origin req))
 
-    true))
+    (req-origin req)))
 
 (defn wrap-options-cache-control [handler]
   (fn [request]
@@ -171,7 +172,13 @@
 (defn wrap-security-headers [handler]
   (fn [request]
     (let [response (handler request)]
-      (add-security-headers response))))
+      (-> response
+          (add-security-headers)
+          (update :headers merge
+                  (when (and (allow-cors-origin? request)
+                             (not (preflight? request)))
+                    {"Access-Control-Allow-Origin" (req-origin request)
+                     "Vary" "origin"}))))))
 
 (defn wrap-dev-server-info
   "Adds the responding server's identity in development. This is useful when

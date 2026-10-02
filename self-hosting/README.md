@@ -109,6 +109,25 @@ CLOUDINARY_API_SECRET=your-api-secret
 
 When using Cloudinary, the MinIO service is not required for file storage.
 
+### R2 / Cloudflare Storage
+
+R2 provides S3-compatible object storage without egress fees. Ideal for serving large files.
+
+```env
+STORAGE_PROVIDER=r2
+CLOUDFLARE_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=your-access-key
+R2_SECRET_ACCESS_KEY=your-secret-key
+R2_BUCKET=your-bucket-name
+R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+```
+
+For R2 public URLs, either:
+1. Bind a custom domain to your R2 bucket
+2. Use R2.dev public URLs (format: `https://pub-<hash>.r2.dev/<path>`)
+
+When using R2, MinIO is not required for file storage.
+
 ---
 
 ## Deployment Checklist
