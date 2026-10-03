@@ -25,6 +25,13 @@ module.exports = [
         title: 'Getting started w/ iOS',
         href: '/docs/start-ios',
         prevHref: '/docs/start-android',
+        nextHref: '/docs/desktop',
+        optionalLLM: true,
+      },
+      {
+        title: 'Desktop apps',
+        href: '/docs/desktop',
+        prevHref: '/docs/start-ios',
         nextHref: '/docs/create-instant-app',
         optionalLLM: true,
       },

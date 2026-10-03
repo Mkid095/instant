@@ -1177,11 +1177,11 @@ function registerTools(
     "learn",
     "Get an overview of InstantDB concepts, data modeling, permissions, and CLI commands. " +
       "Returns topic-specific guides. ALL docs at the SELF-HOSTED URL — do NOT search instantdb.com. " +
-      "Topics: 'overview' (default), 'schema', 'query', 'transact', 'perms', 'auth', 'storage', 'cli', 'android', 'ios'.",
+      "Topics: 'overview' (default), 'schema', 'query', 'transact', 'perms', 'auth', 'storage', 'cli', 'android', 'ios', 'desktop'.",
     {
       topic: z.enum([
         "overview", "schema", "query", "transact", "perms",
-        "auth", "storage", "cli", "android", "ios"
+        "auth", "storage", "cli", "android", "ios", "desktop"
       ]).optional().describe(
         "Topic. Default 'overview'. Use 'schema' for push-schema format, " +
         "'query' for InstaQL, 'transact' for transactions, 'perms' for permissions, " +
@@ -1193,7 +1193,40 @@ function registerTools(
       const t = topic || "overview";
       const docs = `${DEFAULT_DASH_URL}/docs`;
       const content = {
-        overview: `InstantDB is a reactive graph database. Key concepts:
+        overview: `InstantDB is a reactive graph database. ALL docs at: ${docs}
+
+SUPPORTED PLATFORMS (one appId, all clients share data in real-time):
+
+MOBILE:
+  - iOS 15+ / iPadOS 15+ / tvOS 15+ / watchOS 8+   (Swift Package Manager: InstantDB)
+  - Android (Kotlin 2.0+, minSdk 24)               (Maven: com.instantdb:instantdb-android)
+  - React Native                                   (npm: @fidscript/instant-react-native)
+
+DESKTOP:
+  - macOS 13+ (native Swift)                       (SPM: InstantDB, same package as iOS)
+  - Windows, Linux, macOS (web-based)              (any modern browser → instant.fidscript.com/dash)
+
+WEB (browser):
+  - Vanilla JS / TS                                (npm: @fidscript/instant-sdk)
+  - React                                          (npm: @fidscript/instant-react)
+  - SolidJS / Svelte / Vue / TanStack Start        (npm: @fidscript/instant-*)
+  - Next.js SSR                                    (npm: @fidscript/instant-react/nextjs)
+
+SERVER-SIDE:
+  - Node.js                                        (npm: @fidscript/instant-admin)
+  - Python 3.10+                                   (PyPI: instantdb)
+  - CLI                                            (npm: @fidscript/instant-cli)
+
+AI AGENTS:
+  - MCP                                            (npm: @fidscript/instant-mcp, 79 tools)
+
+For a specific platform setup, call learn with topic matching the platform:
+  topic='android'  — Android/Kotlin SDK setup
+  topic='ios'      — iOS/Swift SDK setup
+  topic='desktop'  — macOS native + cross-platform desktop (Windows/Linux/macOS via web)
+  topic='cli'      — CLI commands
+
+KEY CONCEPTS:
 
 SCHEMAS:
   Define your data model. Namespaces = entity types.
@@ -1508,6 +1541,35 @@ MUTATE:
 
 SELF-HOSTED DOCS: ${docs}/start-ios
 CROSS-PLATFORM: ${docs}/cross-platform`,
+
+        desktop: `DESKTOP PLATFORMS:
+
+macOS (native Swift):
+  - The InstantDB Swift package targets macOS 13+ natively.
+  - Same code as iOS — use the InstantDB SPM package.
+  - SPM install: add https://github.com/instantdb/instantdb-ios to your project.
+  - API: same as iOS — InstantDb, InstantDbConfig, etc.
+  - Persistent cache via GRDB at ~/Library/Application Support/instantdb.sqlite
+  - Self-hosting URL: ${DEFAULT_DASH_URL}
+
+WINDOWS, LINUX, macOS (web-based):
+  - The dashboard at ${DEFAULT_DASH_URL}/dash is a Next.js app that runs in any modern browser.
+  - Use the @fidscript/instant-sdk (Vanilla JS) or @fidscript/instant-react package.
+  - Build desktop apps with Electron / Tauri / Neutralino using any of the web SDKs.
+  - All web SDKs run identically on Windows, macOS, and Linux browsers.
+
+SAMPLE DESKTOP SETUP (Tauri / Electron / any web wrapper):
+  // main.ts
+  import { init } from '@fidscript/instant-sdk';
+  const db = init({ appId: 'YOUR_APP_ID' });
+  db.subscribeQuery({ todos: {} }, (resp) => render(resp.data.todos));
+
+The same appId works across macOS native, web-on-Windows, web-on-Linux, and web-on-macOS.
+
+SELF-HOSTED DOCS: ${docs}
+DASHBOARD: ${DEFAULT_DASH_URL}/dash
+NPM SDK: @fidscript/instant-sdk (Vanilla) or @fidscript/instant-react
+SWIFT SDK: github.com/instantdb/instantdb-ios (macOS 13+)`,
       };
       return {
         content: [{
