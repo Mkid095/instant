@@ -9,7 +9,24 @@ import { z } from "zod";
 
 // Constants
 // -----------
-const DEFAULT_API_URL = "https://apiinstant.fidscript.com";
+// All host values are read STRICTLY from environment variables. The MCP
+// throws on startup if any required env var is missing. Set:
+//   INSTANT_API_HOST     — the API host (e.g. "https://api.example.com")
+//   INSTANT_DASH_HOST    — the dashboard / docs host (e.g. "https://docs.example.com")
+//   INSTANT_MAVEN_HOST   — the public Maven repo host (e.g. "https://docs.example.com/maven")
+function requireEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) {
+    throw new Error(
+      `Required environment variable ${name} is not set. ` +
+      `Set it before starting the MCP server. See CLAUDE.md for the full list.`,
+    );
+  }
+  return v;
+}
+const DEFAULT_API_URL = requireEnv("INSTANT_API_HOST");
+const DEFAULT_DASH_URL = requireEnv("INSTANT_DASH_HOST");
+const DEFAULT_MAVEN_URL = requireEnv("INSTANT_MAVEN_HOST");
 const REQUEST_TIMEOUT_MS = 30_000;
 
 function getVersion(): string {
@@ -1120,20 +1137,32 @@ function registerTools(
   // ---- Learning ----
   tool(server,
     "learn",
-    "Get an overview of InstantDB concepts, data modeling, permissions, and CLI commands.",
-    {},
-    async () => {
-      return {
-        content: [{
-          type: "text",
-          text: `InstantDB is a reactive graph database. Key concepts:
+    "Get an overview of InstantDB concepts, data modeling, permissions, and CLI commands. " +
+      "Returns topic-specific guides. ALL docs at the SELF-HOSTED URL — do NOT search instantdb.com. " +
+      "Topics: 'overview' (default), 'schema', 'query', 'transact', 'perms', 'auth', 'storage', 'cli', 'android'.",
+    {
+      topic: z.enum([
+        "overview", "schema", "query", "transact", "perms",
+        "auth", "storage", "cli", "android"
+      ]).optional().describe(
+        "Topic. Default 'overview'. Use 'schema' for push-schema format, " +
+        "'query' for InstaQL, 'transact' for transactions, 'perms' for permissions, " +
+        "'auth' for authentication, 'storage' for files, 'cli' for CLI, " +
+        "'android' for Android/Kotlin SDK."
+      ),
+    },
+    async ({ topic }) => {
+      const t = topic || "overview";
+      const docs = `${DEFAULT_DASH_URL}/docs`;
+      const content = {
+        overview: `InstantDB is a reactive graph database. Key concepts:
 
 SCHEMAS:
-  Define your data model in 'instant.schema.ts'. Namespaces = entity types.
+  Define your data model. Namespaces = entity types.
   Each entity has attributes (data fields) and links (relationships).
 
 PERMISSIONS:
-  Define who can read/write data in 'instant.perms.ts'.
+  Define who can read/write data.
   Use allow/deny rules based on auth, data checks, and world values.
 
 QUERIES (InstaQL):
@@ -1151,7 +1180,254 @@ CLI COMMANDS:
   npx instant-cli push perms — push permission changes
   npx instant-cli pull — pull schema and perms from server
 
-DOCUMENTATION: https://www.instantdb.com/docs`,
+SELF-HOSTED DOCS: ${docs}
+
+NOTE: This is a self-hosted FIDScript deployment. All docs and API are at:
+  - Docs: ${docs}
+  - API: ${DEFAULT_API_URL}
+Do NOT use instantdb.com or upstream docs — they may differ from this deployment.`,
+
+        schema: `SCHEMA FORMAT for push-schema tool — DO NOT use i.entity({...}) or upstream's format:
+
+{
+  "<namespace>": {
+    "attrs": {
+      "<attr_name>": "<type>"  // types: "string" | "number" | "boolean" | "date"
+    },
+    "links": {
+      "<link_name>": {
+        "collection": "<target_namespace>",
+        "is_collection": <bool>  // true = many, false = one
+      }
+    }
+  }
+}
+
+EXAMPLE — a simple todo app:
+{
+  "todos": {
+    "attrs": {
+      "text": "string",
+      "done": "boolean",
+      "createdAt": "date"
+    }
+  },
+  "users": {
+    "attrs": {
+      "email": "string"
+    }
+  }
+}
+
+TO ADD A LINK between todos and users, define a third namespace with "links":
+{
+  "todos": { "attrs": { "text": "string" } },
+  "users": { "attrs": { "email": "string" } },
+  "todos.owner": {
+    "links": {
+      "owner": { "collection": "users", "is_collection": false }
+    }
+  }
+}
+
+CRITICAL:
+  - Use "string"|"number"|"boolean"|"date" as attribute types (lowercase strings)
+  - DO NOT use i.entity({...}) builder — that is for the JS SDK, not the MCP
+  - DO NOT use the format from instantdb.com docs — that is the upstream
+  - DO use push-schema-dry-run first to preview
+
+SELF-HOSTED DOCS: ${docs}`,
+
+        query: `QUERY SYNTAX (InstaQL):
+
+BASIC:
+  {"todos": {}}  — fetch all todos
+
+FILTERED:
+  {"todos": {"$": {"where": {"done": false}}}}
+
+PAGINATION:
+  {"todos": {"$": {"limit": 10, "offset": 0}}}
+
+NESTED:
+  {"users": {"$": {"where": {"email": "a@b.com"}}, "todos": {}}}
+
+OR (wrap in "and"):
+  {"todos": {"$": {"where": {"and": [{"or": [{"done": false}, {"text": "urgent"}]}]}}}}
+
+CRITICAL: "where" MUST be nested inside "$":
+  CORRECT: {"todos": {"$": {"where": {"field": "value"}}}}
+  WRONG:   {"$where": {"field": "value"}}
+
+SELF-HOSTED DOCS: ${docs}/instaql`,
+
+        transact: `TRANSACTION STEPS (InstaML):
+
+CREATE / UPDATE:
+  ["update", "todos", "<id>", {"text": "hello", "done": false}]
+  If "<id>" is new, the entity is created. If it exists, it's updated.
+
+LINK:
+  ["link", "todos", "<id>", {"owner": "<user_id>"}]
+
+UNLINK:
+  ["unlink", "todos", "<id>", {"owner": "<user_id>"}]
+
+DELETE:
+  ["delete", "todos", "<id>"]
+
+Multiple steps in one transaction:
+  [
+    ["update", "todos", "id1", {"text": "hello"}],
+    ["link", "todos", "id1", {"owner": "user-1"}]
+  ]
+
+SELF-HOSTED DOCS: ${docs}/instaml`,
+
+        perms: `PERMISSIONS FORMAT for push-perms:
+
+{
+  "<namespace>": {
+    "allow": {
+      "view":   "<cel_expression>",
+      "create": "<cel_expression>",
+      "update": "<cel_expression>",
+      "delete": "<cel_expression>"
+    }
+  }
+}
+
+SPECIAL VALUES for cel_expression:
+  "true"               — always allow
+  "false"              — never allow
+  "auth.uid != null"   — any signed-in user
+
+DATA CHECKS:
+  "auth.uid == data.owner"   — only the owner
+
+EXAMPLE — public read, owner-only write:
+{
+  "todos": {
+    "allow": {
+      "view":   "true",
+      "create": "auth.uid != null",
+      "update": "auth.uid == data.owner",
+      "delete": "auth.uid == data.owner"
+    }
+  }
+}
+
+SELF-HOSTED DOCS: ${docs}/permissions`,
+
+        auth: `AUTHENTICATION:
+
+MAGIC CODES (default):
+  1. send-magic-code with {email}
+  2. Server emails a 6-digit code
+  3. verify-magic-code with {email, code}
+  4. Returns a user token
+
+OAUTH (Google / GitHub / Apple):
+  Use list-oauth-providers, then create-oauth-client.
+
+GUEST AUTH (anonymous):
+  POST /auth/sign_in_guest — returns a guest user token immediately.
+
+STORAGE TOKENS:
+  update-storage-config to set up Cloudinary/R2/S3.
+  Files uploaded via /storage/upload-direct.
+
+SELF-HOSTED DOCS: ${docs}/auth`,
+
+        storage: `STORAGE:
+
+PROVIDERS:
+  - Cloudinary (default) — images, video, any file
+  - R2 (Cloudflare) — S3-compatible, large files, no egress
+  - S3 (AWS) — standard S3
+
+CONFIGURE:
+  update-storage-config with cloudName + uploadPreset (Cloudinary)
+  or R2_* env vars (R2).
+
+UPLOAD:
+  1. get-upload-url — get presigned URL
+  2. PUT file to the URL
+  3. Save returned URL in a string attr on any entity
+
+LIST: list-files returns all files with their URLs.
+
+SELF-HOSTED DOCS: ${docs}/storage`,
+
+        cli: `CLI COMMANDS:
+
+INSTALL:
+  npm install -g @fidscript/instant-cli
+
+INIT (create app + scaffold):
+  npx instant-cli init
+
+PUSH (apply local files):
+  npx instant-cli push schema
+  npx instant-cli push perms
+
+PULL (download):
+  npx instant-cli pull
+
+LOGIN (authenticate):
+  npx instant-cli login --headless
+
+SELF-HOSTED DOCS: ${docs}/cli`,
+
+        android: `ANDROID / KOTLIN SDK:
+
+INSTALL — add to settings.gradle.kts:
+  dependencyResolutionManagement {
+      repositories {
+          maven { url = uri("${DEFAULT_MAVEN_URL}") }
+          google()
+          mavenCentral()
+      }
+  }
+
+ADD to app/build.gradle.kts:
+  implementation("com.instantdb:instantdb-android:0.8.0-phase10")
+  implementation("com.instantdb:instantdb-kotlin:0.8.0-phase10")
+
+INITIALIZE in your Application class:
+  val db = InstantDb(
+      context = this,
+      config = InstantDbConfig(
+          appId = "YOUR_APP_ID",
+          host = "${DEFAULT_API_URL}",
+          useSse = false  // true = SSE, false = WebSocket
+      )
+  )
+  db.connect()
+
+QUERY (Compose):
+  val state = rememberInstantQuery("{ todos: {} }")
+  when (state) {
+      is InstantQueryState.Loading -> ...
+      is InstantQueryState.Data -> { val todos = state.data["todos"] }
+      is InstantQueryState.Error -> ...
+      is InstantQueryState.Offline -> ...
+  }
+
+MUTATE:
+  db.transact(listOf(listOf(
+      "add", "todos",
+      mapOf("text" to "hello", "done" to false)
+  )))
+
+SELF-HOSTED DOCS: ${docs}/start-android
+SDK DASH: ${DEFAULT_DASH_URL}/dash?t=android-kotlin&app=YOUR_APP_ID
+CROSS-PLATFORM: ${docs}/cross-platform`,
+      };
+      return {
+        content: [{
+          type: "text",
+          text: (content as Record<string, string>)[t] || content.overview,
         }],
       };
     },
@@ -1161,13 +1437,17 @@ DOCUMENTATION: https://www.instantdb.com/docs`,
 
   tool(server,
     "query",
-    `Execute an InstaQL query. Schema: {"namespace": {"$": {"where": {...}, "limit": N}}}.
-The "where" clause MUST be nested inside "$" (use {"$":{"where":{...}}}, NOT {"$where":{...}}).
-For $or, wrap in "and": {"$":{"where":{"and":[{"or":[...]}]}}}.
-Full query syntax: instant_learn with topic="query".`,
+    "Execute an InstaQL query against an app. Returns query results as JSON. " +
+      "Query structure: {namespace: {$: {where: {...}, limit: N}}}. " +
+      "The 'where' clause MUST be nested inside '$' (use {$: {where: {...}}}, NOT {$where: {...}}). " +
+      "For $or, wrap in 'and': {$: {where: {and: [{or: [...]}]}}}. " +
+      "Format reference: call learn with topic='query'. " +
+      "Docs: ${DEFAULT_DASH_URL}/docs/instaql (self-hosted).",
     {
-      appId: z.string().uuid(),
-      query: z.record(z.string(), z.any()).describe("InstaQL query object"),
+      appId: z.string().uuid().describe("The InstantDB app ID (UUID)"),
+      query: z.record(z.string(), z.any()).describe(
+        "InstaQL query. Example: { todos: { $: { where: { done: false }, limit: 10 } } }"
+      ),
     },
     async ({ appId, query }) => {
       try {
@@ -1181,13 +1461,21 @@ Full query syntax: instant_learn with topic="query".`,
 
   tool(server,
     "transact",
-    `Execute a transaction to create/update/link/unlink/delete entities.
-Step format: ["op", "namespace", ...args]. Ops: create/update/link/unlink/delete.
-IMPORTANT: entity IDs in update/link/delete MUST be real UUIDs (use IDs returned from preceding create steps; do NOT use placeholders).
-Full step syntax: instant_learn with topic="transact".`,
+    "Execute a transaction to create/update/link/unlink/delete entities. " +
+      "Step format: [op, namespace, ...args]. Ops: update (create or update), link, unlink, delete. " +
+      "Examples: " +
+      "['update', 'todos', 'new-id', {text: 'hello'}] — create/update; " +
+      "['link', 'todos', 'id', {owner: 'user-id'}] — link; " +
+      "['delete', 'todos', 'id'] — delete. " +
+      "IMPORTANT: entity IDs in update/link/delete MUST be real UUIDs (use IDs returned from a previous query, or generate UUIDs for new entities). " +
+      "Format reference: call learn with topic='transact'. " +
+      "Docs: ${DEFAULT_DASH_URL}/docs/instaml (self-hosted).",
     {
-      appId: z.string().uuid(),
-      steps: z.array(z.array(z.any())).describe("Transaction steps"),
+      appId: z.string().uuid().describe("The InstantDB app ID (UUID)"),
+      steps: z.array(z.array(z.any())).describe(
+        "Array of step arrays. Each step: [op, namespace, ...args]. " +
+        "Example: [['update', 'todos', 'id1', {text: 'hi'}], ['link', 'todos', 'id1', {owner: 'user-1'}]]"
+      ),
     },
     async ({ appId, steps }) => {
       try {
@@ -1219,12 +1507,19 @@ Full step syntax: instant_learn with topic="transact".`,
 
   tool(server,
     "push-schema",
-    `Push a schema definition. Schema is a map of namespace names to {attrs:{name:{type}}, links:{...}}.
-Performs plan-then-apply. Use push-schema-dry-run first to preview.
-Full syntax: instant_learn with topic="schema".`,
+    "Push a schema definition. The schema parameter is a map of namespace names to " +
+      "{attrs: {<name>: <type>}, links: {<name>: {collection, is_collection}}}. " +
+      "Attribute types are lowercase strings: 'string' | 'number' | 'boolean' | 'date'. " +
+      "Performs plan-then-apply. ALWAYS use push-schema-dry-run first to preview. " +
+      "Format reference: call learn with topic='schema'. " +
+      "Docs: ${DEFAULT_DASH_URL}/docs (self-hosted, NOT instantdb.com).",
     {
-      appId: z.string().uuid(),
-      schema: z.record(z.string(), z.any()).describe("InstantDB schema definition object"),
+      appId: z.string().uuid().describe("The InstantDB app ID (UUID)"),
+      schema: z.record(z.string(), z.any()).describe(
+        "Schema object. Format: {namespace: {attrs: {name: type}, links: {name: {collection, is_collection}}}}." +
+        " Example: { todos: { attrs: { text: 'string', done: 'boolean' } } }." +
+        " DO NOT use the i.entity({...}) builder format — that is for the JS SDK, not this tool."
+      ),
     },
     async ({ appId, schema }) => {
       try {
@@ -1248,10 +1543,16 @@ Full syntax: instant_learn with topic="schema".`,
 
   tool(server,
     "push-schema-dry-run",
-    "Preview what a schema push would do without applying it. Shows the diff between current and proposed schema.",
+    "Preview what a schema push would do without applying it. Shows the diff between current and proposed schema. " +
+      "Schema format: {namespace: {attrs: {name: type}, links: {name: {collection, is_collection}}}} " +
+      "where types are 'string' | 'number' | 'boolean' | 'date'. " +
+      "Format reference: call learn with topic='schema'.",
     {
-      appId: z.string().uuid(),
-      schema: z.record(z.string(), z.any()).describe("InstantDB schema definition object"),
+      appId: z.string().uuid().describe("The InstantDB app ID (UUID)"),
+      schema: z.record(z.string(), z.any()).describe(
+        "Schema object. Example: { todos: { attrs: { text: 'string' } } }. " +
+        "NOT the i.entity({...}) JS builder format."
+      ),
     },
     async ({ appId, schema }) => {
       try {
@@ -1283,12 +1584,17 @@ Full syntax: instant_learn with topic="schema".`,
 
   tool(server,
     "push-perms",
-    `Push permission rules. CEL expressions. Schema: {"namespace":{"allow":{"view":"...","create":"...","update":"...","delete":"..."}}}.
-Special values: "true" / "false" / "auth.uid != null". Data checks: "auth.uid = data.field_name".
-Full CEL syntax: instant_learn with topic="permissions".`,
+    "Push permission rules. CEL expressions. " +
+      "Format: {namespace: {allow: {view: <cel>, create: <cel>, update: <cel>, delete: <cel>}}}. " +
+      "Special values: 'true' (always), 'false' (never), 'auth.uid != null' (any signed-in user). " +
+      "Data checks: 'auth.uid == data.field_name'. " +
+      "Format reference: call learn with topic='perms'. " +
+      "Docs: ${DEFAULT_DASH_URL}/docs/permissions (self-hosted).",
     {
-      appId: z.string().uuid(),
-      perms: z.record(z.string(), z.any()).describe("InstantDB permissions definition object"),
+      appId: z.string().uuid().describe("The InstantDB app ID (UUID)"),
+      perms: z.record(z.string(), z.any()).describe(
+        "Perms object. Example: { todos: { allow: { view: 'true', create: 'auth.uid != null' } } }"
+      ),
     },
     async ({ appId, perms }) => {
       try {
@@ -2379,7 +2685,7 @@ Available vars: {code}, {app_title}, {user_email}, {expiration}.`,
       const snippet = `// settings.gradle.kts\n` +
         `dependencyResolutionManagement {\n` +
         `    repositories {\n` +
-        `        maven { url = uri("https://instant.fidscript.com/maven") }\n` +
+        `        maven { url = uri("${DEFAULT_MAVEN_URL}") }\n` +
         `        google()\n` +
         `        mavenCentral()\n` +
         `    }\n` +
@@ -2442,18 +2748,23 @@ instant.close()`;
 
   tool(server,
     "android-documentation",
-    "Return pointers to the SDK documentation.",
+    "Return pointers to the SELF-HOSTED InstantDB docs (${DEFAULT_DASH_URL}). " +
+      "DO NOT use the upstream instantdb.com docs — this is a self-hosted " +
+      "deployment and the docs may differ.",
     {},
     async () => {
       const docs = {
-        overview: "https://www.instantdb.com/docs/overview",
-        android_sdk: "https://www.instantdb.com/docs/android",
-        auth: "https://www.instantdb.com/docs/auth",
-        schema: "https://www.instantdb.com/docs/schema",
-        permissions: "https://www.instantdb.com/docs/permissions",
-        query: "https://www.instantdb.com/docs/query",
-        react_native: "https://www.instantdb.com/docs/react-native",
-        storage: "https://www.instantdb.com/docs/storage",
+        overview: `${DEFAULT_DASH_URL}/docs`,
+        android_sdk: `${DEFAULT_DASH_URL}/docs/start-android`,
+        android_dash: `${DEFAULT_DASH_URL}/dash?t=android-kotlin&app=YOUR_APP_ID`,
+        auth: `${DEFAULT_DASH_URL}/docs/auth`,
+        schema: `${DEFAULT_DASH_URL}/docs/init`,
+        permissions: `${DEFAULT_DASH_URL}/docs/permissions`,
+        query: `${DEFAULT_DASH_URL}/docs/instaql`,
+        react_native: `${DEFAULT_DASH_URL}/docs/start-rn`,
+        storage: `${DEFAULT_DASH_URL}/docs/storage`,
+        cross_platform: `${DEFAULT_DASH_URL}/docs/cross-platform`,
+        mcp_learn: "Use the MCP 'learn' tool with topic='overview' for full docs context.",
       };
       return { content: [{ type: "text", text: JSON.stringify(docs, null, 2) }] };
     },
@@ -2566,7 +2877,7 @@ instant.close()`;
         "Your InstantDB app id (UUID). Returned in snippets if provided."
       ),
       host: z.string().optional().describe(
-        "API host. Defaults to https://apiinstant.fidscript.com."
+        "API host. Defaults to INSTANT_API_HOST env var."
       ),
       transport: z.enum(["websocket", "sse"]).optional().describe(
         "Transport to use. Default: websocket."
@@ -2574,7 +2885,7 @@ instant.close()`;
     },
     async ({ app_id, host, transport }) => {
       const aid = app_id || "YOUR_APP_ID";
-      const h = host || "https://apiinstant.fidscript.com";
+      const h = host || DEFAULT_API_URL;
       const t = transport || "websocket";
       const useSse = t === "sse";
 
@@ -2586,7 +2897,7 @@ instant.close()`;
           snippet:
 `dependencyResolutionManagement {
     repositories {
-        maven { url = uri("https://instant.fidscript.com/maven") }
+        maven { url = uri("${DEFAULT_MAVEN_URL}") }
         google()
         mavenCentral()
     }
@@ -2695,10 +3006,9 @@ fun AddTodoButton() {
                    "VPS routes by appId.",
         },
         verify_local: {
-          step_1: "Run a Kotlin test against the public Maven repo: " +
-                  "https://instant.fidscript.com/maven/com/instantdb/instantdb-kotlin/0.8.0-phase10/",
-          step_2: "Use the docker sample: /home/ken/projects/kotlin-poc/sample-android",
-          step_3: "Public docs: https://instant.fidscript.com/docs/start-android",
+          step_1: `Run a Kotlin test against the public Maven repo: ${DEFAULT_MAVEN_URL}/com/instantdb/instantdb-kotlin/0.8.0-phase10/`,
+          step_2: "Use the docker sample at /home/ken/projects/kotlin-poc/sample-android",
+          step_3: `Public docs: ${DEFAULT_DASH_URL}/docs/start-android`,
         },
       };
 
@@ -2744,7 +3054,7 @@ fun AddTodoButton() {
     context = this,
     config = InstantDbConfig(
         appId = "${aid}",
-        host = "https://apiinstant.fidscript.com",
+        host = "${DEFAULT_API_URL}",
         useSse = false,
     )
 )

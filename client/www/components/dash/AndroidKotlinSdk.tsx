@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import config from '@/lib/config';
+import { domainConfig } from '@/lib/domain-config';
 import { SectionHeading } from '@/components/ui';
 import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 
@@ -110,12 +111,12 @@ const FeaturePill = ({ icon, text }: { icon: string; text: string }) => (
 );
 
 const SDK_VERSION = '0.8.0-phase10';
-const MAVEN_REPO = 'https://instant.fidscript.com/maven';
+const MAVEN_REPO = domainConfig.mavenHost;
 const APP_ID_FALLBACK = 'YOUR_APP_ID';
 
 export const AndroidKotlinSdk = ({ appId }: { appId: string }) => {
   const aid = appId || APP_ID_FALLBACK;
-  const apiURI = config.apiURI || 'https://apiinstant.fidscript.com';
+  const apiURI = config.apiURI || domainConfig.apiHost;
   const gradleSettingsCode = `// settings.gradle.kts (project root)
 dependencyResolutionManagement {
     repositories {

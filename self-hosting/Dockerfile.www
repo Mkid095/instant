@@ -97,9 +97,22 @@ const dashboardUrl = (
   apiURI.replace(/\/[^/]*$/, '')
 ).trim();
 
+// Canonical domain env vars (read by client/lib/domain-config.ts).
+// These are written to window.__instantDomains so the browser can read them
+// at runtime without rebuilding the bundle.
+const dashHost = (
+  process.env.INSTANT_DASH_HOST ||
+  dashboardUrl
+).replace(/\/$/, '');
+const mavenHost = (
+  process.env.INSTANT_MAVEN_HOST ||
+  `${dashHost}/maven`
+).replace(/\/$/, '');
+
 fs.writeFileSync(
   '/app/www/public/publicSelfHostedVariables.js',
-  `window.__instantConfig = ${JSON.stringify({ apiURI, wsUrl: wsUrl.toString(), dashboardUrl })};\n`,
+  `window.__instantConfig = ${JSON.stringify({ apiURI, wsUrl: wsUrl.toString(), dashboardUrl })};\n` +
+  `window.__instantDomains = ${JSON.stringify({ apiHost: apiURI, dashHost, mavenHost })};\n`,
 );
 NODE
 
