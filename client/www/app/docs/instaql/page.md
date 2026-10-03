@@ -1293,3 +1293,15 @@ const query = {
 const { data, pageInfo } = await db.queryOnce(query);
 // pageInfo behaves the same as with useQuery
 ```
+
+## Using these docs with the MCP server
+
+The `db.useQuery({...})` syntax above is for the **JS SDK**. If you're using the InstantDB MCP server, queries are passed as plain JSON objects to the `query` tool:
+
+```json
+{
+  "todos": { "$": { "where": { "done": false }, "limit": 10 } }
+}
+```
+
+For full setup, see [MCP for AI Agents](/docs/mcp) or call the MCP's `learn` tool with `topic="query"`.

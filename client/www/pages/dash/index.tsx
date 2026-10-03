@@ -13,6 +13,7 @@ import {
   CodeBracketIcon,
   CreditCardIcon,
   CubeIcon,
+  EnvelopeIcon,
   FunnelIcon,
   HomeIcon,
   IdentificationIcon,
@@ -70,6 +71,7 @@ import { Sandbox } from '@/components/dash/Sandbox';
 import { Webhooks } from '@/components/dash/Webhooks';
 import { StorageSettings } from '@/components/dash/StorageSettings';
 import Clients from '@/components/dash/Clients';
+import { Email } from '@/components/dash/auth/Email';
 import { CLISetup } from '@/components/dash/CLISetup';
 import { AndroidKotlinSdk } from '@/components/dash/AndroidKotlinSdk';
 import WebhookIcon from '@/components/icons/WebhookIcon';
@@ -184,6 +186,7 @@ const mainTabs: Tab<MainTabId>[] = [
   { id: 'auth', title: 'Auth', icon: makeIcon(IdentificationIcon) },
   { id: 'webhooks', title: 'Webhooks', icon: makeIcon(WebhookIcon) },
   { id: 'backups', title: 'Backups', icon: makeIcon(ArchiveBoxIcon) },
+  { id: 'email', title: 'Email', icon: makeIcon(EnvelopeIcon) },
   { id: 'repl', title: 'Query Inspector', icon: makeIcon(MagnifyingGlassIcon) },
   { id: 'sandbox', title: 'Sandbox', icon: makeIcon(BeakerIcon) },
   {
@@ -1048,6 +1051,11 @@ function DashboardContent({
         <Webhooks app={app} namespaces={schemaData.namespaces} />
       ) : tab === 'backups' ? (
         <Backups app={app} />
+      ) : tab === 'email' ? (
+        <Email
+          app={app}
+          defaultSenderEmail={app.magic_code_email_template?.email || 'noreply@example.com'}
+        />
       ) : tab === 'admin' && isMinRole('admin', role) ? (
         <Admin
           role={role}

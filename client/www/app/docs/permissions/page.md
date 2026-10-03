@@ -552,3 +552,32 @@ Or if you want to separate “view links” from “edit links”, you can use t
   }
 }
 ```
+
+## Using these docs with the MCP server
+
+The `bind` blocks and `auth.id` / `data.creatorId` syntax above is for the **JS SDK / dashboard editor**. If you're using the InstantDB MCP server, perms are passed as flat CEL expressions to the `push-perms` tool:
+
+```json
+{
+  "todos": {
+    "allow": {
+      "view": "true",
+      "create": "auth.uid != null",
+      "update": "auth.uid == data.ownerId",
+      "delete": "auth.uid == data.ownerId"
+    }
+  }
+}
+```
+
+Special values:
+- `"true"` — always allow
+- `"false"` — never allow
+- `"auth.uid != null"` — any signed-in user
+
+Note the differences from the JS SDK format:
+- The MCP uses `auth.uid` (not `auth.id`)
+- The MCP uses `data.<field>` (not `data.<field>` for refs — they're the same)
+- The MCP does **not** support `bind` blocks — define inline expressions only
+
+For full setup, see [MCP for AI Agents](/docs/mcp) or call the MCP's `learn` tool with `topic="perms"`.

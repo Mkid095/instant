@@ -111,3 +111,27 @@ and `schema`. Here are all the options you can provide:
 - **queryCacheLimit?**: Maximum number of query subscriptions to cache for offline mode. Defaults to `10`. Cached queries provide instant data on app reload while fresh data loads in the background.
 
 - **useDateObjects?**: When `true`, all date columns in queries will return a JavaScript `Date` object. Disabled by default.
+
+## Using these docs with the MCP server
+
+The `init()` syntax above is for the **JS SDK** (React, React Native, etc.). If you're using the InstantDB MCP server (e.g. from Claude Code or Cursor), the format is different — schemas, queries, and transactions are all defined as plain JSON.
+
+For MCP usage, see:
+- [MCP for AI Agents](/docs/mcp) — full setup
+- [Schema format (server-side)](/docs/mcp#available-tools-76-total) — what's accepted by `push-schema`
+- The MCP's `learn` tool with `topic="schema"` returns the exact format and a working example.
+
+Quick reference for the MCP `push-schema` format:
+
+```json
+{
+  "todos": {
+    "attrs": {
+      "text": "string",
+      "done": "boolean"
+    }
+  }
+}
+```
+
+This is **not** the `i.entity({...})` builder format — that's JS SDK only. The MCP and the server expect the flat namespace → attrs format above.

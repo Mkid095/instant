@@ -195,3 +195,14 @@ server:
 This sets both the minimum and maximum JVM heap to 2 GB. Larger, dedicated
 backend containers can use a larger heap, but should still leave memory outside
 the JVM.
+
+## For FIDScript self-hosted deployments
+
+If you're using the **FIDScript self-hosted build** of Instant (this is `instant.fidscript.com` — the deployment you're currently on), most of the configuration in this page is already done for you:
+
+- The `instant.fidscript.com` domain hosts the dashboard, docs, and API
+- The `apiinstant.fidscript.com` domain hosts the runtime API
+- The public Maven repository at `https://instant.fidscript.com/maven` serves the Android/Kotlin SDK
+- All host values can be overridden via env vars: `INSTANT_API_HOST`, `INSTANT_DASH_HOST`, `INSTANT_MAVEN_HOST`
+
+If you fork this build to a different domain, set those env vars in the `www` container (see `/self-hosting/.env.example` for the full list).

@@ -398,3 +398,13 @@ db.tx.NAMESPACE_LABEL[ENTITY_IDENTIFIER].ACTION(ACTION_SPECIFIC_DATA)
   - `merge` takes in an object to deep merge with the existing data
   - `delete` is the only action that doesn't take in any data
   - `link` and `unlink` take an object of label-entity pairs to create/delete associations
+
+## Using these docs with the MCP server
+
+The `db.transact(db.tx.goals[id()].create({...}))` syntax above is for the **JS SDK**. If you're using the InstantDB MCP server, transactions are passed as arrays of step arrays to the `transact` tool:
+
+```json
+[["update", "todos", "new-id-here", { "text": "Buy milk", "done": false }]]
+```
+
+For full setup, see [MCP for AI Agents](/docs/mcp) or call the MCP's `learn` tool with `topic="transact"`.
