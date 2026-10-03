@@ -62,7 +62,7 @@ const StepCard = ({
   step: number;
   title: string;
   description: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   badge?: string;
 }) => (
   <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900">

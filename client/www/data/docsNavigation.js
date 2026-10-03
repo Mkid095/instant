@@ -176,4 +176,10 @@ module.exports = [
       { title: 'Data sharing', href: '/docs/cross-platform' },
     ],
   },
+  {
+    title: 'For AI Agents',
+    links: [
+      { title: 'MCP for AI Agents', href: '/docs/mcp' },
+    ],
+  },
 ];

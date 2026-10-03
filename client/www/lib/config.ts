@@ -10,6 +10,7 @@ export const isSelfHosted = process.env.NEXT_PUBLIC_SELF_HOSTED === 'true';
 type DashboardConfig = {
   apiURI: string;
   websocketURI: string;
+  dashboardUrl?: string;
 };
 
 type RuntimeDashboardConfig = Partial<DashboardConfig>;
