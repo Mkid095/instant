@@ -419,11 +419,49 @@ async function getSchemaSuperadmin(
 // Client format: { "todos": { "attrs": { "title": { "type": "string" } } } }
 // Server format: { entities: { "todos": { "attrs": { "title": { "type": "string" } } } }, links: {} }
 function transformSchemaToServerFormat(schema: any): { entities: any; links: any } {
+  // Detect common mistakes and give clear errors
+  if (!schema || typeof schema !== "object") {
+    throw new Error(
+      "Schema must be an object like { todos: { attrs: { text: 'string' } } }. " +
+      "Call learn with topic='schema' for the correct format."
+    );
+  }
+  if ("entities" in schema) {
+    throw new Error(
+      "Schema format error: top-level 'entities' key is the SERVER format, not the MCP input. " +
+      "Pass namespaces at the top level instead: { todos: { attrs: {...} } } — not { entities: { todos: {...} } }. " +
+      "Call learn with topic='schema' for examples."
+    );
+  }
+  if ("links" in schema && Object.keys(schema).length === 1) {
+    throw new Error(
+      "Schema format error: only 'links' was provided, but namespaces are required at the top level. " +
+      "Use: { todos: { attrs: {...} } } — not just { links: {...} }."
+    );
+  }
+  // Auto-detect: if every value is an object with an 'attrs' or 'links' key directly,
+  // it's already in server format and needs unwrapping
+  const entries = Object.entries(schema);
+  const looksLikeServerFormat = entries.length > 0 && entries.every(
+    ([, v]) => v && typeof v === "object" && !("attrs" in v) && !("links" in v)
+  );
+  if (looksLikeServerFormat && entries.some(([k]) => k.includes(" "))) {
+    throw new Error(
+      "Schema format error: appears to be the server's link-key format. " +
+      "Use the client format: { todos: { attrs: { name: 'string' } } }."
+    );
+  }
+
   const entities: any = {};
   const links: any = {};
 
   for (const [nsName, nsDef] of Object.entries(schema)) {
     if (nsName.startsWith("$")) continue; // skip system namespaces
+    if (!nsDef || typeof nsDef !== "object") {
+      throw new Error(
+        `Schema format error: namespace '${nsName}' must be an object like { attrs: {...} }, got ${typeof nsDef}.`
+      );
+    }
 
     entities[nsName] = {};
     if ((nsDef as any).attrs) {
@@ -3140,9 +3178,12 @@ OPTIONS:
   -v, --version          Show version
 
 ENVIRONMENT VARIABLES:
-  INSTANT_ACCESS_TOKEN    Same as --token
-  INSTANT_API_URI        Same as --api-url
-  INSTANT_APP_ID         Same as --app-id
+  INSTANT_ACCESS_TOKEN    Same as --token (required)
+  INSTANT_API_HOST        Same as --api-url (canonical — required)
+  INSTANT_API_URI         Alias for INSTANT_API_HOST
+  INSTANT_DASH_HOST       Dashboard / docs host (required)
+  INSTANT_MAVEN_HOST      Public Maven host (required)
+  INSTANT_APP_ID          Same as --app-id
 
 DATA TOOLS:        learn, query, transact
 SCHEMA TOOLS:      get-schema, push-schema, push-schema-dry-run
@@ -3180,7 +3221,7 @@ DOCS: https://instantdb.com/docs/using-llms
     process.exit(1);
   }
 
-  const apiUrl = (values["api-url"] as string) || process.env.INSTANT_API_URI || DEFAULT_API_URL;
+  const apiUrl = (values["api-url"] as string) || process.env.INSTANT_API_URI || process.env.INSTANT_API_HOST || DEFAULT_API_URL;
   const defaultAppId = (values["app-id"] as string) || process.env.INSTANT_APP_ID || "";
 
   try {
