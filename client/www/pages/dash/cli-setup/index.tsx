@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Head from 'next/head';
 import { MainDashLayout } from '@/components/dash/MainDashLayout';
 import config from '@/lib/config';
+import { MCP_VERSION } from '@/lib/sdk-versions';
 import { SectionHeading } from '@/components/ui';
 import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 
@@ -84,12 +85,12 @@ export default function CliSetupPage() {
   const dashURI = 'https://instant.fidscript.com';
 
   const mcpCommands = {
-    stdio: `export INSTANT_ACCESS_TOKEN=<YOUR_PAT>\nexport INSTANT_API_URI=${apiURI}\nexport INSTANT_APP_ID=<YOUR_APP_ID>\nnpx -y @fidscript/instant-mcp@0.4.0`,
+    stdio: `export INSTANT_ACCESS_TOKEN=<YOUR_PAT>\nexport INSTANT_API_URI=${apiURI}\nexport INSTANT_APP_ID=<YOUR_APP_ID>\nnpx -y @fidscript/instant-mcp@${MCP_VERSION}`,
     claude: `{
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.4.0"],
+      "args": ["-y", "@fidscript/instant-mcp@${MCP_VERSION}"],
       "env": {
         "INSTANT_ACCESS_TOKEN": "<YOUR_PAT>",
         "INSTANT_API_URI": "${apiURI}",
@@ -206,7 +207,7 @@ export default function CliSetupPage() {
               step={1}
               title="Verify MCP Package"
               description="Run the MCP server in stdio mode for AI assistant integration."
-              code="npx -y @fidscript/instant-mcp@0.4.0 --help"
+              code="npx -y @fidscript/instant-mcp@${MCP_VERSION} --help"
             />
             <StepCard
               step={2}

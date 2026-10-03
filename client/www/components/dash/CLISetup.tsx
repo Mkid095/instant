@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import config from '@/lib/config';
 import { domainConfig } from '@/lib/domain-config';
+import { MCP_VERSION } from '@/lib/sdk-versions';
 import { SectionHeading } from '@/components/ui';
 import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 
@@ -111,8 +112,6 @@ const FeaturePill = ({ icon, text }: { icon: string; text: string }) => (
     {text}
   </span>
 );
-
-const MCP_VERSION = '0.6.1';
 
 export const CLISetup = ({ appId }: { appId: string }) => {
   const apiURI = config.apiURI || domainConfig.apiHost;

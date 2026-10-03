@@ -38,7 +38,7 @@ INSTANT_ACCESS_TOKEN=per_xxxxx \
 INSTANT_API_HOST=https://apiinstant.fidscript.com \
 INSTANT_DASH_HOST=https://instant.fidscript.com \
 INSTANT_MAVEN_HOST=https://instant.fidscript.com/maven \
-npx -y @fidscript/instant-mcp@0.6.1
+npx -y @fidscript/instant-mcp@0.6.3
 ```
 
 ## Configure Claude Desktop
@@ -52,7 +52,7 @@ Edit `claude_desktop_config.json`:
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.6.1"],
+      "args": ["-y", "@fidscript/instant-mcp@0.6.3"],
       "env": {
         "INSTANT_ACCESS_TOKEN": "per_xxxxx",
         "INSTANT_API_HOST": "https://apiinstant.fidscript.com",
@@ -78,7 +78,7 @@ Add to `~/.claude/settings.json` (or `.claude/settings.local.json` in your proje
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.6.1"],
+      "args": ["-y", "@fidscript/instant-mcp@0.6.3"],
       "env": {
         "INSTANT_ACCESS_TOKEN": "per_xxxxx",
         "INSTANT_API_HOST": "https://apiinstant.fidscript.com",

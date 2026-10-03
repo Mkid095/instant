@@ -53,7 +53,7 @@ claude mcp add instant-self \
   -e INSTANT_DASH_HOST=https://instant.fidscript.com \
   -e INSTANT_MAVEN_HOST=https://instant.fidscript.com/maven \
   -e INSTANT_APP_ID=YOUR_APP_ID \
-  -- npx -y @fidscript/instant-mcp@0.6.1
+  -- npx -y @fidscript/instant-mcp@0.6.3
 ```
 
 Verify it's connected:
@@ -75,7 +75,7 @@ Edit your MCP config file:
   "mcpServers": {
     "instant-self": {
       "command": "npx",
-      "args": ["-y", "@fidscript/instant-mcp@0.6.1"],
+      "args": ["-y", "@fidscript/instant-mcp@0.6.3"],
       "env": {
         "INSTANT_ACCESS_TOKEN": "per_xxxxx",
         "INSTANT_API_HOST": "https://apiinstant.fidscript.com",
@@ -98,7 +98,7 @@ Edit your MCP config file:
     "instant-self": {
       "command": {
         "path": "npx",
-        "args": ["-y", "@fidscript/instant-mcp@0.6.1"],
+        "args": ["-y", "@fidscript/instant-mcp@0.6.3"],
         "env": {
           "INSTANT_ACCESS_TOKEN": "per_xxxxx",
           "INSTANT_API_HOST": "https://apiinstant.fidscript.com",
@@ -118,7 +118,7 @@ Edit your MCP config file:
 For any editor that supports the MCP stdio protocol:
 
 ```text {% showCopy=true %}
-npx -y @fidscript/instant-mcp@0.6.1
+npx -y @fidscript/instant-mcp@0.6.3
 ```
 
 With the env vars from Step 2.
