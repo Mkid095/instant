@@ -18,6 +18,13 @@ module.exports = [
         title: 'Getting started w/ Android',
         href: '/docs/start-android',
         prevHref: '/docs/start-rn',
+        nextHref: '/docs/start-ios',
+        optionalLLM: true,
+      },
+      {
+        title: 'Getting started w/ iOS',
+        href: '/docs/start-ios',
+        prevHref: '/docs/start-android',
         nextHref: '/docs/create-instant-app',
         optionalLLM: true,
       },

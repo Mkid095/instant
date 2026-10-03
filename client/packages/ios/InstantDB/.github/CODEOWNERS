@@ -1,0 +1,4 @@
+# CODEOWNERS
+
+# All iOS SDK code is reviewed by the iOS team.
+* @instantdb/ios-maintainers

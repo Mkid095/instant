@@ -24,8 +24,8 @@ const tools = result.tools;
 
 const errors = [];
 
-if (tools.length !== 76) {
-  errors.push(`Expected 76 tools (67 baseline + 9 android), got ${tools.length}`);
+if (tools.length !== 79) {
+  errors.push(`Expected 79 tools (67 baseline + 12 mobile), got ${tools.length}`);
 }
 
 const names = tools.map((t) => t.name);

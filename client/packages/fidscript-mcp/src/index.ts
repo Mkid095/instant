@@ -1177,11 +1177,11 @@ function registerTools(
     "learn",
     "Get an overview of InstantDB concepts, data modeling, permissions, and CLI commands. " +
       "Returns topic-specific guides. ALL docs at the SELF-HOSTED URL — do NOT search instantdb.com. " +
-      "Topics: 'overview' (default), 'schema', 'query', 'transact', 'perms', 'auth', 'storage', 'cli', 'android'.",
+      "Topics: 'overview' (default), 'schema', 'query', 'transact', 'perms', 'auth', 'storage', 'cli', 'android', 'ios'.",
     {
       topic: z.enum([
         "overview", "schema", "query", "transact", "perms",
-        "auth", "storage", "cli", "android"
+        "auth", "storage", "cli", "android", "ios"
       ]).optional().describe(
         "Topic. Default 'overview'. Use 'schema' for push-schema format, " +
         "'query' for InstaQL, 'transact' for transactions, 'perms' for permissions, " +
@@ -1460,6 +1460,53 @@ MUTATE:
 
 SELF-HOSTED DOCS: ${docs}/start-android
 SDK DASH: ${DEFAULT_DASH_URL}/dash?t=android-kotlin&app=YOUR_APP_ID
+CROSS-PLATFORM: ${docs}/cross-platform`,
+
+        ios: `iOS / SWIFT SDK:
+
+INSTALL — add to Package.swift:
+  dependencies: [
+      .package(url: "https://github.com/instantdb/instantdb-ios.git", from: "0.8.0"),
+  ],
+  targets: [
+      .target(
+          name: "YourApp",
+          dependencies: [
+              .product(name: "InstantDB", package: "instantdb-ios"),
+          ]),
+  ]
+
+INITIALIZE:
+  import InstantDB
+
+  let config = InstantDbConfig(
+      appId: "YOUR_APP_ID",
+      host: "${DEFAULT_API_URL}",
+      useSse: false  // true = SSE, false = WebSocket
+  )
+  let db = InstantDb(config: config)
+  try await db.connect()
+
+QUERY (async/await):
+  let data = try await db.queryOnce("{ todos: {} }")
+  let todos = (data["todos"] as? [[String: Any]]) ?? []
+  for todo in todos { print(todo["text"] ?? "") }
+
+QUERY (Combine):
+  import Combine
+  let cancellable = db.queryPublisher("{ todos: {} }")
+      .sink { data in print("Todos: \\(data)") }
+
+QUERY (SwiftUI):
+  @InstantQuery("{ todos: { \\$: { where: { done: false } } } }")
+  var todos: QueryResult
+
+MUTATE:
+  try await db.transact(steps: [
+      ["add", "todos", ["text": "hello", "done": false]]
+  ])
+
+SELF-HOSTED DOCS: ${docs}/start-ios
 CROSS-PLATFORM: ${docs}/cross-platform`,
       };
       return {
@@ -3136,6 +3183,271 @@ db.transact(
                  "the same storage provider. A photo uploaded from Android is " +
                  "downloadable from web with the same URL.",
         public_docs: "https://instant.fidscript.com/docs/cross-platform",
+      };
+
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify(guide, null, 2),
+        }],
+      };
+    },
+  );
+
+  tool(server,
+    "ios-installation",
+    "Return the Swift Package Manager dependency snippet for the iOS / Swift SDK. " +
+      "Public Maven / package repo URL is read from env (INSTANT_MAVEN_HOST). " +
+      "Format reference: call learn with topic='ios'. " +
+      "Docs: ${DEFAULT_DASH_URL}/docs/start-ios (self-hosted, NOT instantdb.com).",
+    {
+      version: z.string().optional().describe(
+        "Optional SDK version (default: 0.8.0). Must be a published SPM tag."
+      ),
+    },
+    async ({ version }) => {
+      const v = version || "0.8.0";
+      const snippet = `// In Xcode: File → Add Package Dependencies…\n` +
+        `// URL: https://github.com/instantdb/instantdb-ios\n` +
+        `//\n` +
+        `// In Package.swift:\n` +
+        `dependencies: [\n` +
+        `    .package(url: "https://github.com/instantdb/instantdb-ios.git", from: "${v}"),\n` +
+        `],\n` +
+        `targets: [\n` +
+        `    .target(\n` +
+        `        name: "YourApp",\n` +
+        `        dependencies: [\n` +
+        `            .product(name: "InstantDB", package: "instantdb-ios"),\n` +
+        `        ]),\n` +
+        `]`;
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ version: v, spm_snippet: snippet }, null, 2),
+        }],
+      };
+    },
+  );
+
+  tool(server,
+    "ios-setup-guide",
+    "Step-by-step setup guide for an iOS app with the InstantDB Swift SDK. " +
+      "Returns a complete walkthrough: SPM install, configuration, connect, query " +
+      "(async/await + Combine + SwiftUI), transact, transport selection, " +
+      "and how to share the same data with Android/web. No credentials.",
+    {
+      app_id: z.string().optional().describe(
+        "Your InstantDB app id (UUID). Returned in snippets if provided."
+      ),
+      host: z.string().optional().describe(
+        "API host. Defaults to INSTANT_API_HOST env var."
+      ),
+      transport: z.enum(["websocket", "sse"]).optional().describe(
+        "Transport to use. Default: websocket."
+      ),
+    },
+    async ({ app_id, host, transport }) => {
+      const aid = app_id || "YOUR_APP_ID";
+      const h = host || DEFAULT_API_URL;
+      const t = transport || "websocket";
+      const useSse = t === "sse";
+
+      const guide = {
+        overview: "Five steps to add InstantDB to a native iOS app. " +
+                  "Same appId shares data with Android, web, and other platforms.",
+        step_1_dependencies: {
+          file: "Package.swift",
+          snippet:
+`dependencies: [
+    .package(url: "https://github.com/instantdb/instantdb-ios.git", from: "0.8.0"),
+],
+targets: [
+    .target(
+        name: "YourApp",
+        dependencies: [
+            .product(name: "InstantDB", package: "instantdb-ios"),
+        ]),
+]`,
+        },
+        step_2_initialize: {
+          file: "AppDatabase.swift",
+          snippet:
+`import InstantDB
+
+let config = InstantDbConfig(
+    appId: "${aid}",
+    host: "${h}",
+    useSse = ${useSse},  // true = SSE, false = WebSocket
+)
+let db = InstantDb(config: config)
+
+Task {
+    do { try await db.connect() }
+    catch { print("Failed to connect: \\(error)") }
+}`,
+        },
+        step_3_query_async: {
+          file: "TodoListView.swift",
+          snippet:
+`let data = try await db.queryOnce(
+    "{ todos: { \\$: { where: { done: false } } } }"
+)
+let todos = (data["todos"] as? [[String: Any]]) ?? []
+for todo in todos {
+    print(todo["text"] ?? "")
+}`,
+        },
+        step_4_query_combine: {
+          file: "TodoListView.swift",
+          snippet:
+`import Combine
+
+let cancellable = db.queryPublisher(
+    "{ todos: {} }"
+)
+.sink { data in
+    print("Todos updated: \\(data)")
+}`,
+        },
+        step_5_swiftui: {
+          file: "ContentView.swift",
+          snippet:
+`import SwiftUI
+import InstantDB
+
+struct ContentView: View {
+    @InstantQuery("{ todos: { \\$: { where: { done: false } } } }")
+    var todos: QueryResult
+
+    var body: some View {
+        switch todos {
+        case .loading: ProgressView()
+        case .data(let data):
+            let items = (data["todos"] as? [[String: Any]]) ?? []
+            List(items, id: \\.["id"]) { todo in
+                Text((todo["text"] as? String) ?? "")
+            }
+        case .error(let msg): Text("Error: \\(msg)")
+        case .offline: Text("Offline — showing cached data")
+        }
+    }
+}`,
+        },
+        step_6_transact: {
+          file: "AddTodoButton.swift",
+          snippet:
+`try await db.transact(steps: [
+    [
+        "add",
+        "todos",
+        [
+            "text": "Buy milk",
+            "done": false,
+        ],
+    ],
+])`,
+          badge: "Optimistic",
+        },
+        cross_platform_note: {
+          summary: "Same appId across all clients shares the same database.",
+          details: "Use the same appId in your web app's @fidscript/instant-sdk " +
+                   "init() call. Todos created on iOS appear in the web/Android app " +
+                   "in real-time, and vice versa. No extra config needed — the " +
+                   "VPS routes by appId.",
+        },
+        verify_local: {
+          step_1: `Run the iOS example app at ${DEFAULT_MAVEN_URL}/.../InstantDBExample/`,
+          step_2: "Build and run on iOS Simulator (Xcode 15+, iOS 15+).",
+          step_3: `Public docs: ${DEFAULT_DASH_URL}/docs/start-ios`,
+        },
+      };
+
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify(guide, null, 2),
+        }],
+      };
+    },
+  );
+
+  tool(server,
+    "ios-cross-platform",
+    "Explain how to share data between the iOS app and other InstantDB " +
+      "clients (Android, web, React Native, etc.). Returns a working code sample " +
+      "for both sides and the URL to the public docs.",
+    {
+      app_id: z.string().optional().describe(
+        "Your InstantDB app id (UUID). Returned in snippets if provided."
+      ),
+    },
+    async ({ app_id }) => {
+      const aid = app_id || "YOUR_APP_ID";
+
+      const guide = {
+        overview: "InstantDB shares data across all clients with the same " +
+                  "appId. The same `appId` works in iOS, web, Android, React " +
+                  "Native, SolidJS, Svelte, Vue, Python, and Kotlin/JVM.",
+        architecture: {
+          description: "All clients connect to the same backend and read/write " +
+                       "to the same database, keyed by appId.",
+          diagram: "iOS --\\\n" +
+                   "         \\\n" +
+                   "          > [ InstantDB VPS ] -- same DB\n" +
+                   "         /\n" +
+                   "  Web --/",
+        },
+        ios_side: {
+          description: "Run InstantDb with the same appId as the web app.",
+          snippet:
+`import InstantDB
+
+let config = InstantDbConfig(
+    appId: "${aid}",
+    host: "${DEFAULT_API_URL}",
+    useSse: false
+)
+let db = InstantDb(config: config)
+try await db.connect()
+
+// Add a todo from iOS
+try await db.transact(steps: [
+    ["add", "todos", ["text": "Hello from iOS", "done": false]]
+])`,
+        },
+        web_side: {
+          description: "Use the same appId in the JS SDK.",
+          snippet:
+`import { init, id } from "@fidscript/instant-sdk";
+
+const db = init({ appId: "${aid}" });
+
+// Subscribe — the iOS-side todo will appear here in real-time
+db.subscribeQuery({ todos: {} }, (resp) => {
+    console.log("Todos:", resp.data.todos);
+});
+
+// Add a todo from web — iOS will receive it
+db.transact(
+    db.tx.todos[id()].update({ text: "Hello from web", done: false })
+);`,
+        },
+        verification: {
+          step_1: "Open the web app in a browser tab.",
+          step_2: "Open the iOS app on a simulator or device.",
+          step_3: "Add a todo in either — it appears in the other within " +
+                  "milliseconds (real-time sync over SSE or WebSocket).",
+          step_4: "Same applies to Android, React Native, SolidJS, Svelte, " +
+                  "Vue, Python, and Kotlin/JVM.",
+        },
+        auth: "Users created on any platform are visible on all platforms. " +
+              "Sign in via magic code on web, then query that user from " +
+              "the iOS app — same auth, same database.",
+        storage: "Files uploaded from any client (web, iOS, Android) live in " +
+                 "the same storage provider. A photo uploaded from iOS is " +
+                 "downloadable from web with the same URL.",
+        public_docs: `${DEFAULT_DASH_URL}/docs/cross-platform`,
       };
 
       return {
